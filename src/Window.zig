@@ -121,8 +121,8 @@ pub const Window = struct {
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            writeU32(buffer[4..8], self.window_id, byte_order);
+            Create.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Create.writeU32(buffer[4..8], self.window_id, byte_order);
 
             return buffer[0..size];
         }
