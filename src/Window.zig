@@ -654,6 +654,34 @@ pub const ChangeProperty = struct {
 };
 
 
+pub const DeleteProperty = struct {
+    pub const EncodeError = error{BufferTooSmall};
+
+    pub const opcode = 19;
+    pub const request_size = 12;
+
+    window_id: u32,
+    property: u32,
+
+    pub fn encode(
+        self: DeleteProperty,
+        buffer: []u8,
+        byte_order: ByteOrder,
+    ) EncodeError![]const u8 {
+        if (buffer.len < request_size)
+            return error.BufferTooSmall;
+
+        buffer[0] = opcode;
+        buffer[1] = 0;
+        Wire.writeU16(buffer[2..4], request_size / 4, byte_order);
+        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+        Wire.writeU32(buffer[8..12], self.property, byte_order);
+
+        return buffer[0..request_size];
+    }
+};
+
+
 test "encode little-endian create window request" {
     const request = Window.Create{
         .depth = 24,
@@ -947,4 +975,21 @@ test "ChangeProperty rejects invalid format" {
     };
 
     try std.testing.expectError(error.InvalidFormat, request.encodedLength());
+}
+
+
+test "encode little-endian DeleteProperty" {
+    const request = Window.DeleteProperty{
+        .window_id = 0x01020304,
+        .property = 0x11121314,
+    };
+
+    var buffer: [Window.DeleteProperty.request_size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        19, 0, 3, 0,
+        4, 3, 2, 1,
+        20, 19, 18, 17,
+    }, encoded);
 }
