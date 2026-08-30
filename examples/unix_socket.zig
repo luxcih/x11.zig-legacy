@@ -1,16 +1,10 @@
 const std = @import("std");
 
-pub fn main() !void {
-    var threaded = std.Io.Threaded.init(std.heap.page_allocator, .{});
-    defer threaded.deinit();
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
 
-    const io = threaded.io();
-
-    const tmpdir = std.process.getEnvVarOwned(
-        std.heap.page_allocator,
-        "TMPDIR",
-    ) catch return error.MissingTmpDir;
-    defer std.heap.page_allocator.free(tmpdir);
+    const tmpdir = init.environ_map.get("TMPDIR") orelse
+        return error.MissingTmpDir;
 
     var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
     const path = try std.fmt.bufPrint(
