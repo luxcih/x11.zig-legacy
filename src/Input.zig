@@ -1,6 +1,7 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const std = @import("std");
+const Endian = std.builtin.Endian;
 
 const Input = @This();
     pub const GetInputFocus = struct {
@@ -21,7 +22,7 @@ const Input = @This();
             revert_to: RevertTo,
             focus: u32,
 
-            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+            pub fn parse(bytes: []const u8, endian: Endian) ParseError!Reply {
                 if (bytes.len != reply_size) return error.InvalidLength;
                 if (bytes[0] != 1) return error.InvalidResponse;
 
@@ -33,16 +34,16 @@ const Input = @This();
                 };
                 return .{
                     .revert_to = revert_to,
-                    .focus = Wire.readU32(bytes[8..12], byte_order),
+                    .focus = Wire.readU32(bytes[8..12], endian),
                 };
             }
         };
 
-        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
             return buffer[0..size];
         }
     };
@@ -67,15 +68,15 @@ const Input = @This();
         pub fn encode(
             self: SetInputFocus,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = @intFromEnum(self.revert_to);
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.focus, byte_order);
-            Wire.writeU32(buffer[8..12], self.time, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.focus, endian);
+            Wire.writeU32(buffer[8..12], self.time, endian);
 
             return buffer[0..size];
         }
@@ -144,12 +145,12 @@ test "SetInputFocus rejects a small buffer" {
             }
         };
 
-        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
             return buffer[0..size];
         }
     };
@@ -197,21 +198,21 @@ test "encode QueryKeymap big-endian" {
         pub fn encode(
             self: WarpPointer,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.src_window, byte_order);
-            Wire.writeU32(buffer[8..12], self.dst_window, byte_order);
-            Wire.writeI16(buffer[12..14], self.src_x, byte_order);
-            Wire.writeI16(buffer[14..16], self.src_y, byte_order);
-            Wire.writeU16(buffer[16..18], self.src_width, byte_order);
-            Wire.writeU16(buffer[18..20], self.src_height, byte_order);
-            Wire.writeI16(buffer[20..22], self.dst_x, byte_order);
-            Wire.writeI16(buffer[22..24], self.dst_y, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.src_window, endian);
+            Wire.writeU32(buffer[8..12], self.dst_window, endian);
+            Wire.writeI16(buffer[12..14], self.src_x, endian);
+            Wire.writeI16(buffer[14..16], self.src_y, endian);
+            Wire.writeU16(buffer[16..18], self.src_width, endian);
+            Wire.writeU16(buffer[18..20], self.src_height, endian);
+            Wire.writeI16(buffer[20..22], self.dst_x, endian);
+            Wire.writeI16(buffer[22..24], self.dst_y, endian);
 
             return buffer[0..size];
         }
@@ -299,18 +300,18 @@ test "WarpPointer rejects a small buffer" {
             }
         };
 
-        pub fn encode(self: GrabPointer, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: GrabPointer, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = if (self.owner_events) 1 else 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
-            Wire.writeU16(buffer[8..10], self.event_mask, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.grab_window, endian);
+            Wire.writeU16(buffer[8..10], self.event_mask, endian);
             buffer[10] = self.pointer_mode;
             buffer[11] = self.keyboard_mode;
-            Wire.writeU32(buffer[12..16], self.confine_to, byte_order);
-            Wire.writeU32(buffer[16..20], self.cursor, byte_order);
-            Wire.writeU32(buffer[20..24], self.time, byte_order);
+            Wire.writeU32(buffer[12..16], self.confine_to, endian);
+            Wire.writeU32(buffer[16..20], self.cursor, endian);
+            Wire.writeU32(buffer[20..24], self.time, endian);
             return buffer[0..size];
         }
     };
@@ -320,11 +321,11 @@ test "WarpPointer rejects a small buffer" {
         pub const opcode = 27;
         pub const size: usize = 8;
         time: u32 = 0,
-        pub fn encode(self: UngrabPointer, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: UngrabPointer, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode; buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.time, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.time, endian);
             return buffer[0..size];
         }
     };
@@ -377,13 +378,13 @@ test "parse GrabPointer reply" {
             }
         };
 
-        pub fn encode(self: GrabKeyboard, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: GrabKeyboard, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = if (self.owner_events) 1 else 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
-            Wire.writeU32(buffer[8..12], self.time, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.grab_window, endian);
+            Wire.writeU32(buffer[8..12], self.time, endian);
             buffer[12] = self.pointer_mode;
             buffer[13] = self.keyboard_mode;
             buffer[14] = 0; buffer[15] = 0;
@@ -396,11 +397,11 @@ test "parse GrabPointer reply" {
         pub const opcode = 32;
         pub const size: usize = 8;
         time: u32 = 0,
-        pub fn encode(self: UngrabKeyboard, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: UngrabKeyboard, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode; buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.time, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.time, endian);
             return buffer[0..size];
         }
     };
@@ -429,11 +430,11 @@ test "encode GrabKeyboard and UngrabKeyboard" {
         };
         mode: Mode,
         time: u32 = 0,
-        pub fn encode(self: AllowEvents, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: AllowEvents, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode; buffer[1] = @intFromEnum(self.mode);
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.time, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.time, endian);
             return buffer[0..size];
         }
     };
@@ -442,10 +443,10 @@ test "encode GrabKeyboard and UngrabKeyboard" {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 36;
         pub const size: usize = 4;
-        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode; buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
             return buffer[0..size];
         }
     };
@@ -454,10 +455,10 @@ test "encode GrabKeyboard and UngrabKeyboard" {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 37;
         pub const size: usize = 4;
-        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode; buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
             return buffer[0..size];
         }
     };
@@ -494,10 +495,10 @@ test "encode AllowEvents and server grabs" {
             }
         };
 
-        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode; buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
             return buffer[0..size];
         }
     };
@@ -522,12 +523,12 @@ test "encode AllowEvents and server grabs" {
             return 4 + ((self.map.len + 3) / 4) * 4;
         }
 
-        pub fn encode(self: SetPointerMapping, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: SetPointerMapping, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             const size = self.encodedSize();
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = @intCast(self.map.len);
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
             @memcpy(buffer[4 .. 4 + self.map.len], self.map);
             @memset(buffer[4 + self.map.len .. size], 0);
             return buffer[0..size];
@@ -553,14 +554,14 @@ test "encode pointer mapping requests" {
         time: u32 = 0,
         event_mask: u16,
 
-        pub fn encode(self: ChangeActivePointerGrab, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: ChangeActivePointerGrab, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.cursor, byte_order);
-            Wire.writeU32(buffer[8..12], self.time, byte_order);
-            Wire.writeU16(buffer[12..14], self.event_mask, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.cursor, endian);
+            Wire.writeU32(buffer[8..12], self.time, endian);
+            Wire.writeU16(buffer[12..14], self.event_mask, endian);
             buffer[14] = 0;
             buffer[15] = 0;
             return buffer[0..size];
@@ -599,20 +600,20 @@ test "encode ChangeActivePointerGrab" {
         button: u8,
         modifiers: u16,
 
-        pub fn encode(self: GrabButton, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: GrabButton, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = if (self.owner_events) 1 else 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
-            Wire.writeU16(buffer[8..10], self.event_mask, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.grab_window, endian);
+            Wire.writeU16(buffer[8..10], self.event_mask, endian);
             buffer[10] = self.pointer_mode;
             buffer[11] = self.keyboard_mode;
-            Wire.writeU32(buffer[12..16], self.confine_to, byte_order);
-            Wire.writeU32(buffer[16..20], self.cursor, byte_order);
+            Wire.writeU32(buffer[12..16], self.confine_to, endian);
+            Wire.writeU32(buffer[16..20], self.cursor, endian);
             buffer[20] = self.button;
             buffer[21] = 0;
-            Wire.writeU16(buffer[22..24], self.modifiers, byte_order);
+            Wire.writeU16(buffer[22..24], self.modifiers, endian);
             return buffer[0..size];
         }
     };
@@ -626,13 +627,13 @@ test "encode ChangeActivePointerGrab" {
         grab_window: u32,
         modifiers: u16,
 
-        pub fn encode(self: UngrabButton, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: UngrabButton, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = self.button;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
-            Wire.writeU16(buffer[8..10], self.modifiers, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.grab_window, endian);
+            Wire.writeU16(buffer[8..10], self.modifiers, endian);
             buffer[10] = 0;
             buffer[11] = 0;
             return buffer[0..size];
@@ -671,13 +672,13 @@ test "encode passive button grabs" {
         pointer_mode: u8 = 1,
         keyboard_mode: u8 = 1,
 
-        pub fn encode(self: GrabKey, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: GrabKey, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = if (self.owner_events) 1 else 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
-            Wire.writeU16(buffer[8..10], self.modifiers, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.grab_window, endian);
+            Wire.writeU16(buffer[8..10], self.modifiers, endian);
             buffer[10] = self.key;
             buffer[11] = self.pointer_mode;
             buffer[12] = self.keyboard_mode;
@@ -695,13 +696,13 @@ test "encode passive button grabs" {
         grab_window: u32,
         modifiers: u16,
 
-        pub fn encode(self: UngrabKey, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: UngrabKey, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = self.key;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
-            Wire.writeU16(buffer[8..10], self.modifiers, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.grab_window, endian);
+            Wire.writeU16(buffer[8..10], self.modifiers, endian);
             buffer[10] = 0; buffer[11] = 0;
             return buffer[0..size];
         }
@@ -738,23 +739,23 @@ test "encode passive key grabs" {
 
         pub const Reply = struct {
             events: []const u8,
-            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+            pub fn parse(bytes: []const u8, endian: Endian) ParseError!Reply {
                 if (bytes.len < reply_size) return error.InvalidLength;
                 if (bytes[0] != 1) return error.InvalidResponse;
-                const count = Wire.readU32(bytes[8..12], byte_order);
+                const count = Wire.readU32(bytes[8..12], endian);
                 const body_len: usize = @as(usize, count) * 8;
                 if (bytes.len < reply_size + body_len) return error.InvalidLength;
                 return .{ .events = bytes[reply_size .. reply_size + body_len] };
             }
         };
 
-        pub fn encode(self: GetMotionEvents, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: GetMotionEvents, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode; buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.window, byte_order);
-            Wire.writeU32(buffer[8..12], self.start, byte_order);
-            Wire.writeU32(buffer[12..16], self.stop, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.window, endian);
+            Wire.writeU32(buffer[8..12], self.start, endian);
+            Wire.writeU32(buffer[12..16], self.stop, endian);
             return buffer[0..size];
         }
     };
@@ -792,10 +793,10 @@ test "encode GetMotionEvents" {
             }
         };
 
-        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode; buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
             return buffer[0..size];
         }
     };
@@ -811,12 +812,12 @@ test "encode GetMotionEvents" {
             return 4 + ((self.map.len + 3) / 4) * 4;
         }
 
-        pub fn encode(self: SetModifierMapping, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: SetModifierMapping, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             const size = self.encodedSize();
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = self.keys_per_modifier;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
             @memcpy(buffer[4 .. 4 + self.map.len], self.map);
             @memset(buffer[4 + self.map.len .. size], 0);
             return buffer[0..size];
