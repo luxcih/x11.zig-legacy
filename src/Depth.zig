@@ -2,7 +2,7 @@ const std = @import("std");
 const Wire = @import("Wire.zig");
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const Depth = struct {
+const Depth = @This();
     pub const ParseError = error{
         BufferTooShort,
     };
@@ -36,7 +36,6 @@ pub const Depth = struct {
     pub fn totalLength(self: Depth) usize {
         return self.visualsOffset() + self.visualsLength();
     }
-};
 
 test "parse little-endian depth" {
     const depth = try Depth.parse(
