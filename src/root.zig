@@ -11,14 +11,14 @@ pub const Connection = @import("Connection.zig");
 
 pub const Setup = @import("Setup.zig");
 pub const SetupResponse = @import("SetupResponse.zig").SetupResponse;
-pub const SetupInfo = @import("SetupInfo.zig").SetupInfo;
+pub const SetupInfo = @import("SetupInfo.zig");
 
 pub const PixmapFormat = @import("PixmapFormat.zig");
 pub const Screen = @import("Screen.zig");
 pub const Depth = @import("Depth.zig");
 pub const VisualType = @import("VisualType.zig");
 
-pub const XidAllocator = @import("XidAllocator.zig").XidAllocator;
+pub const XidAllocator = @import("XidAllocator.zig");
 
 pub const Window = @import("Window.zig");
 pub const GC = @import("GC.zig");
