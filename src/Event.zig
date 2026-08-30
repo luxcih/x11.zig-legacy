@@ -81,7 +81,7 @@ pub const Event = union(enum) {
     };
 
     pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Event {
-        if (bytes.len < 32)
+        if (bytes.len != 32)
             return error.InvalidLength;
 
         const response_type = bytes[0] & 0x7f;
