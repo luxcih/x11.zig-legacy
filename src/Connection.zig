@@ -7,6 +7,7 @@ const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const Connection = struct {
     stream: std.Io.net.Stream,
+    sequence: u16 = 0,
 
     pub fn init(stream: std.Io.net.Stream) Connection {
         return .{
@@ -33,7 +34,14 @@ pub const Connection = struct {
         return init(stream);
     }
 
+    /// Returns the sequence number of the most recently sent request.
+    pub fn lastSequence(self: *const Connection) u16 {
+        return self.sequence;
+    }
+
     /// Writes an entire X11 protocol message and flushes it to the server.
+    ///
+    /// This low-level operation does not advance the X11 request sequence.
     pub fn writeAll(
         self: *Connection,
         io: std.Io,
@@ -42,6 +50,20 @@ pub const Connection = struct {
         var writer = self.stream.writer(io, &.{});
         try writer.interface.writeAll(bytes);
         try writer.interface.flush();
+    }
+
+    /// Sends one X11 request, flushes it, and advances the request sequence.
+    ///
+    /// The returned sequence number identifies this request for matching
+    /// replies and protocol errors.
+    pub fn sendRequest(
+        self: *Connection,
+        io: std.Io,
+        bytes: []const u8,
+    ) !u16 {
+        try self.writeAll(io, bytes);
+        self.sequence +%= 1;
+        return self.sequence;
     }
 
     /// Returns a buffered reader for incoming X11 protocol messages.
@@ -153,4 +175,16 @@ test "Connection.readResponse parses events" {
         },
         else => return error.UnexpectedResponse,
     }
+}
+
+
+test "Connection request sequence increments and wraps" {
+    var connection = Connection.init(undefined);
+
+    try std.testing.expectEqual(@as(u16, 0), connection.lastSequence());
+
+    connection.sequence = std.math.maxInt(u16);
+    connection.sequence +%= 1;
+
+    try std.testing.expectEqual(@as(u16, 0), connection.lastSequence());
 }
