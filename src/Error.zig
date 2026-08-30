@@ -47,3 +47,28 @@ test "parse little-endian X11 error" {
     try std.testing.expectEqual(@as(u16, 0x5678), parsed.minor_opcode);
     try std.testing.expectEqual(@as(u8, 42), parsed.major_opcode);
 }
+
+test "parse big-endian X11 error" {
+    var bytes: [Error.size]u8 = [_]u8{0} ** Error.size;
+    bytes[1] = 3;
+    Wire.writeU16(bytes[2..4], 0x1234, .big);
+    Wire.writeU32(bytes[4..8], 0x01020304, .big);
+    Wire.writeU16(bytes[8..10], 0x5678, .big);
+    bytes[10] = 42;
+
+    const parsed = try Error.parse(&bytes, .big);
+    try std.testing.expectEqual(@as(u8, 3), parsed.code);
+    try std.testing.expectEqual(@as(u16, 0x1234), parsed.sequence);
+    try std.testing.expectEqual(@as(u32, 0x01020304), parsed.resource_id);
+    try std.testing.expectEqual(@as(u16, 0x5678), parsed.minor_opcode);
+    try std.testing.expectEqual(@as(u8, 42), parsed.major_opcode);
+}
+
+test "reject malformed X11 errors" {
+    var bytes: [Error.size]u8 = [_]u8{0} ** Error.size;
+
+    try std.testing.expectError(error.InvalidLength, Error.parse(bytes[0..31], .little));
+
+    bytes[0] = 1;
+    try std.testing.expectError(error.InvalidResponse, Error.parse(&bytes, .little));
+}
