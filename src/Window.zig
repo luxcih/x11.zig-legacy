@@ -69,6 +69,125 @@ pub const Window = struct {
 
     };
 
+
+    pub const GetWindowAttributes = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{ InvalidLength, InvalidResponse };
+
+        pub const opcode = 3;
+        pub const size: usize = 8;
+        pub const reply_size: usize = 44;
+
+        window_id: u32,
+
+        pub const Reply = struct {
+            backing_store: u8,
+            visual: u32,
+            class: u16,
+            bit_gravity: u8,
+            win_gravity: u8,
+            backing_planes: u32,
+            backing_pixel: u32,
+            save_under: bool,
+            map_is_installed: bool,
+            map_state: u8,
+            override_redirect: bool,
+            colormap: u32,
+            all_event_masks: u32,
+            your_event_mask: u32,
+            do_not_propagate_mask: u16,
+
+            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+                if (bytes.len != reply_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+
+                return .{
+                    .backing_store = bytes[1],
+                    .visual = Wire.readU32(bytes[8..12], byte_order),
+                    .class = Wire.readU16(bytes[12..14], byte_order),
+                    .bit_gravity = bytes[14],
+                    .win_gravity = bytes[15],
+                    .backing_planes = Wire.readU32(bytes[16..20], byte_order),
+                    .backing_pixel = Wire.readU32(bytes[20..24], byte_order),
+                    .save_under = bytes[24] != 0,
+                    .map_is_installed = bytes[25] != 0,
+                    .map_state = bytes[26],
+                    .override_redirect = bytes[27] != 0,
+                    .colormap = Wire.readU32(bytes[28..32], byte_order),
+                    .all_event_masks = Wire.readU32(bytes[32..36], byte_order),
+                    .your_event_mask = Wire.readU32(bytes[36..40], byte_order),
+                    .do_not_propagate_mask = Wire.readU16(bytes[40..42], byte_order),
+                };
+            }
+        };
+
+        pub fn encode(self: GetWindowAttributes, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const QueryTree = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{ InvalidLength, InvalidResponse, InvalidChildrenLength };
+
+        pub const opcode = 15;
+        pub const size: usize = 8;
+        pub const reply_header_size: usize = 32;
+
+        window_id: u32,
+
+        pub const ReplyHeader = struct {
+            root: u32,
+            parent: u32,
+            children_count: u16,
+
+            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!ReplyHeader {
+                if (bytes.len != reply_header_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+                return .{
+                    .root = Wire.readU32(bytes[8..12], byte_order),
+                    .parent = Wire.readU32(bytes[12..16], byte_order),
+                    .children_count = Wire.readU16(bytes[16..18], byte_order),
+                };
+            }
+
+            pub fn childrenBytes(self: ReplyHeader) usize {
+                return @as(usize, self.children_count) * 4;
+            }
+        };
+
+        pub fn parseChildren(
+            allocator: std.mem.Allocator,
+            bytes: []const u8,
+            count: u16,
+            byte_order: ByteOrder,
+        ) ParseError![]u32 {
+            const expected = @as(usize, count) * 4;
+            if (bytes.len != expected) return error.InvalidChildrenLength;
+
+            const children = try allocator.alloc(u32, count);
+            for (children, 0..) |*child, index| {
+                const offset = index * 4;
+                child.* = Wire.readU32(bytes[offset .. offset + 4], byte_order);
+            }
+            return children;
+        }
+
+        pub fn encode(self: QueryTree, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            return buffer[0..size];
+        }
+    };
+
     pub const ChangeAttributes = struct {
         pub const EncodeError = error{
             BufferTooSmall,
