@@ -38,6 +38,16 @@ pub const Connection = struct {
         try writer.interface.flush();
     }
 
+    pub fn readExact(
+        self: *Connection,
+        io: std.Io,
+        buffer: []u8,
+    ) !void {
+        var read_buffer: [4096]u8 = undefined;
+        var reader = self.stream.reader(io, &read_buffer);
+        try reader.interface.readSliceAll(buffer);
+    }
+
     pub fn close(self: *Connection, io: std.Io) void {
         self.stream.socket.close(io);
     }
