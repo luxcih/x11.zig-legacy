@@ -1,6 +1,7 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const std = @import("std");
+const Endian = std.builtin.Endian;
 
 const Window = @This();
     pub const Create = struct {
@@ -36,33 +37,33 @@ const Window = @This();
         pub fn encode(
             self: Create,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             const length = self.encodedLength();
             if (buffer.len < length) return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = self.depth;
-            Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
-            Wire.writeU32(buffer[8..12], self.parent, byte_order);
-            Wire.writeI16(buffer[12..14], self.x, byte_order);
-            Wire.writeI16(buffer[14..16], self.y, byte_order);
-            Wire.writeU16(buffer[16..18], self.width, byte_order);
-            Wire.writeU16(buffer[18..20], self.height, byte_order);
-            Wire.writeU16(buffer[20..22], self.border_width, byte_order);
-            Wire.writeU16(buffer[22..24], @intFromEnum(self.class), byte_order);
-            Wire.writeU32(buffer[24..28], self.visual, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
+            Wire.writeU32(buffer[8..12], self.parent, endian);
+            Wire.writeI16(buffer[12..14], self.x, endian);
+            Wire.writeI16(buffer[14..16], self.y, endian);
+            Wire.writeU16(buffer[16..18], self.width, endian);
+            Wire.writeU16(buffer[18..20], self.height, endian);
+            Wire.writeU16(buffer[20..22], self.border_width, endian);
+            Wire.writeU16(buffer[22..24], @intFromEnum(self.class), endian);
+            Wire.writeU32(buffer[24..28], self.visual, endian);
             var offset: usize = size;
             var value_mask: u32 = 0;
 
             if (self.background_pixel) |pixel| {
                 value_mask |= 1 << 1;
-                Wire.writeU32(buffer[offset .. offset + 4], pixel, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], pixel, endian);
                 offset += 4;
             }
 
-            Wire.writeU32(buffer[28..32], value_mask, byte_order);
+            Wire.writeU32(buffer[28..32], value_mask, endian);
 
             return buffer[0..offset];
         }
@@ -97,36 +98,36 @@ const Window = @This();
             your_event_mask: u32,
             do_not_propagate_mask: u16,
 
-            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+            pub fn parse(bytes: []const u8, endian: Endian) ParseError!Reply {
                 if (bytes.len != reply_size) return error.InvalidLength;
                 if (bytes[0] != 1) return error.InvalidResponse;
 
                 return .{
                     .backing_store = bytes[1],
-                    .visual = Wire.readU32(bytes[8..12], byte_order),
-                    .class = Wire.readU16(bytes[12..14], byte_order),
+                    .visual = Wire.readU32(bytes[8..12], endian),
+                    .class = Wire.readU16(bytes[12..14], endian),
                     .bit_gravity = bytes[14],
                     .win_gravity = bytes[15],
-                    .backing_planes = Wire.readU32(bytes[16..20], byte_order),
-                    .backing_pixel = Wire.readU32(bytes[20..24], byte_order),
+                    .backing_planes = Wire.readU32(bytes[16..20], endian),
+                    .backing_pixel = Wire.readU32(bytes[20..24], endian),
                     .save_under = bytes[24] != 0,
                     .map_is_installed = bytes[25] != 0,
                     .map_state = bytes[26],
                     .override_redirect = bytes[27] != 0,
-                    .colormap = Wire.readU32(bytes[28..32], byte_order),
-                    .all_event_masks = Wire.readU32(bytes[32..36], byte_order),
-                    .your_event_mask = Wire.readU32(bytes[36..40], byte_order),
-                    .do_not_propagate_mask = Wire.readU16(bytes[40..42], byte_order),
+                    .colormap = Wire.readU32(bytes[28..32], endian),
+                    .all_event_masks = Wire.readU32(bytes[32..36], endian),
+                    .your_event_mask = Wire.readU32(bytes[36..40], endian),
+                    .do_not_propagate_mask = Wire.readU16(bytes[40..42], endian),
                 };
             }
         };
 
-        pub fn encode(self: GetWindowAttributes, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: GetWindowAttributes, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
             return buffer[0..size];
         }
     };
@@ -146,13 +147,13 @@ const Window = @This();
             parent: u32,
             children_count: u16,
 
-            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!ReplyHeader {
+            pub fn parse(bytes: []const u8, endian: Endian) ParseError!ReplyHeader {
                 if (bytes.len != reply_header_size) return error.InvalidLength;
                 if (bytes[0] != 1) return error.InvalidResponse;
                 return .{
-                    .root = Wire.readU32(bytes[8..12], byte_order),
-                    .parent = Wire.readU32(bytes[12..16], byte_order),
-                    .children_count = Wire.readU16(bytes[16..18], byte_order),
+                    .root = Wire.readU32(bytes[8..12], endian),
+                    .parent = Wire.readU32(bytes[12..16], endian),
+                    .children_count = Wire.readU16(bytes[16..18], endian),
                 };
             }
 
@@ -165,7 +166,7 @@ const Window = @This();
             allocator: std.mem.Allocator,
             bytes: []const u8,
             count: u16,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) ParseError![]u32 {
             const expected = @as(usize, count) * 4;
             if (bytes.len != expected) return error.InvalidChildrenLength;
@@ -173,17 +174,17 @@ const Window = @This();
             const children = try allocator.alloc(u32, count);
             for (children, 0..) |*child, index| {
                 const offset = index * 4;
-                child.* = Wire.readU32(bytes[offset .. offset + 4], byte_order);
+                child.* = Wire.readU32(bytes[offset .. offset + 4], endian);
             }
             return children;
         }
 
-        pub fn encode(self: QueryTree, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: QueryTree, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
             return buffer[0..size];
         }
     };
@@ -208,19 +209,19 @@ const Window = @This();
             win_y: i16,
             mask: u16,
 
-            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+            pub fn parse(bytes: []const u8, endian: Endian) ParseError!Reply {
                 if (bytes.len != reply_size) return error.InvalidLength;
                 if (bytes[0] != 1) return error.InvalidResponse;
 
                 return .{
                     .same_screen = bytes[1] != 0,
-                    .root = Wire.readU32(bytes[8..12], byte_order),
-                    .child = Wire.readU32(bytes[12..16], byte_order),
-                    .root_x = Wire.readI16(bytes[16..18], byte_order),
-                    .root_y = Wire.readI16(bytes[18..20], byte_order),
-                    .win_x = Wire.readI16(bytes[20..22], byte_order),
-                    .win_y = Wire.readI16(bytes[22..24], byte_order),
-                    .mask = Wire.readU16(bytes[24..26], byte_order),
+                    .root = Wire.readU32(bytes[8..12], endian),
+                    .child = Wire.readU32(bytes[12..16], endian),
+                    .root_x = Wire.readI16(bytes[16..18], endian),
+                    .root_y = Wire.readI16(bytes[18..20], endian),
+                    .win_x = Wire.readI16(bytes[20..22], endian),
+                    .win_y = Wire.readI16(bytes[22..24], endian),
+                    .mask = Wire.readU16(bytes[24..26], endian),
                 };
             }
         };
@@ -228,14 +229,14 @@ const Window = @This();
         pub fn encode(
             self: QueryPointer,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
 
             return buffer[0..size];
         }
@@ -286,17 +287,17 @@ const Window = @This();
         pub fn encode(
             self: ChangeAttributes,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             if (buffer.len < size)
                 return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
-            Wire.writeU32(buffer[8..12], event_mask_bit, byte_order);
-            Wire.writeU32(buffer[12..16], @bitCast(self.event_mask), byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
+            Wire.writeU32(buffer[8..12], event_mask_bit, endian);
+            Wire.writeU32(buffer[12..16], @bitCast(self.event_mask), endian);
 
             return buffer[0..size];
         }
@@ -315,15 +316,15 @@ const Window = @This();
         pub fn encode(
             self: Unmap,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             if (buffer.len < size)
                 return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
 
             return buffer[0..size];
         }
@@ -342,15 +343,15 @@ const Window = @This();
         pub fn encode(
             self: Destroy,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             if (buffer.len < size)
                 return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
 
             return buffer[0..size];
         }
@@ -382,7 +383,7 @@ const Window = @This();
         pub fn encode(
             self: Configure,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             const length = self.encodedLength();
             if (buffer.len < length)
@@ -393,34 +394,34 @@ const Window = @This();
 
             if (self.x) |value| {
                 value_mask |= 1 << 0;
-                Wire.writeU32(buffer[offset .. offset + 4], @bitCast(value), byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], @bitCast(value), endian);
                 offset += 4;
             }
 
             if (self.y) |value| {
                 value_mask |= 1 << 1;
-                Wire.writeU32(buffer[offset .. offset + 4], @bitCast(value), byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], @bitCast(value), endian);
                 offset += 4;
             }
 
             if (self.width) |value| {
                 value_mask |= 1 << 2;
-                Wire.writeU32(buffer[offset .. offset + 4], value, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], value, endian);
                 offset += 4;
             }
 
             if (self.height) |value| {
                 value_mask |= 1 << 3;
-                Wire.writeU32(buffer[offset .. offset + 4], value, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], value, endian);
                 offset += 4;
             }
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
-            Wire.writeU16(buffer[8..10], value_mask, byte_order);
-            Wire.writeU16(buffer[10..12], 0, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
+            Wire.writeU16(buffer[8..10], value_mask, endian);
+            Wire.writeU16(buffer[10..12], 0, endian);
 
             return buffer[0..offset];
         }
@@ -451,18 +452,18 @@ const Window = @This();
             height: u16,
             border_width: u16,
 
-            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+            pub fn parse(bytes: []const u8, endian: Endian) ParseError!Reply {
                 if (bytes.len != reply_size) return error.InvalidLength;
                 if (bytes[0] != 1) return error.InvalidResponse;
 
                 return .{
                     .depth = bytes[1],
-                    .root = Wire.readU32(bytes[8..12], byte_order),
-                    .x = Wire.readI16(bytes[12..14], byte_order),
-                    .y = Wire.readI16(bytes[14..16], byte_order),
-                    .width = Wire.readU16(bytes[16..18], byte_order),
-                    .height = Wire.readU16(bytes[18..20], byte_order),
-                    .border_width = Wire.readU16(bytes[20..22], byte_order),
+                    .root = Wire.readU32(bytes[8..12], endian),
+                    .x = Wire.readI16(bytes[12..14], endian),
+                    .y = Wire.readI16(bytes[14..16], endian),
+                    .width = Wire.readU16(bytes[16..18], endian),
+                    .height = Wire.readU16(bytes[18..20], endian),
+                    .border_width = Wire.readU16(bytes[20..22], endian),
                 };
             }
         };
@@ -470,14 +471,14 @@ const Window = @This();
         pub fn encode(
             self: GetGeometry,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.drawable, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
+            Wire.writeU32(buffer[4..8], self.drawable, endian);
 
             return buffer[0..size];
         }
@@ -501,14 +502,14 @@ const Window = @This();
         pub fn encode(
             self: Map,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
 
             return buffer[0..size];
         }
@@ -532,7 +533,7 @@ pub const GetProperty = struct {
     pub fn encode(
         self: GetProperty,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         if (buffer.len < request_size)
             return error.BufferTooSmall;
@@ -540,12 +541,12 @@ pub const GetProperty = struct {
         @memset(buffer[0..request_size], 0);
         buffer[0] = opcode;
         buffer[1] = @intFromBool(self.delete);
-        Wire.writeU16(buffer[2..4], request_size / 4, byte_order);
-        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
-        Wire.writeU32(buffer[8..12], self.property, byte_order);
-        Wire.writeU32(buffer[12..16], self.type, byte_order);
-        Wire.writeU32(buffer[16..20], self.long_offset, byte_order);
-        Wire.writeU32(buffer[20..24], self.long_length, byte_order);
+        Wire.writeU16(buffer[2..4], request_size / 4, endian);
+        Wire.writeU32(buffer[4..8], self.window_id, endian);
+        Wire.writeU32(buffer[8..12], self.property, endian);
+        Wire.writeU32(buffer[12..16], self.type, endian);
+        Wire.writeU32(buffer[16..20], self.long_offset, endian);
+        Wire.writeU32(buffer[20..24], self.long_length, endian);
 
         return buffer[0..request_size];
     }
@@ -556,7 +557,7 @@ pub const GetProperty = struct {
         bytes_after: u32,
         value_length: u32,
 
-        pub fn parsePrefix(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+        pub fn parsePrefix(bytes: []const u8, endian: Endian) ParseError!Reply {
             if (bytes.len != reply_size)
                 return error.InvalidLength;
             if (bytes[0] != 1)
@@ -564,9 +565,9 @@ pub const GetProperty = struct {
 
             return .{
                 .format = bytes[1],
-                .type = Wire.readU32(bytes[8..12], byte_order),
-                .bytes_after = Wire.readU32(bytes[12..16], byte_order),
-                .value_length = Wire.readU32(bytes[16..20], byte_order),
+                .type = Wire.readU32(bytes[8..12], endian),
+                .bytes_after = Wire.readU32(bytes[12..16], endian),
+                .value_length = Wire.readU32(bytes[16..20], endian),
             };
         }
 
@@ -624,7 +625,7 @@ pub const ChangeProperty = struct {
     pub fn encode(
         self: ChangeProperty,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         const length = try self.encodedLength();
         if (buffer.len < length)
@@ -641,12 +642,12 @@ pub const ChangeProperty = struct {
         @memset(buffer[0..length], 0);
         buffer[0] = opcode;
         buffer[1] = @intFromEnum(self.mode);
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
-        Wire.writeU32(buffer[8..12], self.property, byte_order);
-        Wire.writeU32(buffer[12..16], self.type, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+        Wire.writeU32(buffer[4..8], self.window_id, endian);
+        Wire.writeU32(buffer[8..12], self.property, endian);
+        Wire.writeU32(buffer[12..16], self.type, endian);
         buffer[16] = self.format;
-        Wire.writeU32(buffer[20..24], @intCast(item_count), byte_order);
+        Wire.writeU32(buffer[20..24], @intCast(item_count), endian);
         @memcpy(buffer[24 .. 24 + self.data.len], self.data);
 
         return buffer[0..length];
@@ -666,16 +667,16 @@ pub const DeleteProperty = struct {
     pub fn encode(
         self: DeleteProperty,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         if (buffer.len < request_size)
             return error.BufferTooSmall;
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], request_size / 4, byte_order);
-        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
-        Wire.writeU32(buffer[8..12], self.property, byte_order);
+        Wire.writeU16(buffer[2..4], request_size / 4, endian);
+        Wire.writeU32(buffer[4..8], self.window_id, endian);
+        Wire.writeU32(buffer[8..12], self.property, endian);
 
         return buffer[0..request_size];
     }
@@ -700,15 +701,15 @@ pub const ListProperties = struct {
     pub fn encode(
         self: ListProperties,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         if (buffer.len < request_size)
             return error.BufferTooSmall;
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], request_size / 4, byte_order);
-        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+        Wire.writeU16(buffer[2..4], request_size / 4, endian);
+        Wire.writeU32(buffer[4..8], self.window_id, endian);
 
         return buffer[0..request_size];
     }
@@ -716,19 +717,19 @@ pub const ListProperties = struct {
     pub const Reply = struct {
         atoms: []u32,
 
-        pub fn atomCount(header: []const u8, byte_order: ByteOrder) ParseError!u16 {
+        pub fn atomCount(header: []const u8, endian: Endian) ParseError!u16 {
             if (header.len != reply_size) return error.InvalidLength;
             if (header[0] != 1) return error.InvalidResponse;
-            return Wire.readU16(header[8..10], byte_order);
+            return Wire.readU16(header[8..10], endian);
         }
 
         pub fn parse(
             allocator: std.mem.Allocator,
             header: []const u8,
             atoms_bytes: []const u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) ParseError!Reply {
-            const count = try atomCount(header, byte_order);
+            const count = try atomCount(header, endian);
             const byte_count = @as(usize, count) * @sizeOf(u32);
             if (atoms_bytes.len != byte_count)
                 return error.InvalidAtomsLength;
@@ -740,7 +741,7 @@ pub const ListProperties = struct {
                 const offset = i * @sizeOf(u32);
                 atom.* = Wire.readU32(
                     atoms_bytes[offset .. offset + 4],
-                    byte_order,
+                    endian,
                 );
             }
 
@@ -777,7 +778,7 @@ pub const RotateProperties = struct {
     pub fn encode(
         self: RotateProperties,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         const length = try self.encodedLength();
         if (buffer.len < length)
@@ -785,14 +786,14 @@ pub const RotateProperties = struct {
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
-        Wire.writeU16(buffer[8..10], @intCast(self.properties.len), byte_order);
-        Wire.writeU16(buffer[10..12], @bitCast(self.delta), byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+        Wire.writeU32(buffer[4..8], self.window_id, endian);
+        Wire.writeU16(buffer[8..10], @intCast(self.properties.len), endian);
+        Wire.writeU16(buffer[10..12], @bitCast(self.delta), endian);
 
         for (self.properties, 0..) |property, i| {
             const offset = header_size + i * @sizeOf(u32);
-            Wire.writeU32(buffer[offset .. offset + 4], property, byte_order);
+            Wire.writeU32(buffer[offset .. offset + 4], property, endian);
         }
 
         return buffer[0..length];
@@ -952,12 +953,12 @@ test "encode little-endian map window request" {
 
         window_id: u32,
 
-        pub fn encode(self: DestroySubwindows, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: DestroySubwindows, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
             return buffer[0..size];
         }
     };
@@ -975,12 +976,12 @@ test "encode little-endian map window request" {
         mode: Mode,
         window_id: u32,
 
-        pub fn encode(self: ChangeSaveSet, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: ChangeSaveSet, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = @intFromEnum(self.mode);
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
             return buffer[0..size];
         }
     };
@@ -995,15 +996,15 @@ test "encode little-endian map window request" {
         x: i16,
         y: i16,
 
-        pub fn encode(self: Reparent, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: Reparent, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
-            Wire.writeU32(buffer[8..12], self.parent, byte_order);
-            Wire.writeI16(buffer[12..14], self.x, byte_order);
-            Wire.writeI16(buffer[14..16], self.y, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
+            Wire.writeU32(buffer[8..12], self.parent, endian);
+            Wire.writeI16(buffer[12..14], self.x, endian);
+            Wire.writeI16(buffer[14..16], self.y, endian);
             return buffer[0..size];
         }
     };
@@ -1015,12 +1016,12 @@ test "encode little-endian map window request" {
 
         window_id: u32,
 
-        pub fn encode(self: MapSubwindows, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: MapSubwindows, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
             return buffer[0..size];
         }
     };
@@ -1032,12 +1033,12 @@ test "encode little-endian map window request" {
 
         window_id: u32,
 
-        pub fn encode(self: UnmapSubwindows, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: UnmapSubwindows, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
             return buffer[0..size];
         }
     };
@@ -1055,12 +1056,12 @@ test "encode little-endian map window request" {
         window_id: u32,
         direction: Direction,
 
-        pub fn encode(self: Circulate, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+        pub fn encode(self: Circulate, buffer: []u8, endian: Endian) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
             buffer[0] = opcode;
             buffer[1] = @intFromEnum(self.direction);
-            Wire.writeU16(buffer[2..4], size / 4, byte_order);
-            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], size / 4, endian);
+            Wire.writeU32(buffer[4..8], self.window_id, endian);
             return buffer[0..size];
         }
     };
@@ -1086,15 +1087,15 @@ pub const TranslateCoordinates = struct {
         dst_x: i16,
         dst_y: i16,
 
-        pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+        pub fn parse(bytes: []const u8, endian: Endian) ParseError!Reply {
             if (bytes.len != reply_size) return error.InvalidLength;
             if (bytes[0] != 1) return error.InvalidResponse;
 
             return .{
                 .same_screen = bytes[1] != 0,
-                .child = Wire.readU32(bytes[8..12], byte_order),
-                .dst_x = Wire.readI16(bytes[12..14], byte_order),
-                .dst_y = Wire.readI16(bytes[14..16], byte_order),
+                .child = Wire.readU32(bytes[8..12], endian),
+                .dst_x = Wire.readI16(bytes[12..14], endian),
+                .dst_y = Wire.readI16(bytes[14..16], endian),
             };
         }
     };
@@ -1102,17 +1103,17 @@ pub const TranslateCoordinates = struct {
     pub fn encode(
         self: TranslateCoordinates,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         if (buffer.len < size) return error.BufferTooSmall;
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], size / 4, byte_order);
-        Wire.writeU32(buffer[4..8], self.src_window, byte_order);
-        Wire.writeU32(buffer[8..12], self.dst_window, byte_order);
-        Wire.writeI16(buffer[12..14], self.src_x, byte_order);
-        Wire.writeI16(buffer[14..16], self.src_y, byte_order);
+        Wire.writeU16(buffer[2..4], size / 4, endian);
+        Wire.writeU32(buffer[4..8], self.src_window, endian);
+        Wire.writeU32(buffer[8..12], self.dst_window, endian);
+        Wire.writeI16(buffer[12..14], self.src_x, endian);
+        Wire.writeI16(buffer[14..16], self.src_y, endian);
 
         return buffer[0..size];
     }
