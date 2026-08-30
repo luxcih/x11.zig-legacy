@@ -10,6 +10,7 @@
         "src",
         "examples",
         "README.md",
+        "LICENSE",
         ".gitignore",
     },
 }
