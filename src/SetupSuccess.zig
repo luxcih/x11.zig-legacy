@@ -1,6 +1,6 @@
 const std = @import("std");
-const Setup = @import("Setup.zig").Setup;
 const Wire = @import("Wire.zig");
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const SetupSuccess = struct {
     pub const ParseError = error{
@@ -41,7 +41,7 @@ pub const SetupSuccess = struct {
 
     pub fn parse(
         body: []const u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) ParseError!SetupSuccess {
         if (body.len < 32) return error.BodyTooShort;
 
