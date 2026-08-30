@@ -2,3 +2,4 @@
 
 pub const Display = @import("Display.zig").Display;
 pub const Connection = @import("Connection.zig").Connection;
+pub const Setup = @import("Setup.zig").Setup;
