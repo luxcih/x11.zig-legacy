@@ -20,7 +20,8 @@ Currently implemented:
 - X11 setup handshake and server information parsing
 - Display parsing
 - XID resource allocation
-- Window creation, configuration, mapping, and attributes
+- Window creation, configuration, mapping, attributes, and queries
+- X11 request/reply support, including fixed-size and variable-length replies
 - Graphics contexts
 - Drawing primitives, including lines, rectangles, arcs, filled shapes, and text
 - Basic X11 event parsing
@@ -69,6 +70,10 @@ The repository includes focused examples for individual parts of the library:
 - `draw` — send drawing requests
 - `redraw` — handle expose events and redraw content
 - `demo` — a complete interactive example
+- `get_geometry` — query window geometry
+- `get_window_attributes` — query window attributes
+- `query_tree` — query a window tree
+- `get_input_focus` — query the current input focus
 
 ## API
 
@@ -95,6 +100,7 @@ The main public namespaces include:
 - `x11.GC`
 - `x11.Draw`
 - `x11.Event`
+- `x11.Input`
 
 ## Goals
 
