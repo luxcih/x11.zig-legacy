@@ -4,7 +4,6 @@ const x11 = @import("x11");
 fn drawScene(
     connection: *x11.Connection,
     io: std.Io,
-    byte_order: x11.Setup.ByteOrder,
     green_gc_bytes: []const u8,
     fill_bytes: []const u8,
     change_gc_bytes: []const u8,
@@ -351,7 +350,6 @@ pub fn main(init: std.process.Init) !void {
             try drawScene(
                 &connection,
                 init.io,
-                setup.byte_order,
                 green_gc_bytes,
                 fill_bytes,
                 change_gc_bytes,
@@ -418,7 +416,6 @@ pub fn main(init: std.process.Init) !void {
                         try drawScene(
                             &connection,
                             init.io,
-                            setup.byte_order,
                             green_gc_bytes,
                             fill_bytes,
                             change_gc_bytes,
