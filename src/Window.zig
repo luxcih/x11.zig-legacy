@@ -67,39 +67,6 @@ pub const Window = struct {
             return buffer[0..offset];
         }
 
-        fn Wire.writeU16(buffer: []u8, value: u16, byte_order: Setup.ByteOrder) void {
-            switch (byte_order) {
-                .little => {
-                    buffer[0] = @truncate(value);
-                    buffer[1] = @truncate(value >> 8);
-                },
-                .big => {
-                    buffer[0] = @truncate(value >> 8);
-                    buffer[1] = @truncate(value);
-                },
-            }
-        }
-
-        fn Wire.writeI16(buffer: []u8, value: i16, byte_order: Setup.ByteOrder) void {
-            Wire.writeU16(buffer, @bitCast(value), byte_order);
-        }
-
-        fn Wire.writeU32(buffer: []u8, value: u32, byte_order: Setup.ByteOrder) void {
-            switch (byte_order) {
-                .little => {
-                    buffer[0] = @truncate(value);
-                    buffer[1] = @truncate(value >> 8);
-                    buffer[2] = @truncate(value >> 16);
-                    buffer[3] = @truncate(value >> 24);
-                },
-                .big => {
-                    buffer[0] = @truncate(value >> 24);
-                    buffer[1] = @truncate(value >> 16);
-                    buffer[2] = @truncate(value >> 8);
-                    buffer[3] = @truncate(value);
-                },
-            }
-        }
     };
 
     pub const ChangeAttributes = struct {
