@@ -54,6 +54,114 @@ pub const PolyFillRectangle = struct {
     }
 };
 
+test "encode big-endian drawing requests" {
+    {
+        const request = PolyLine{
+            .drawable = 0x01020304,
+            .gc = 0x05060708,
+            .points = &.{ .{ .x = 10, .y = -20 } },
+            .coordinate_mode = .previous,
+        };
+        var buffer: [16]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            65, 1, 0, 4,
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            0, 10, 255, 236,
+        }, encoded);
+    }
+
+    {
+        const request = PolyRectangle{
+            .drawable = 0x01020304,
+            .gc = 0x05060708,
+            .rectangles = &.{ .{ .x = 10, .y = -20, .width = 640, .height = 480 } },
+        };
+        var buffer: [20]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            67, 0, 0, 5,
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            0, 10, 255, 236, 2, 128, 1, 224,
+        }, encoded);
+    }
+
+    {
+        const request = PolyArc{
+            .drawable = 0x01020304,
+            .gc = 0x05060708,
+            .arcs = &.{ .{
+                .x = 10, .y = -20, .width = 100, .height = 200,
+                .angle1 = -64, .angle2 = 360 * 64,
+            } },
+        };
+        var buffer: [24]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            68, 0, 0, 6,
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            0, 10, 255, 236, 0, 100, 0, 200, 255, 192, 90, 0,
+        }, encoded);
+    }
+
+    {
+        const request = PolyFillRectangle{
+            .drawable = 0x01020304,
+            .gc = 0x05060708,
+            .rectangles = &.{ .{ .x = 10, .y = -20, .width = 640, .height = 480 } },
+        };
+        var buffer: [20]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            70, 0, 0, 5,
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            0, 10, 255, 236, 2, 128, 1, 224,
+        }, encoded);
+    }
+
+    {
+        const request = PolyFillArc{
+            .drawable = 0x01020304,
+            .gc = 0x05060708,
+            .arcs = &.{ .{
+                .x = 10, .y = -20, .width = 100, .height = 200,
+                .angle1 = 0, .angle2 = 360 * 64,
+            } },
+        };
+        var buffer: [24]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            71, 0, 0, 6,
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            0, 10, 255, 236, 0, 100, 0, 200, 0, 0, 90, 0,
+        }, encoded);
+    }
+
+    {
+        const request = ImageText8{
+            .drawable = 0x01020304,
+            .gc = 0x05060708,
+            .x = -10,
+            .y = 20,
+            .text = "Hi",
+        };
+        var buffer: [20]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            76, 2, 0, 5,
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            255, 246, 0, 20,
+            'H', 'i', 0, 0,
+        }, encoded);
+    }
+}
+
 test "encode little-endian PolyFillRectangle request" {
     const request = PolyFillRectangle{
         .drawable = 0x01020304,
