@@ -33,6 +33,16 @@ pub const Connection = struct {
         return init(stream);
     }
 
+    /// Writes an entire X11 protocol message and flushes it to the server.
+    pub fn writeAll(
+        self: *Connection,
+        io: std.Io,
+        bytes: []const u8,
+    ) !void {
+        var writer = self.stream.writer(io, bytes);
+        try writer.interface.flush();
+    }
+
     /// Returns a buffered reader for incoming X11 protocol messages.
     pub fn reader(
         self: *Connection,
