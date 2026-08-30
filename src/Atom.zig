@@ -85,7 +85,8 @@ pub const GetName = struct {
         if (buffer.len < request_size)
             return error.BufferTooSmall;
 
-        Wire.writeU16(buffer[0..2], opcode, byte_order);
+        buffer[0] = opcode;
+        buffer[1] = 0;
         Wire.writeU16(buffer[2..4], 2, byte_order);
         Wire.writeU32(buffer[4..8], self.atom, byte_order);
 
@@ -165,6 +166,19 @@ test "encode little-endian GetAtomName" {
         17, 0,
         2, 0,
         4, 3, 2, 1,
+    }, encoded);
+}
+
+test "encode big-endian GetAtomName" {
+    const request = Atom.GetName{ .atom = 0x01020304 };
+
+    var buffer: [Atom.GetName.request_size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .big);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        17, 0,
+        0, 2,
+        1, 2, 3, 4,
     }, encoded);
 }
 
