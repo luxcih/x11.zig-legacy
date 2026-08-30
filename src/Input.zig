@@ -725,6 +725,49 @@ test "encode passive key grabs" {
 }
 
 
+    pub const GetMotionEvents = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{InvalidLength, InvalidResponse};
+        pub const opcode = 39;
+        pub const size: usize = 16;
+        pub const reply_size: usize = 32;
+
+        window: u32,
+        start: u32 = 0,
+        stop: u32 = 0,
+
+        pub const Reply = struct {
+            events: []const u8,
+            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+                if (bytes.len < reply_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+                const count = Wire.readU32(bytes[8..12], byte_order);
+                const body_len: usize = @as(usize, count) * 8;
+                if (bytes.len < reply_size + body_len) return error.InvalidLength;
+                return .{ .events = bytes[reply_size .. reply_size + body_len] };
+            }
+        };
+
+        pub fn encode(self: GetMotionEvents, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode; buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.window, byte_order);
+            Wire.writeU32(buffer[8..12], self.start, byte_order);
+            Wire.writeU32(buffer[12..16], self.stop, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+test "encode GetMotionEvents" {
+    const request = Input.GetMotionEvents{ .window = 0x01020304, .start = 1, .stop = 2 };
+    var buffer: [Input.GetMotionEvents.size]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &.{
+        39,0,4,0,4,3,2,1,1,0,0,0,2,0,0,0,
+    }, try request.encode(&buffer, .little));
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
