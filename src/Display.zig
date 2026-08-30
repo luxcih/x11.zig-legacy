@@ -96,8 +96,6 @@ pub const Display = struct {
     }
 };
 
-const ParseError = Display.ParseError;
-
 test "parse local display" {
     const display = try Display.parse(":0");
 
@@ -157,6 +155,6 @@ test "reject malformed displays" {
     };
 
     for (invalid) |value| {
-        try std.testing.expectError(ParseError.InvalidDisplay, Display.parse(value));
+        try std.testing.expectError(Display.ParseError.InvalidDisplay, Display.parse(value));
     }
 }
