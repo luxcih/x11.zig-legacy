@@ -43,6 +43,10 @@ pub fn readU16(bytes: []const u8, byte_order: ByteOrder) u16 {
     };
 }
 
+pub fn readI16(bytes: []const u8, byte_order: ByteOrder) i16 {
+    return @bitCast(readU16(bytes, byte_order));
+}
+
 pub fn readU32(bytes: []const u8, byte_order: ByteOrder) u32 {
     return switch (byte_order) {
         .little => @as(u32, bytes[0]) |
