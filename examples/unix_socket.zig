@@ -50,12 +50,25 @@ pub fn main(init: std.process.Init) !void {
 
     switch (response) {
         .success => |success| {
+            const setup_success = try x11.SetupSuccess.parse(
+                additional,
+                setup.byte_order,
+            );
+
             std.debug.print(
-                "X11 setup succeeded: version {}.{} ({} additional bytes)\n",
+                "X11 setup succeeded: {}.{}\n",
                 .{
                     success.major_version,
                     success.minor_version,
-                    additional.len,
+                },
+            );
+            std.debug.print(
+                "Vendor: {s}\nRelease: {}\nScreens: {}\nPixmap formats: {}\n",
+                .{
+                    setup_success.vendor,
+                    setup_success.release_number,
+                    setup_success.screen_count,
+                    setup_success.pixmap_format_count,
                 },
             );
         },
