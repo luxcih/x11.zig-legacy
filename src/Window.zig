@@ -753,6 +753,52 @@ pub const ListProperties = struct {
 };
 
 
+pub const RotateProperties = struct {
+    pub const EncodeError = error{
+        BufferTooSmall,
+        TooManyProperties,
+    };
+
+    pub const opcode = 114;
+    pub const header_size = 12;
+
+    window_id: u32,
+    delta: i16,
+    properties: []const u32,
+
+    pub fn encodedLength(self: RotateProperties) EncodeError!usize {
+        if (self.properties.len > std.math.maxInt(u16))
+            return error.TooManyProperties;
+
+        return header_size + self.properties.len * @sizeOf(u32);
+    }
+
+    pub fn encode(
+        self: RotateProperties,
+        buffer: []u8,
+        byte_order: ByteOrder,
+    ) EncodeError![]const u8 {
+        const length = try self.encodedLength();
+        if (buffer.len < length)
+            return error.BufferTooSmall;
+
+        buffer[0] = opcode;
+        buffer[1] = 0;
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+        Wire.writeU16(buffer[8..10], @intCast(self.properties.len), byte_order);
+        Wire.writeU16(buffer[10..12], @bitCast(self.delta), byte_order);
+
+        for (self.properties, 0..) |property, i| {
+            const offset = header_size + i * @sizeOf(u32);
+            Wire.writeU32(buffer[offset .. offset + 4], property, byte_order);
+        }
+
+        return buffer[0..length];
+    }
+};
+
+
 test "encode little-endian create window request" {
     const request = Window.Create{
         .depth = 24,
@@ -1104,4 +1150,25 @@ test "parse ListProperties reply" {
         &.{ 1, 31, 0x01020304 },
         reply.atoms,
     );
+}
+
+
+test "encode little-endian RotateProperties" {
+    const request = Window.RotateProperties{
+        .window_id = 0x01020304,
+        .delta = -1,
+        .properties = &.{ 1, 31, 0x11121314 },
+    };
+
+    var buffer: [24]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        114, 0, 6, 0,
+        4, 3, 2, 1,
+        3, 0, 255, 255,
+        1, 0, 0, 0,
+        31, 0, 0, 0,
+        20, 19, 18, 17,
+    }, encoded);
 }
