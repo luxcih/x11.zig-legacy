@@ -241,7 +241,29 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, outline_bytes);
 
-            std.debug.print("Drew rectangle, line, and outline\n", .{});
+            const arc = x11.Draw.OutlineArc{
+                .drawable = window_id,
+                .gc = gc_id,
+                .arcs = &.{
+                    .{
+                        .x = 300,
+                        .y = 250,
+                        .width = 150,
+                        .height = 150,
+                        .angle1 = 0,
+                        .angle2 = 360 * 64,
+                    },
+                },
+            };
+
+            var arc_buffer: [x11.Draw.OutlineArc.base_size + x11.Draw.OutlineArc.arc_size]u8 = undefined;
+            const arc_bytes = try arc.encode(
+                &arc_buffer,
+                setup.byte_order,
+            );
+            try connection.writeAll(init.io, arc_bytes);
+
+            std.debug.print("Drew rectangle, line, outline, and circle\n", .{});
 
             // Keep the X11 client connection alive and process incoming
             // protocol messages so the server keeps this client's window.
