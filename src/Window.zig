@@ -133,7 +133,7 @@ pub const Window = struct {
 
     pub const QueryTree = struct {
         pub const EncodeError = error{BufferTooSmall};
-        pub const ParseError = error{ InvalidLength, InvalidResponse, InvalidChildrenLength };
+        pub const ParseError = std.mem.Allocator.Error || error{ InvalidLength, InvalidResponse, InvalidChildrenLength };
 
         pub const opcode = 15;
         pub const size: usize = 8;
