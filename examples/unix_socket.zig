@@ -170,29 +170,23 @@ pub fn main(init: std.process.Init) !void {
             while (true) {
                 try reader.interface.readSliceAll(&message);
 
-                const response_type = message[0] & 0x7f;
+                const event = try x11.Event.parse(&message, setup.byte_order);
 
-                switch (response_type) {
-                    0 => std.debug.print(
-                        "X11 error: code {}, request {}, minor opcode {}, resource 0x{x}\n",
-                        .{
-                            message[1],
-                            message[10],
-                            (@as(u16, message[8]) | (@as(u16, message[9]) << 8)),
-                            (@as(u32, message[4]) |
-                                (@as(u32, message[5]) << 8) |
-                                (@as(u32, message[6]) << 16) |
-                                (@as(u32, message[7]) << 24)),
-                        },
+                switch (event) {
+                    .expose => |expose| std.debug.print(
+                        "Expose {}x{} at ({}, {})\n",
+                        .{ expose.width, expose.height, expose.x, expose.y },
                     ),
-                    12 => std.debug.print("Expose event\n", .{}),
-                    17 => std.debug.print("DestroyNotify event\n", .{}),
-                    18 => std.debug.print("UnmapNotify event\n", .{}),
-                    19 => std.debug.print("MapNotify event\n", .{}),
-                    22 => std.debug.print("ConfigureNotify event\n", .{}),
-                    else => std.debug.print(
+                    .map_notify => std.debug.print("MapNotify event\n", .{}),
+                    .configure_notify => |configure| std.debug.print(
+                        "ConfigureNotify {}x{} at ({}, {})\n",
+                        .{ configure.width, configure.height, configure.x, configure.y },
+                    ),
+                    .unmap_notify => std.debug.print("UnmapNotify event\n", .{}),
+                    .destroy_notify => std.debug.print("DestroyNotify event\n", .{}),
+                    .unknown => |unknown| std.debug.print(
                         "X11 message type {}\n",
-                        .{response_type},
+                        .{unknown.response_type},
                     ),
                 }
             }
