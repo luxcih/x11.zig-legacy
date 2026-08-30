@@ -57,14 +57,7 @@ pub const SetupResponse = union(enum) {
         };
     }
 
-    fn Wire.readU16(bytes: []const u8, byte_order: Setup.ByteOrder) u16 {
-        return switch (byte_order) {
-            .little => @as(u16, bytes[0]) |
-                (@as(u16, bytes[1]) << 8),
-            .big => (@as(u16, bytes[0]) << 8) |
-                @as(u16, bytes[1]),
-        };
-    }
+
 };
 
 test "parse successful setup response prefix" {
