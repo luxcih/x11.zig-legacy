@@ -121,16 +121,21 @@ test "SetInputFocus rejects a small buffer" {
 
         pub const opcode = 44;
         pub const size: usize = 4;
-        pub const reply_size: usize = 32;
+        pub const reply_header_size: usize = 32;
+        pub const keys_size: usize = 32;
 
         pub const Reply = struct {
-            keys: [32]u8,
+            keys: [keys_size]u8,
 
-            pub fn parse(bytes: []const u8) ParseError!Reply {
-                if (bytes.len != reply_size) return error.InvalidLength;
-                if (bytes[0] != 1) return error.InvalidResponse;
+            pub fn parse(
+                header: []const u8,
+                keys: []const u8,
+            ) ParseError!Reply {
+                if (header.len != reply_header_size or keys.len != keys_size)
+                    return error.InvalidLength;
+                if (header[0] != 1) return error.InvalidResponse;
 
-                return .{ .keys = bytes[8..40].* };
+                return .{ .keys = keys[0..keys_size].* };
             }
 
             pub fn isDown(self: Reply, keycode: u8) bool {
@@ -153,11 +158,15 @@ test "encode and parse QueryKeymap" {
     const encoded = try Input.QueryKeymap.encode(&request, .little);
     try std.testing.expectEqualSlices(u8, &.{ 44, 0, 1, 0 }, encoded);
 
-    var reply: [Input.QueryKeymap.reply_size]u8 = [_]u8{0} ** Input.QueryKeymap.reply_size;
-    reply[0] = 1;
-    reply[8 + (38 / 8)] |= @as(u8, 1) << (38 % 8);
+    var header: [Input.QueryKeymap.reply_header_size]u8 =
+        [_]u8{0} ** Input.QueryKeymap.reply_header_size;
+    header[0] = 1;
 
-    const parsed = try Input.QueryKeymap.Reply.parse(&reply);
+    var keys: [Input.QueryKeymap.keys_size]u8 =
+        [_]u8{0} ** Input.QueryKeymap.keys_size;
+    keys[38 / 8] |= @as(u8, 1) << (38 % 8);
+
+    const parsed = try Input.QueryKeymap.Reply.parse(&header, &keys);
     try std.testing.expect(parsed.isDown(38));
     try std.testing.expect(!parsed.isDown(39));
 }
