@@ -47,7 +47,7 @@ const SceneBuffers = struct {
         self: *SceneBuffers,
         window_id: u32,
         gc_id: u32,
-        byte_order: x11.Setup.ByteOrder,
+        byte_order: x11.ByteOrder,
     ) !Scene {
         const green_gc = x11.GC.Change{
             .gc_id = gc_id,
@@ -162,7 +162,7 @@ const SceneBuffers = struct {
 fn createWindow(
     connection: *x11.Connection,
     io: std.Io,
-    byte_order: x11.Setup.ByteOrder,
+    byte_order: x11.ByteOrder,
     screen: x11.Screen,
     window_id: u32,
 ) !void {
@@ -231,7 +231,7 @@ fn runEventLoop(
     connection: *x11.Connection,
     io: std.Io,
     reader: anytype,
-    byte_order: x11.Setup.ByteOrder,
+    byte_order: x11.ByteOrder,
     gc_id: u32,
     scene: Scene,
 ) !void {
