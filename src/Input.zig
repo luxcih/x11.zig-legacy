@@ -1,6 +1,5 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const std = @import("std");
 const Endian = std.builtin.Endian;
 
 const Input = @This();
