@@ -2,7 +2,7 @@ const std = @import("std");
 const Wire = @import("Wire.zig");
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const Screen = struct {
+const Screen = @This();
     pub const ParseError = error{
         BufferTooShort,
     };
@@ -51,7 +51,6 @@ pub const Screen = struct {
             .depth_count = bytes[39],
         };
     }
-};
 
 test "parse little-endian screen" {
     const screen = try Screen.parse(&.{
