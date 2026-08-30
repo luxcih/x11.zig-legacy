@@ -101,9 +101,10 @@ pub fn main(init: std.process.Init) !void {
                 .y = 100,
                 .width = 640,
                 .height = 480,
+                .background_pixel = 0xffffffff,
             };
 
-            var create_buffer: [x11.Window.Create.size]u8 = undefined;
+            var create_buffer: [x11.Window.Create.size + 4]u8 = undefined;
             const create_bytes = try create.encode(
                 &create_buffer,
                 setup.byte_order,
