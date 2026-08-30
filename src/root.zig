@@ -12,3 +12,5 @@ pub const VisualType = @import("VisualType.zig").VisualType;
 pub const SetupInfo = @import("SetupInfo.zig").SetupInfo;
 pub const XidAllocator = @import("XidAllocator.zig").XidAllocator;
 pub const Window = @import("Window.zig").Window;
+
+pub const Event = @import("Event.zig").Event;
