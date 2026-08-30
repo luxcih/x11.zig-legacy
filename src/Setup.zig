@@ -1,6 +1,7 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const std = @import("std");
+const Endian = std.builtin.Endian;
 
 const Setup = @This();
     pub const EncodeError = error{
@@ -8,7 +9,7 @@ const Setup = @This();
         AuthorizationTooLong,
     };
 
-    byte_order: ByteOrder = .little,
+    endian: Endian = .little,
     major_version: u16 = 11,
     minor_version: u16 = 0,
     authorization_name: []const u8 = "",
@@ -30,16 +31,16 @@ const Setup = @This();
         const length = self.encodedLength();
         if (buffer.len < length) return error.BufferTooSmall;
 
-        buffer[0] = switch (self.byte_order) {
+        buffer[0] = switch (self.endian) {
             .little => 'l',
             .big => 'B',
         };
         buffer[1] = 0;
 
-        Wire.writeU16(buffer[2..4], self.major_version, self.byte_order);
-        Wire.writeU16(buffer[4..6], self.minor_version, self.byte_order);
-        Wire.writeU16(buffer[6..8], @intCast(self.authorization_name.len), self.byte_order);
-        Wire.writeU16(buffer[8..10], @intCast(self.authorization_data.len), self.byte_order);
+        Wire.writeU16(buffer[2..4], self.major_version, self.endian);
+        Wire.writeU16(buffer[4..6], self.minor_version, self.endian);
+        Wire.writeU16(buffer[6..8], @intCast(self.authorization_name.len), self.endian);
+        Wire.writeU16(buffer[8..10], @intCast(self.authorization_data.len), self.endian);
         buffer[10] = 0;
         buffer[11] = 0;
 
@@ -100,7 +101,7 @@ test "encode setup authorization with padding" {
 
 test "encode big-endian setup" {
     const setup = Setup{
-        .byte_order = .big,
+        .endian = .big,
     };
 
     var buffer: [12]u8 = undefined;
