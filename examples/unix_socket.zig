@@ -21,8 +21,12 @@ pub fn main(init: std.process.Init) !void {
     );
     defer connection.close(init.io);
 
+    const setup = x11.Setup{};
+
     var setup_buffer: [12]u8 = undefined;
-    try connection.sendSetup(init.io, .{}, &setup_buffer);
+    const request = try setup.encode(&setup_buffer);
+
+    try connection.writeAll(init.io, request);
 
     std.debug.print("Sent setup request to display {}.\n", .{display.number});
 }
