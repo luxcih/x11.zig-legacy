@@ -1,6 +1,7 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const std = @import("std");
+const Endian = std.builtin.Endian;
 
 const GC = @This();
     pub const Create = struct {
@@ -22,7 +23,7 @@ const GC = @This();
         pub fn encode(
             self: Create,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             const length = self.encodedLength();
             if (buffer.len < length)
@@ -33,16 +34,16 @@ const GC = @This();
 
             if (self.foreground) |foreground| {
                 value_mask |= 1 << 2;
-                Wire.writeU32(buffer[offset .. offset + 4], foreground, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], foreground, endian);
                 offset += 4;
             }
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.gc_id, byte_order);
-            Wire.writeU32(buffer[8..12], self.drawable, byte_order);
-            Wire.writeU32(buffer[12..16], value_mask, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+            Wire.writeU32(buffer[4..8], self.gc_id, endian);
+            Wire.writeU32(buffer[8..12], self.drawable, endian);
+            Wire.writeU32(buffer[12..16], value_mask, endian);
 
             return buffer[0..offset];
         }
@@ -72,7 +73,7 @@ const GC = @This();
         pub fn encode(
             self: Change,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             const length = self.encodedLength();
             if (buffer.len < length)
@@ -84,27 +85,27 @@ const GC = @This();
             // X11 value lists are serialized in increasing mask-bit order.
             if (self.foreground) |foreground| {
                 value_mask |= 1 << 2;
-                Wire.writeU32(buffer[offset .. offset + 4], foreground, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], foreground, endian);
                 offset += 4;
             }
 
             if (self.background) |background| {
                 value_mask |= 1 << 3;
-                Wire.writeU32(buffer[offset .. offset + 4], background, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], background, endian);
                 offset += 4;
             }
 
             if (self.line_width) |line_width| {
                 value_mask |= 1 << 4;
-                Wire.writeU32(buffer[offset .. offset + 4], line_width, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], line_width, endian);
                 offset += 4;
             }
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.gc_id, byte_order);
-            Wire.writeU32(buffer[8..12], value_mask, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+            Wire.writeU32(buffer[4..8], self.gc_id, endian);
+            Wire.writeU32(buffer[8..12], value_mask, endian);
 
             return buffer[0..offset];
         }
@@ -124,15 +125,15 @@ const GC = @This();
         pub fn encode(
             self: Free,
             buffer: []u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) EncodeError![]const u8 {
             if (buffer.len < size)
                 return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Wire.writeU32(buffer[4..8], self.gc_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
+            Wire.writeU32(buffer[4..8], self.gc_id, endian);
 
             return buffer[0..size];
         }
