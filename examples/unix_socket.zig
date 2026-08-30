@@ -310,7 +310,7 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, arc_bytes);
 
-            const filled_arc = x11.Draw.PolyFillRectangleArc{
+            const filled_arc = x11.Draw.PolyFillArc{
                 .drawable = window_id,
                 .gc = gc_id,
                 .arcs = &.{
@@ -325,7 +325,7 @@ pub fn main(init: std.process.Init) !void {
                 },
             };
 
-            var filled_arc_buffer: [x11.Draw.PolyFillRectangleArc.base_size + x11.Draw.PolyFillRectangleArc.arc_size]u8 = undefined;
+            var filled_arc_buffer: [x11.Draw.PolyFillArc.base_size + x11.Draw.PolyFillArc.arc_size]u8 = undefined;
             const filled_arc_bytes = try filled_arc.encode(
                 &filled_arc_buffer,
                 setup.byte_order,
