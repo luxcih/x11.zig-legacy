@@ -28,6 +28,81 @@ fn drawScene(
     try connection.writeAll(io, scene.text);
 }
 
+fn runEventLoop(
+    connection: *x11.Connection,
+    io: std.Io,
+    reader: anytype,
+    byte_order: x11.Setup.ByteOrder,
+    gc_id: u32,
+    scene: Scene,
+) !void {
+    var message: [32]u8 = undefined;
+
+    while (true) {
+        try reader.interface.readSliceAll(&message);
+
+        const event = try x11.Event.parse(&message, byte_order);
+
+        switch (event) {
+            .key_press => |key| {
+                std.debug.print(
+                    "KeyPress: keycode {}; exiting\n",
+                    .{key.detail},
+                );
+
+                const free_gc = x11.GC.Free{ .gc_id = gc_id };
+                var free_gc_buffer: [x11.GC.Free.size]u8 = undefined;
+                const free_gc_bytes = try free_gc.encode(
+                    &free_gc_buffer,
+                    byte_order,
+                );
+                try connection.writeAll(io, free_gc_bytes);
+
+                break;
+            },
+            .key_release => |key| std.debug.print(
+                "KeyRelease: keycode {}\n",
+                .{key.detail},
+            ),
+            .button_press => |button| std.debug.print(
+                "ButtonPress: button {} at ({}, {})\n",
+                .{ button.detail, button.event_x, button.event_y },
+            ),
+            .button_release => |button| std.debug.print(
+                "ButtonRelease: button {} at ({}, {})\n",
+                .{ button.detail, button.event_x, button.event_y },
+            ),
+            .motion_notify => |motion| std.debug.print(
+                "MotionNotify at ({}, {})\n",
+                .{ motion.event_x, motion.event_y },
+            ),
+            .expose => |expose| {
+                std.debug.print(
+                    "Expose {}x{} at ({}, {}); redrawing\n",
+                    .{ expose.width, expose.height, expose.x, expose.y },
+                );
+                try drawScene(connection, io, scene);
+            },
+            .map_notify => std.debug.print("MapNotify event\n", .{}),
+            .configure_notify => |configure_notify| std.debug.print(
+                "ConfigureNotify {}x{} at ({}, {})\n",
+                .{
+                    configure_notify.width,
+                    configure_notify.height,
+                    configure_notify.x,
+                    configure_notify.y,
+                },
+            ),
+            .unmap_notify => std.debug.print("UnmapNotify event\n", .{}),
+            .destroy_notify => std.debug.print("DestroyNotify event\n", .{}),
+            .unknown => |unknown| std.debug.print(
+                "X11 message type {}\n",
+                .{unknown.response_type},
+            ),
+        }
+    }
+}
+
 pub fn main(init: std.process.Init) !void {
     const display = try x11.Display.parse(":0");
 
@@ -354,69 +429,14 @@ pub fn main(init: std.process.Init) !void {
                 .{},
             );
 
-            // Keep the X11 client connection alive and process incoming
-            // protocol messages so the server keeps this client's window.
-            var message: [32]u8 = undefined;
-            while (true) {
-                try reader.interface.readSliceAll(&message);
-
-                const event = try x11.Event.parse(&message, setup.byte_order);
-
-                switch (event) {
-                    .key_press => |key| {
-                        std.debug.print(
-                            "KeyPress: keycode {}; exiting\n",
-                            .{key.detail},
-                        );
-                        const free_gc = x11.GC.Free{
-                            .gc_id = gc_id,
-                        };
-                        var free_gc_buffer: [x11.GC.Free.size]u8 = undefined;
-                        const free_gc_bytes = try free_gc.encode(
-                            &free_gc_buffer,
-                            setup.byte_order,
-                        );
-                        try connection.writeAll(init.io, free_gc_bytes);
-
-                        break;
-                    },
-                    .key_release => |key| std.debug.print(
-                        "KeyRelease: keycode {}\n",
-                        .{key.detail},
-                    ),
-                    .button_press => |button| std.debug.print(
-                        "ButtonPress: button {} at ({}, {})\n",
-                        .{ button.detail, button.event_x, button.event_y },
-                    ),
-                    .button_release => |button| std.debug.print(
-                        "ButtonRelease: button {} at ({}, {})\n",
-                        .{ button.detail, button.event_x, button.event_y },
-                    ),
-                    .motion_notify => |motion| std.debug.print(
-                        "MotionNotify at ({}, {})\n",
-                        .{ motion.event_x, motion.event_y },
-                    ),
-                    .expose => |expose| {
-                        std.debug.print(
-                            "Expose {}x{} at ({}, {}); redrawing\n",
-                            .{ expose.width, expose.height, expose.x, expose.y },
-                        );
-
-                        try drawScene(&connection, init.io, scene);
-                    },
-                    .map_notify => std.debug.print("MapNotify event\n", .{}),
-                    .configure_notify => |configure_notify| std.debug.print(
-                        "ConfigureNotify {}x{} at ({}, {})\n",
-                        .{ configure_notify.width, configure_notify.height, configure_notify.x, configure_notify.y },
-                    ),
-                    .unmap_notify => std.debug.print("UnmapNotify event\n", .{}),
-                    .destroy_notify => std.debug.print("DestroyNotify event\n", .{}),
-                    .unknown => |unknown| std.debug.print(
-                        "X11 message type {}\n",
-                        .{unknown.response_type},
-                    ),
-                }
-            }
+            try runEventLoop(
+                &connection,
+                init.io,
+                &reader,
+                setup.byte_order,
+                gc_id,
+                scene,
+            );
         },
         .failed => |failed| {
             std.debug.print(
