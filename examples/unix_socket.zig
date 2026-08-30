@@ -178,10 +178,13 @@ pub fn main(init: std.process.Init) !void {
                 const event = try x11.Event.parse(&message, setup.byte_order);
 
                 switch (event) {
-                    .key_press => |key| std.debug.print(
-                        "KeyPress: keycode {}\n",
-                        .{key.detail},
-                    ),
+                    .key_press => |key| {
+                        std.debug.print(
+                            "KeyPress: keycode {}; exiting\n",
+                            .{key.detail},
+                        );
+                        break;
+                    },
                     .key_release => |key| std.debug.print(
                         "KeyRelease: keycode {}\n",
                         .{key.detail},
