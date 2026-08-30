@@ -1,6 +1,6 @@
 const std = @import("std");
-const Setup = @import("Setup.zig").Setup;
 const Wire = @import("Wire.zig");
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const SetupResponse = union(enum) {
     failed: Failed,
@@ -30,7 +30,7 @@ pub const SetupResponse = union(enum) {
 
     pub fn parsePrefix(
         prefix: [8]u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) ParseError!SetupResponse {
         return switch (prefix[0]) {
             0 => .{ .failed = .{
