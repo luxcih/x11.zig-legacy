@@ -1,6 +1,6 @@
 const std = @import("std");
-const Setup = @import("Setup.zig").Setup;
 const Wire = @import("Wire.zig");
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const GC = struct {
     pub const Create = struct {
@@ -22,7 +22,7 @@ pub const GC = struct {
         pub fn encode(
             self: Create,
             buffer: []u8,
-            byte_order: Setup.ByteOrder,
+            byte_order: ByteOrder,
         ) EncodeError![]const u8 {
             const length = self.encodedLength();
             if (buffer.len < length)
@@ -72,7 +72,7 @@ pub const GC = struct {
         pub fn encode(
             self: Change,
             buffer: []u8,
-            byte_order: Setup.ByteOrder,
+            byte_order: ByteOrder,
         ) EncodeError![]const u8 {
             const length = self.encodedLength();
             if (buffer.len < length)
@@ -123,7 +123,7 @@ pub const GC = struct {
         pub fn encode(
             self: Free,
             buffer: []u8,
-            byte_order: Setup.ByteOrder,
+            byte_order: ByteOrder,
         ) EncodeError![]const u8 {
             if (buffer.len < size)
                 return error.BufferTooSmall;
