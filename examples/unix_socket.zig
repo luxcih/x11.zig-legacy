@@ -207,7 +207,7 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, gc_bytes);
 
-            const fill = x11.Draw.Fill{
+            const fill = x11.Draw.PolyFillRectangle{
                 .drawable = window_id,
                 .gc = gc_id,
                 .rectangles = &.{
@@ -220,7 +220,7 @@ pub fn main(init: std.process.Init) !void {
                 },
             };
 
-            var fill_buffer: [x11.Draw.Fill.base_size + x11.Draw.Fill.rectangle_size]u8 = undefined;
+            var fill_buffer: [x11.Draw.PolyFillRectangle.base_size + x11.Draw.PolyFillRectangle.rectangle_size]u8 = undefined;
             const fill_bytes = try fill.encode(
                 &fill_buffer,
                 setup.byte_order,
@@ -251,7 +251,7 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, change_gc_bytes);
 
-            const line = x11.Draw.Line{
+            const line = x11.Draw.PolyLine{
                 .drawable = window_id,
                 .gc = gc_id,
                 .points = &.{
@@ -261,14 +261,14 @@ pub fn main(init: std.process.Init) !void {
                 },
             };
 
-            var line_buffer: [x11.Draw.Line.base_size + 3 * x11.Draw.Line.point_size]u8 = undefined;
+            var line_buffer: [x11.Draw.PolyLine.base_size + 3 * x11.Draw.PolyLine.point_size]u8 = undefined;
             const line_bytes = try line.encode(
                 &line_buffer,
                 setup.byte_order,
             );
             try connection.writeAll(init.io, line_bytes);
 
-            const outline = x11.Draw.OutlineRectangle{
+            const outline = x11.Draw.PolyRectangle{
                 .drawable = window_id,
                 .gc = gc_id,
                 .rectangles = &.{
@@ -281,14 +281,14 @@ pub fn main(init: std.process.Init) !void {
                 },
             };
 
-            var outline_buffer: [x11.Draw.OutlineRectangle.base_size + x11.Draw.OutlineRectangle.rectangle_size]u8 = undefined;
+            var outline_buffer: [x11.Draw.PolyRectangle.base_size + x11.Draw.PolyRectangle.rectangle_size]u8 = undefined;
             const outline_bytes = try outline.encode(
                 &outline_buffer,
                 setup.byte_order,
             );
             try connection.writeAll(init.io, outline_bytes);
 
-            const arc = x11.Draw.OutlineArc{
+            const arc = x11.Draw.PolyArc{
                 .drawable = window_id,
                 .gc = gc_id,
                 .arcs = &.{
@@ -303,14 +303,14 @@ pub fn main(init: std.process.Init) !void {
                 },
             };
 
-            var arc_buffer: [x11.Draw.OutlineArc.base_size + x11.Draw.OutlineArc.arc_size]u8 = undefined;
+            var arc_buffer: [x11.Draw.PolyArc.base_size + x11.Draw.PolyArc.arc_size]u8 = undefined;
             const arc_bytes = try arc.encode(
                 &arc_buffer,
                 setup.byte_order,
             );
             try connection.writeAll(init.io, arc_bytes);
 
-            const filled_arc = x11.Draw.FillArc{
+            const filled_arc = x11.Draw.PolyFillRectangleArc{
                 .drawable = window_id,
                 .gc = gc_id,
                 .arcs = &.{
@@ -325,7 +325,7 @@ pub fn main(init: std.process.Init) !void {
                 },
             };
 
-            var filled_arc_buffer: [x11.Draw.FillArc.base_size + x11.Draw.FillArc.arc_size]u8 = undefined;
+            var filled_arc_buffer: [x11.Draw.PolyFillRectangleArc.base_size + x11.Draw.PolyFillRectangleArc.arc_size]u8 = undefined;
             const filled_arc_bytes = try filled_arc.encode(
                 &filled_arc_buffer,
                 setup.byte_order,
