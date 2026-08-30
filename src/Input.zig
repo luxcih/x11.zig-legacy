@@ -46,3 +46,21 @@ pub const Input = struct {
         }
     };
 };
+
+
+test "encode and parse GetInputFocus" {
+    const std = @import("std");
+
+    var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
+    const encoded = try Input.GetInputFocus.encode(&request_buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{ 43, 0, 1, 0 }, encoded);
+
+    var reply: [Input.GetInputFocus.reply_size]u8 = [_]u8{0} ** Input.GetInputFocus.reply_size;
+    reply[0] = 1;
+    reply[1] = 1;
+    Wire.writeU32(reply[8..12], 0x01020304, .little);
+
+    const parsed = try Input.GetInputFocus.Reply.parse(&reply, .little);
+    try std.testing.expectEqual(Input.GetInputFocus.RevertTo.pointer_root, parsed.revert_to);
+    try std.testing.expectEqual(@as(u32, 0x01020304), parsed.focus);
+}
