@@ -12,8 +12,7 @@ pub fn main(init: std.process.Init) !void {
 
     var read_buffer: [64]u8 = undefined;
     var reader = session.connection.reader(init.io, &read_buffer);
-    var reply_bytes: [x11.Window.GetGeometry.reply_size]u8 = undefined;
-    try reader.interface.readSliceAll(&reply_bytes);
+    const reply_bytes = try session.connection.readResponseHeader(reader);
 
     const geometry = try x11.Window.GetGeometry.Reply.parse(&reply_bytes, session.byte_order);
     std.debug.print("Root geometry: {}x{} at ({}, {}), depth {}, border {}\n", .{
