@@ -94,16 +94,25 @@ pub const GetName = struct {
     }
 
     pub const Reply = struct {
-        name_length: u16,
+        name: []const u8,
 
-        pub fn parsePrefix(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
-            if (bytes.len != reply_size)
+        pub fn parse(
+            header: []const u8,
+            body: []const u8,
+            byte_order: ByteOrder,
+        ) ParseError!Reply {
+            if (header.len != reply_size)
                 return error.InvalidLength;
-            if (bytes[0] != 1)
+            if (header[0] != 1)
                 return error.InvalidResponse;
 
+            const name_length: usize =
+                @as(usize, Wire.readU16(header[8..10], byte_order));
+            if (body.len < name_length)
+                return error.InvalidLength;
+
             return .{
-                .name_length = Wire.readU16(bytes[8..10], byte_order),
+                .name = body[0..name_length],
             };
         }
     };
@@ -182,11 +191,28 @@ test "encode big-endian GetAtomName" {
     }, encoded);
 }
 
-test "parse GetAtomName reply prefix" {
-    var bytes: [Atom.GetName.reply_size]u8 = [_]u8{0} ** Atom.GetName.reply_size;
-    bytes[0] = 1;
-    Wire.writeU16(bytes[8..10], 12, .little);
+test "parse GetAtomName reply" {
+    var header: [Atom.GetName.reply_size]u8 =
+        [_]u8{0} ** Atom.GetName.reply_size;
+    header[0] = 1;
+    Wire.writeU16(header[8..10], 12, .little);
 
-    const reply = try Atom.GetName.Reply.parsePrefix(&bytes, .little);
-    try std.testing.expectEqual(@as(u16, 12), reply.name_length);
+    const reply = try Atom.GetName.Reply.parse(
+        &header,
+        "WM_PROTOCOLS",
+        .little,
+    );
+    try std.testing.expectEqualStrings("WM_PROTOCOLS", reply.name);
+}
+
+test "GetAtomName rejects a short name body" {
+    var header: [Atom.GetName.reply_size]u8 =
+        [_]u8{0} ** Atom.GetName.reply_size;
+    header[0] = 1;
+    Wire.writeU16(header[8..10], 12, .little);
+
+    try std.testing.expectError(
+        error.InvalidLength,
+        Atom.GetName.Reply.parse(&header, "SHORT", .little),
+    );
 }
