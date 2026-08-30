@@ -32,6 +32,7 @@ pub fn build(b: *std.Build) void {
         "draw",
         "redraw",
         "demo",
+        "list_properties",
     };
 
     const check_examples = b.step(
