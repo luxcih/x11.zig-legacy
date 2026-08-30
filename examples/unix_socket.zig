@@ -178,9 +178,9 @@ pub fn main(init: std.process.Init) !void {
                         .{ expose.width, expose.height, expose.x, expose.y },
                     ),
                     .map_notify => std.debug.print("MapNotify event\n", .{}),
-                    .configure_notify => |configure| std.debug.print(
+                    .configure_notify => |configure_notify| std.debug.print(
                         "ConfigureNotify {}x{} at ({}, {})\n",
-                        .{ configure.width, configure.height, configure.x, configure.y },
+                        .{ configure_notify.width, configure_notify.height, configure_notify.x, configure_notify.y },
                     ),
                     .unmap_notify => std.debug.print("UnmapNotify event\n", .{}),
                     .destroy_notify => std.debug.print("DestroyNotify event\n", .{}),
