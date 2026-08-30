@@ -28,8 +28,8 @@ pub fn parse(value: []const u8) ParseError!Display {
     return .{
         .protocol = parseProtocolName(value, rest),
         .host = address.host,
-        .number = parseNumber(address.display),
-        .screen = parseScreen(address.screen),
+        .number = try parseNumber(address.display),
+        .screen = try parseScreen(address.screen),
     };
 }
 
