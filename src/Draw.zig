@@ -332,12 +332,12 @@ pub const PolyFillArc = struct {
     gc: u32,
     arcs: []const Arc,
 
-    pub fn encodedLength(self: PolyFillRectangleArc) usize {
+    pub fn encodedLength(self: PolyFillArc) usize {
         return base_size + self.arcs.len * arc_size;
     }
 
     pub fn encode(
-        self: PolyFillRectangleArc,
+        self: PolyFillArc,
         buffer: []u8,
         byte_order: Setup.ByteOrder,
     ) EncodeError![]const u8 {
