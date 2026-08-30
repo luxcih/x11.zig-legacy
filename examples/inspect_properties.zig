@@ -38,7 +38,7 @@ pub fn main(init: std.process.Init) !void {
     const atoms_bytes = try init.arena.allocator().alloc(u8, @as(usize, count) * 4);
     try reader.interface.readSliceAll(atoms_bytes);
 
-    const reply = try x11.Window.ListProperties.Reply.parse(
+    var reply = try x11.Window.ListProperties.Reply.parse(
         init.arena.allocator(),
         &header,
         atoms_bytes,
