@@ -514,6 +514,76 @@ const Window = @This();
         }
     };
 
+pub const GetProperty = struct {
+    pub const EncodeError = error{BufferTooSmall};
+    pub const ParseError = error{InvalidLength, InvalidResponse};
+
+    pub const opcode = 20;
+    pub const request_size = 24;
+    pub const reply_size = 32;
+
+    window_id: u32,
+    delete: bool = false,
+    property: u32,
+    type: u32 = 0,
+    long_offset: u32 = 0,
+    long_length: u32,
+
+    pub fn encode(
+        self: GetProperty,
+        buffer: []u8,
+        byte_order: ByteOrder,
+    ) EncodeError![]const u8 {
+        if (buffer.len < request_size)
+            return error.BufferTooSmall;
+
+        @memset(buffer[0..request_size], 0);
+        buffer[0] = opcode;
+        buffer[1] = @intFromBool(self.delete);
+        Wire.writeU16(buffer[2..4], request_size / 4, byte_order);
+        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+        Wire.writeU32(buffer[8..12], self.property, byte_order);
+        Wire.writeU32(buffer[12..16], self.type, byte_order);
+        Wire.writeU32(buffer[16..20], self.long_offset, byte_order);
+        Wire.writeU32(buffer[20..24], self.long_length, byte_order);
+
+        return buffer[0..request_size];
+    }
+
+    pub const Reply = struct {
+        format: u8,
+        type: u32,
+        bytes_after: u32,
+        value_length: u32,
+
+        pub fn parsePrefix(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+            if (bytes.len != reply_size)
+                return error.InvalidLength;
+            if (bytes[0] != 1)
+                return error.InvalidResponse;
+
+            return .{
+                .format = bytes[1],
+                .type = Wire.readU32(bytes[8..12], byte_order),
+                .bytes_after = Wire.readU32(bytes[12..16], byte_order),
+                .value_length = Wire.readU32(bytes[16..20], byte_order),
+            };
+        }
+
+        pub fn valueByteLength(self: Reply) usize {
+            const item_size: usize = switch (self.format) {
+                0 => return 0,
+                8 => 1,
+                16 => 2,
+                32 => 4,
+                else => return 0,
+            };
+            return @as(usize, self.value_length) * item_size;
+        }
+    };
+};
+
+
 test "encode little-endian create window request" {
     const request = Window.Create{
         .depth = 24,
@@ -730,4 +800,45 @@ test "encode and parse QueryPointer" {
     try std.testing.expectEqual(@as(i16, -50), parsed.root_y);
     try std.testing.expectEqual(@as(i16, 25), parsed.win_x);
     try std.testing.expectEqual(@as(u16, 0x0005), parsed.mask);
+}
+
+
+test "encode little-endian GetProperty" {
+    const request = Window.GetProperty{
+        .window_id = 0x01020304,
+        .property = 0x11121314,
+        .type = 0,
+        .long_offset = 0,
+        .long_length = 1024,
+    };
+
+    var buffer: [Window.GetProperty.request_size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        20, 0, 6, 0,
+        4, 3, 2, 1,
+        20, 19, 18, 17,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 4, 0, 0,
+    }, encoded);
+}
+
+test "parse GetProperty reply prefix" {
+    var bytes: [Window.GetProperty.reply_size]u8 =
+        [_]u8{0} ** Window.GetProperty.reply_size;
+    bytes[0] = 1;
+    bytes[1] = 8;
+    Wire.writeU32(bytes[8..12], 31, .little);
+    Wire.writeU32(bytes[12..16], 4, .little);
+    Wire.writeU32(bytes[16..20], 12, .little);
+
+    const reply = try Window.GetProperty.Reply.parsePrefix(&bytes, .little);
+
+    try std.testing.expectEqual(@as(u8, 8), reply.format);
+    try std.testing.expectEqual(@as(u32, 31), reply.type);
+    try std.testing.expectEqual(@as(u32, 4), reply.bytes_after);
+    try std.testing.expectEqual(@as(u32, 12), reply.value_length);
+    try std.testing.expectEqual(@as(usize, 12), reply.valueByteLength());
 }
