@@ -1,6 +1,5 @@
 const std = @import("std");
 const Endian = std.builtin.Endian;
-const std = @import("std");
 const SetupSuccess = @import("SetupSuccess.zig").SetupSuccess;
 const PixmapFormat = @import("PixmapFormat.zig");
 const Screen = @import("Screen.zig");
