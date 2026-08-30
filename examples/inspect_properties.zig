@@ -1,6 +1,5 @@
 const std = @import("std");
 const x11 = @import("x11");
-const Wire = @import("../src/Wire.zig");
 const common = @import("common.zig");
 
 fn getAtomName(
@@ -34,7 +33,7 @@ pub fn main(init: std.process.Init) !void {
     var read_buffer: [256]u8 = undefined;
     var reader = session.connection.reader(init.io, &read_buffer);
     const header = try session.connection.readResponseHeader(&reader);
-    const count = Wire.readU16(header[8..10], session.byte_order);
+    const count = try x11.Window.ListProperties.Reply.atomCount(&header, session.byte_order);
 
     const atoms_bytes = try init.arena.allocator().alloc(u8, @as(usize, count) * 4);
     try reader.interface.readSliceAll(atoms_bytes);
