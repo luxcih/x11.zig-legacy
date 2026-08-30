@@ -10,88 +10,53 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const tests = b.addTest(.{
-        .root_module = module,
-    });
-
+    const tests = b.addTest(.{ .root_module = module });
     const run_tests = b.addRunArtifact(tests);
-
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_tests.step);
 
-    const example_module = b.createModule(.{
-        .root_source_file = b.path("examples/display.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    example_module.addImport("x11", module);
+    const example_names = [_][]const u8{
+        "display",
+        "setup",
+        "window",
+        "events",
+        "gc",
+        "draw",
+        "redraw",
+        "unix_socket",
+    };
 
-    const example = b.addExecutable(.{
-        .name = "example-display",
-        .root_module = example_module,
-    });
+    const examples_step = b.step("examples", "Build all examples");
+    const check_examples_step = b.step("check-examples", "Compile all examples");
 
-    const run_example = b.addRunArtifact(example);
+    inline for (example_names) |name| {
+        const source = b.fmt("examples/{s}.zig", .{name});
+        const executable_name = b.fmt("example-{s}", .{name});
 
-    const example_step = b.step(
-        "example-display",
-        "Run the display example",
-    );
-    example_step.dependOn(&run_example.step);
-    const unix_socket_module = b.createModule(.{
-        .root_source_file = b.path("examples/unix_socket.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    unix_socket_module.addImport("x11", module);
+        const example_module = b.createModule(.{
+            .root_source_file = b.path(source),
+            .target = target,
+            .optimize = optimize,
+        });
+        example_module.addImport("x11", module);
 
-    const unix_socket_example = b.addExecutable(.{
-        .name = "example-unix-socket",
-        .root_module = unix_socket_module,
-    });
+        const example = b.addExecutable(.{
+            .name = executable_name,
+            .root_module = example_module,
+        });
 
-    const run_unix_socket_example = b.addRunArtifact(unix_socket_example);
+        const compile_step_name = b.fmt("example-{s}", .{name});
+        const compile_step_description = b.fmt(
+            "Build the {s} example",
+            .{name},
+        );
+        const example_step = b.step(
+            compile_step_name,
+            compile_step_description,
+        );
+        example_step.dependOn(&example.step);
 
-    const unix_socket_example_step = b.step(
-        "example-unix-socket",
-        "Run the Unix socket example",
-    );
-    unix_socket_example_step.dependOn(&run_unix_socket_example.step);
-
-    const setup_example_module = b.createModule(.{
-        .root_source_file = b.path("examples/setup.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    setup_example_module.addImport("x11", module);
-
-    const setup_example = b.addExecutable(.{
-        .name = "example-setup",
-        .root_module = setup_example_module,
-    });
-
-    const run_setup_example = b.addRunArtifact(setup_example);
-
-    const setup_example_step = b.step(
-        "example-setup",
-        "Run the X11 setup example",
-    );
-    setup_example_step.dependOn(&run_setup_example.step);
-
-    const examples_step = b.step(
-        "examples",
-        "Build all examples",
-    );
-    examples_step.dependOn(&example.step);
-    examples_step.dependOn(&unix_socket_example.step);
-    examples_step.dependOn(&setup_example.step);
-
-    const check_examples_step = b.step(
-        "check-examples",
-        "Compile all examples",
-    );
-    check_examples_step.dependOn(&example.step);
-    check_examples_step.dependOn(&unix_socket_example.step);
-    check_examples_step.dependOn(&setup_example.step);
-
+        examples_step.dependOn(&example.step);
+        check_examples_step.dependOn(&example.step);
+    }
 }
