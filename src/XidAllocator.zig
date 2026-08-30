@@ -35,13 +35,12 @@ pub const XidAllocator = struct {
         while (true) {
             const destination_mask = @as(u32, 1) << destination_bit;
 
-            if (mask & destination_mask == 0)
-                continue;
+            if (mask & destination_mask != 0) {
+                if (index & (@as(u64, 1) << source_bit) != 0)
+                    result |= destination_mask;
 
-            if (index & (@as(u64, 1) << source_bit) != 0)
-                result |= destination_mask;
-
-            source_bit += 1;
+                source_bit += 1;
+            }
 
             if (destination_bit == 31)
                 break;
