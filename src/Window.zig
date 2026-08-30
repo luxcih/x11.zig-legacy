@@ -944,6 +944,174 @@ test "encode little-endian map window request" {
 }
 
 
+
+    pub const DestroySubwindows = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 5;
+        pub const size: usize = 8;
+
+        window_id: u32,
+
+        pub fn encode(self: DestroySubwindows, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const ChangeSaveSet = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 6;
+        pub const size: usize = 8;
+
+        pub const Mode = enum(u8) {
+            insert = 0,
+            delete = 1,
+        };
+
+        mode: Mode,
+        window_id: u32,
+
+        pub fn encode(self: ChangeSaveSet, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = @intFromEnum(self.mode);
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const Reparent = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 7;
+        pub const size: usize = 16;
+
+        window_id: u32,
+        parent: u32,
+        x: i16,
+        y: i16,
+
+        pub fn encode(self: Reparent, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU32(buffer[8..12], self.parent, byte_order);
+            Wire.writeI16(buffer[12..14], self.x, byte_order);
+            Wire.writeI16(buffer[14..16], self.y, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const MapSubwindows = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 9;
+        pub const size: usize = 8;
+
+        window_id: u32,
+
+        pub fn encode(self: MapSubwindows, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const UnmapSubwindows = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 11;
+        pub const size: usize = 8;
+
+        window_id: u32,
+
+        pub fn encode(self: UnmapSubwindows, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const Circulate = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 13;
+        pub const size: usize = 8;
+
+        pub const Direction = enum(u8) {
+            raise_lowest = 0,
+            lower_highest = 1,
+        };
+
+        window_id: u32,
+        direction: Direction,
+
+        pub fn encode(self: Circulate, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = @intFromEnum(self.direction);
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+
+test "encode Window lifecycle cluster requests" {
+    {
+        const request = Window.DestroySubwindows{ .window_id = 0x01020304 };
+        var buffer: [Window.DestroySubwindows.size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .little);
+        try std.testing.expectEqualSlices(u8, &.{ 5, 0, 2, 0, 4, 3, 2, 1 }, encoded);
+    }
+    {
+        const request = Window.ChangeSaveSet{ .mode = .insert, .window_id = 0x01020304 };
+        var buffer: [Window.ChangeSaveSet.size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .little);
+        try std.testing.expectEqualSlices(u8, &.{ 6, 0, 2, 0, 4, 3, 2, 1 }, encoded);
+    }
+    {
+        const request = Window.Reparent{ .window_id = 0x01020304, .parent = 0x05060708, .x = -10, .y = 20 };
+        var buffer: [Window.Reparent.size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .little);
+        try std.testing.expectEqualSlices(u8, &.{ 7, 0, 4, 0, 4, 3, 2, 1, 8, 7, 6, 5, 246, 255, 20, 0 }, encoded);
+    }
+    {
+        const request = Window.MapSubwindows{ .window_id = 0x01020304 };
+        var buffer: [Window.MapSubwindows.size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .little);
+        try std.testing.expectEqualSlices(u8, &.{ 9, 0, 2, 0, 4, 3, 2, 1 }, encoded);
+    }
+    {
+        const request = Window.UnmapSubwindows{ .window_id = 0x01020304 };
+        var buffer: [Window.UnmapSubwindows.size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .little);
+        try std.testing.expectEqualSlices(u8, &.{ 11, 0, 2, 0, 4, 3, 2, 1 }, encoded);
+    }
+    {
+        const request = Window.Circulate{ .window_id = 0x01020304, .direction = .lower_highest };
+        var buffer: [Window.Circulate.size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .little);
+        try std.testing.expectEqualSlices(u8, &.{ 13, 1, 2, 0, 4, 3, 2, 1 }, encoded);
+    }
+}
+
+test "encode big-endian Window lifecycle cluster requests" {
+    const request = Window.Reparent{ .window_id = 0x01020304, .parent = 0x05060708, .x = -10, .y = 20 };
+    var buffer: [Window.Reparent.size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .big);
+    try std.testing.expectEqualSlices(u8, &.{ 7, 0, 0, 4, 1, 2, 3, 4, 5, 6, 7, 8, 255, 246, 0, 20 }, encoded);
+}
+
 test "encode little-endian destroy window request" {
     const request = Window.Destroy{
         .window_id = 0x01020304,
