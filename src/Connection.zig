@@ -1,6 +1,9 @@
 const std = @import("std");
 const Display = @import("Display.zig").Display;
 const Response = @import("Response.zig");
+const Event = @import("Event.zig").Event;
+const ProtocolError = @import("Error.zig").Error;
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const Connection = struct {
     stream: std.Io.net.Stream,
@@ -62,6 +65,38 @@ pub const Connection = struct {
         var bytes: [Response.size]u8 = undefined;
         try response_reader.interface.readSliceAll(&bytes);
         return bytes;
+    }
+
+    /// A classified incoming X11 server message.
+    ///
+    /// Replies remain raw because their interpretation depends on the request
+    /// that produced them.
+    pub const Incoming = union(enum) {
+        protocol_error: ProtocolError,
+        reply: [Response.size]u8,
+        event: Event,
+    };
+
+    /// Reads and classifies one incoming X11 server response.
+    ///
+    /// Events and protocol errors are parsed immediately. Replies are returned
+    /// as their raw 32-byte header for request-specific parsing.
+    pub fn readResponse(
+        self: *Connection,
+        response_reader: anytype,
+        byte_order: ByteOrder,
+    ) !Incoming {
+        const bytes = try self.readResponseHeader(response_reader);
+
+        return switch (try Response.classify(&bytes)) {
+            .protocol_error => .{
+                .protocol_error = try ProtocolError.parse(&bytes, byte_order),
+            },
+            .reply => .{ .reply = bytes },
+            .event => .{
+                .event = try Event.parse(&bytes, byte_order),
+            },
+        };
     }
 
     /// Closes the underlying connection.
