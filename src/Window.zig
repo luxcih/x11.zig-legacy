@@ -90,6 +90,36 @@ pub const Window = struct {
             }
         }
     };
+    pub const Map = struct {
+        pub const EncodeError = error{
+            BufferTooSmall,
+        };
+
+        pub const opcode = 8;
+        pub const size = 8;
+
+        window_id: u32,
+
+        pub fn encodedLength(self: Map) usize {
+            _ = self;
+            return size;
+        }
+
+        pub fn encode(
+            self: Map,
+            buffer: []u8,
+            byte_order: Setup.ByteOrder,
+        ) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Create.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Create.writeU32(buffer[4..8], self.window_id, byte_order);
+
+            return buffer[0..size];
+        }
+    };
 };
 
 test "encode little-endian create window request" {
