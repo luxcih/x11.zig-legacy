@@ -38,4 +38,23 @@ pub fn build(b: *std.Build) void {
         "Run the display example",
     );
     example_step.dependOn(&run_example.step);
+    const unix_socket_module = b.createModule(.{
+        .root_source_file = b.path("examples/unix_socket.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const unix_socket_example = b.addExecutable(.{
+        .name = "example-unix-socket",
+        .root_module = unix_socket_module,
+    });
+
+    const run_unix_socket_example = b.addRunArtifact(unix_socket_example);
+
+    const unix_socket_example_step = b.step(
+        "example-unix-socket",
+        "Run the Unix socket example",
+    );
+    unix_socket_example_step.dependOn(&run_unix_socket_example.step);
+
 }
