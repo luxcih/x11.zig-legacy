@@ -81,15 +81,16 @@ const GC = @This();
             var value_mask: u32 = 0;
             var offset: usize = base_size;
 
-            if (self.background) |background| {
-                value_mask |= 1 << 3;
-                Wire.writeU32(buffer[offset .. offset + 4], background, byte_order);
-                offset += 4;
-            }
-
+            // X11 value lists are serialized in increasing mask-bit order.
             if (self.foreground) |foreground| {
                 value_mask |= 1 << 2;
                 Wire.writeU32(buffer[offset .. offset + 4], foreground, byte_order);
+                offset += 4;
+            }
+
+            if (self.background) |background| {
+                value_mask |= 1 << 3;
+                Wire.writeU32(buffer[offset .. offset + 4], background, byte_order);
                 offset += 4;
             }
 
@@ -180,6 +181,26 @@ test "encode little-endian ChangeGC values" {
     }, encoded);
 }
 
+
+test "encode ChangeGC values in mask-bit order" {
+    const request = GC.Change{
+        .gc_id = 1,
+        .foreground = 0x11111111,
+        .line_width = 0x22222222,
+    };
+
+    var buffer: [20]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        56, 0,
+        5, 0,
+        1, 0, 0, 0,
+        20, 0, 0, 0,
+        0x11, 0x11, 0x11, 0x11,
+        0x22, 0x22, 0x22, 0x22,
+    }, encoded);
+}
 
 test "encode little-endian FreeGC request" {
     const request = GC.Free{
