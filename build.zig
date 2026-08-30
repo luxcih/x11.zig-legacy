@@ -43,6 +43,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    unix_socket_module.addImport("x11", module);
 
     const unix_socket_example = b.addExecutable(.{
         .name = "example-unix-socket",
