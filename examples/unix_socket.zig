@@ -107,7 +107,6 @@ pub fn main(init: std.process.Init) !void {
                 );
             }
 
-
             if (setup_info.screens.len == 0)
                 return error.NoScreens;
 
@@ -225,8 +224,6 @@ pub fn main(init: std.process.Init) !void {
                 &fill_buffer,
                 setup.byte_order,
             );
-            try connection.writeAll(init.io, fill_bytes);
-
             const green_gc = x11.GC.Change{
                 .gc_id = gc_id,
                 .foreground = 0x00ff00,
@@ -249,8 +246,6 @@ pub fn main(init: std.process.Init) !void {
                 &change_gc_buffer,
                 setup.byte_order,
             );
-            try connection.writeAll(init.io, change_gc_bytes);
-
             const line = x11.Draw.PolyLine{
                 .drawable = window_id,
                 .gc = gc_id,
@@ -266,8 +261,6 @@ pub fn main(init: std.process.Init) !void {
                 &line_buffer,
                 setup.byte_order,
             );
-            try connection.writeAll(init.io, line_bytes);
-
             const outline = x11.Draw.PolyRectangle{
                 .drawable = window_id,
                 .gc = gc_id,
@@ -286,8 +279,6 @@ pub fn main(init: std.process.Init) !void {
                 &outline_buffer,
                 setup.byte_order,
             );
-            try connection.writeAll(init.io, outline_bytes);
-
             const arc = x11.Draw.PolyArc{
                 .drawable = window_id,
                 .gc = gc_id,
@@ -308,8 +299,6 @@ pub fn main(init: std.process.Init) !void {
                 &arc_buffer,
                 setup.byte_order,
             );
-            try connection.writeAll(init.io, arc_bytes);
-
             const filled_arc = x11.Draw.PolyFillArc{
                 .drawable = window_id,
                 .gc = gc_id,
@@ -330,8 +319,6 @@ pub fn main(init: std.process.Init) !void {
                 &filled_arc_buffer,
                 setup.byte_order,
             );
-            try connection.writeAll(init.io, filled_arc_bytes);
-
             const text = x11.Draw.ImageText8{
                 .drawable = window_id,
                 .gc = gc_id,
@@ -345,8 +332,6 @@ pub fn main(init: std.process.Init) !void {
                 &text_buffer,
                 setup.byte_order,
             );
-            try connection.writeAll(init.io, text_bytes);
-
             try drawScene(
                 &connection,
                 init.io,
