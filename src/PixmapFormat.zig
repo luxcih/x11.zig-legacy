@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const PixmapFormat = struct {
+const PixmapFormat = @This();
     pub const ParseError = error{
         BufferTooShort,
     };
@@ -20,7 +20,6 @@ pub const PixmapFormat = struct {
             .scanline_pad = bytes[2],
         };
     }
-};
 
 test "parse pixmap format" {
     const format = try PixmapFormat.parse(&.{
