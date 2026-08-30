@@ -27,6 +27,7 @@ pub fn build(b: *std.Build) void {
         "get_window_attributes",
         "query_tree",
         "get_input_focus",
+        "query_pointer",
         "gc",
         "draw",
         "redraw",
