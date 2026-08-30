@@ -44,7 +44,7 @@ pub fn main(init: std.process.Init) !void {
     defer allocator.free(additional);
     try reader.interface.readSliceAll(additional);
 
-    const info = switch (response) {
+    var info = switch (response) {
         .success => try x11.SetupInfo.parse(
             allocator,
             additional,
