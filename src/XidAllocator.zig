@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const XidAllocator = struct {
+const XidAllocator = @This();
     pub const Error = error{
         Exhausted,
     };
@@ -50,7 +50,6 @@ pub const XidAllocator = struct {
 
         return result;
     }
-};
 
 test "allocate contiguous XIDs" {
     var allocator = XidAllocator.init(0x20000000, 0x00000003);
