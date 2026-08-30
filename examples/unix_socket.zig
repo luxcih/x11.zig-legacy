@@ -207,6 +207,7 @@ pub fn main(init: std.process.Init) !void {
             const change_gc = x11.GC.Change{
                 .gc_id = gc_id,
                 .foreground = 0xff0000,
+                .line_width = 6,
             };
 
             var change_gc_buffer: [x11.GC.Change.size]u8 = undefined;
