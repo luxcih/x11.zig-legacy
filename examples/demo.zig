@@ -28,6 +28,137 @@ fn drawScene(
     try connection.writeAll(io, scene.text);
 }
 
+const SceneBuffers = struct {
+    green_gc: [16]u8 = undefined,
+    fill: [x11.Draw.PolyFillRectangle.base_size +
+        x11.Draw.PolyFillRectangle.rectangle_size]u8 = undefined,
+    draw_gc: [24]u8 = undefined,
+    line: [x11.Draw.PolyLine.base_size +
+        3 * x11.Draw.PolyLine.point_size]u8 = undefined,
+    rectangle: [x11.Draw.PolyRectangle.base_size +
+        x11.Draw.PolyRectangle.rectangle_size]u8 = undefined,
+    arc: [x11.Draw.PolyArc.base_size +
+        x11.Draw.PolyArc.arc_size]u8 = undefined,
+    filled_arc: [x11.Draw.PolyFillArc.base_size +
+        x11.Draw.PolyFillArc.arc_size]u8 = undefined,
+    text: [64]u8 = undefined,
+
+    pub fn build(
+        self: *SceneBuffers,
+        window_id: u32,
+        gc_id: u32,
+        byte_order: x11.Setup.ByteOrder,
+    ) !Scene {
+        const green_gc = x11.GC.Change{
+            .gc_id = gc_id,
+            .foreground = 0x00ff00,
+        };
+        const green_gc_bytes = try green_gc.encode(
+            &self.green_gc,
+            byte_order,
+        );
+
+        const fill = x11.Draw.PolyFillRectangle{
+            .drawable = window_id,
+            .gc = gc_id,
+            .rectangles = &.{.{
+                .x = 100,
+                .y = 100,
+                .width = 300,
+                .height = 200,
+            }},
+        };
+        const fill_bytes = try fill.encode(&self.fill, byte_order);
+
+        const draw_gc = x11.GC.Change{
+            .gc_id = gc_id,
+            .foreground = 0xff0000,
+            .line_width = 6,
+        };
+        const draw_gc_bytes = try draw_gc.encode(
+            &self.draw_gc,
+            byte_order,
+        );
+
+        const line = x11.Draw.PolyLine{
+            .drawable = window_id,
+            .gc = gc_id,
+            .points = &.{
+                .{ .x = 50, .y = 50 },
+                .{ .x = 500, .y = 350 },
+                .{ .x = 700, .y = 100 },
+            },
+        };
+        const line_bytes = try line.encode(&self.line, byte_order);
+
+        const rectangle = x11.Draw.PolyRectangle{
+            .drawable = window_id,
+            .gc = gc_id,
+            .rectangles = &.{.{
+                .x = 450,
+                .y = 400,
+                .width = 200,
+                .height = 120,
+            }},
+        };
+        const rectangle_bytes = try rectangle.encode(
+            &self.rectangle,
+            byte_order,
+        );
+
+        const arc = x11.Draw.PolyArc{
+            .drawable = window_id,
+            .gc = gc_id,
+            .arcs = &.{.{
+                .x = 300,
+                .y = 250,
+                .width = 150,
+                .height = 150,
+                .angle1 = 0,
+                .angle2 = 360 * 64,
+            }},
+        };
+        const arc_bytes = try arc.encode(&self.arc, byte_order);
+
+        const filled_arc = x11.Draw.PolyFillArc{
+            .drawable = window_id,
+            .gc = gc_id,
+            .arcs = &.{.{
+                .x = 500,
+                .y = 250,
+                .width = 120,
+                .height = 120,
+                .angle1 = 0,
+                .angle2 = 360 * 64,
+            }},
+        };
+        const filled_arc_bytes = try filled_arc.encode(
+            &self.filled_arc,
+            byte_order,
+        );
+
+        const text = x11.Draw.ImageText8{
+            .drawable = window_id,
+            .gc = gc_id,
+            .x = 100,
+            .y = 550,
+            .text = "Hello from x11.zig!",
+        };
+        const text_bytes = try text.encode(&self.text, byte_order);
+
+        return .{
+            .green_gc = green_gc_bytes,
+            .fill = fill_bytes,
+            .draw_gc = draw_gc_bytes,
+            .line = line_bytes,
+            .rectangle = rectangle_bytes,
+            .arc = arc_bytes,
+            .filled_arc = filled_arc_bytes,
+            .text = text_bytes,
+        };
+    }
+};
+
 fn createWindow(
     connection: *x11.Connection,
     io: std.Io,
@@ -289,142 +420,12 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, gc_bytes);
 
-            const fill = x11.Draw.PolyFillRectangle{
-                .drawable = window_id,
-                .gc = gc_id,
-                .rectangles = &.{
-                    .{
-                        .x = 100,
-                        .y = 100,
-                        .width = 300,
-                        .height = 200,
-                    },
-                },
-            };
-
-            var fill_buffer: [x11.Draw.PolyFillRectangle.base_size + x11.Draw.PolyFillRectangle.rectangle_size]u8 = undefined;
-            const fill_bytes = try fill.encode(
-                &fill_buffer,
+            var scene_buffers = SceneBuffers{};
+            const scene = try scene_buffers.build(
+                window_id,
+                gc_id,
                 setup.byte_order,
             );
-            const green_gc = x11.GC.Change{
-                .gc_id = gc_id,
-                .foreground = 0x00ff00,
-            };
-
-            var green_gc_buffer: [16]u8 = undefined;
-            const green_gc_bytes = try green_gc.encode(
-                &green_gc_buffer,
-                setup.byte_order,
-            );
-
-            const change_gc = x11.GC.Change{
-                .gc_id = gc_id,
-                .foreground = 0xff0000,
-                .line_width = 6,
-            };
-
-            var change_gc_buffer: [24]u8 = undefined;
-            const change_gc_bytes = try change_gc.encode(
-                &change_gc_buffer,
-                setup.byte_order,
-            );
-            const line = x11.Draw.PolyLine{
-                .drawable = window_id,
-                .gc = gc_id,
-                .points = &.{
-                    .{ .x = 50, .y = 50 },
-                    .{ .x = 500, .y = 350 },
-                    .{ .x = 700, .y = 100 },
-                },
-            };
-
-            var line_buffer: [x11.Draw.PolyLine.base_size + 3 * x11.Draw.PolyLine.point_size]u8 = undefined;
-            const line_bytes = try line.encode(
-                &line_buffer,
-                setup.byte_order,
-            );
-            const outline = x11.Draw.PolyRectangle{
-                .drawable = window_id,
-                .gc = gc_id,
-                .rectangles = &.{
-                    .{
-                        .x = 450,
-                        .y = 400,
-                        .width = 200,
-                        .height = 120,
-                    },
-                },
-            };
-
-            var outline_buffer: [x11.Draw.PolyRectangle.base_size + x11.Draw.PolyRectangle.rectangle_size]u8 = undefined;
-            const outline_bytes = try outline.encode(
-                &outline_buffer,
-                setup.byte_order,
-            );
-            const arc = x11.Draw.PolyArc{
-                .drawable = window_id,
-                .gc = gc_id,
-                .arcs = &.{
-                    .{
-                        .x = 300,
-                        .y = 250,
-                        .width = 150,
-                        .height = 150,
-                        .angle1 = 0,
-                        .angle2 = 360 * 64,
-                    },
-                },
-            };
-
-            var arc_buffer: [x11.Draw.PolyArc.base_size + x11.Draw.PolyArc.arc_size]u8 = undefined;
-            const arc_bytes = try arc.encode(
-                &arc_buffer,
-                setup.byte_order,
-            );
-            const filled_arc = x11.Draw.PolyFillArc{
-                .drawable = window_id,
-                .gc = gc_id,
-                .arcs = &.{
-                    .{
-                        .x = 500,
-                        .y = 250,
-                        .width = 120,
-                        .height = 120,
-                        .angle1 = 0,
-                        .angle2 = 360 * 64,
-                    },
-                },
-            };
-
-            var filled_arc_buffer: [x11.Draw.PolyFillArc.base_size + x11.Draw.PolyFillArc.arc_size]u8 = undefined;
-            const filled_arc_bytes = try filled_arc.encode(
-                &filled_arc_buffer,
-                setup.byte_order,
-            );
-            const text = x11.Draw.ImageText8{
-                .drawable = window_id,
-                .gc = gc_id,
-                .x = 100,
-                .y = 550,
-                .text = "Hello from x11.zig!",
-            };
-
-            var text_buffer: [64]u8 = undefined;
-            const text_bytes = try text.encode(
-                &text_buffer,
-                setup.byte_order,
-            );
-            const scene = Scene{
-                .green_gc = green_gc_bytes,
-                .fill = fill_bytes,
-                .draw_gc = change_gc_bytes,
-                .line = line_bytes,
-                .rectangle = outline_bytes,
-                .arc = arc_bytes,
-                .filled_arc = filled_arc_bytes,
-                .text = text_bytes,
-            };
 
             try drawScene(&connection, init.io, scene);
 
