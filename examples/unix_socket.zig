@@ -14,12 +14,14 @@ pub fn main(init: std.process.Init) !void {
         .{tmpdir},
     );
 
+    std.debug.print("connecting...\n", .{});
     var connection = try x11.Connection.connectLocal(
         init.io,
         display,
         socket_dir,
     );
     defer connection.close(init.io);
+    std.debug.print("connected\n", .{});
 
     const setup = x11.Setup{};
 
@@ -31,8 +33,10 @@ pub fn main(init: std.process.Init) !void {
     var read_buffer: [4096]u8 = undefined;
     var reader = connection.reader(init.io, &read_buffer);
 
+    std.debug.print("reading setup prefix...\n", .{});
     var prefix: [8]u8 = undefined;
     try reader.interface.readSliceAll(&prefix);
+    std.debug.print("got setup prefix\n", .{});
 
     const response = try x11.SetupResponse.parsePrefix(
         prefix,
@@ -47,15 +51,18 @@ pub fn main(init: std.process.Init) !void {
     defer std.heap.page_allocator.free(additional);
 
     try reader.interface.readSliceAll(additional);
+    std.debug.print("got setup body\n", .{});
 
     switch (response) {
         .success => |success| {
+            std.debug.print("parsing setup...\n", .{});
             var setup_info = try x11.SetupInfo.parse(
                 std.heap.page_allocator,
                 additional,
                 setup.byte_order,
             );
             defer setup_info.deinit(std.heap.page_allocator);
+            std.debug.print("parsed setup\n", .{});
 
             std.debug.print(
                 "X11 setup succeeded: {}.{}\n",
