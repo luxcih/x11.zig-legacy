@@ -3,7 +3,8 @@ const Display = @import("Display.zig");
 const Response = @import("Response.zig");
 const Event = @import("Event.zig").Event;
 const ProtocolError = @import("Error.zig").Error;
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const std = @import("std");
+const Endian = std.builtin.Endian;
 
 const Connection = @This();
     stream: std.Io.net.Stream,
@@ -85,17 +86,17 @@ const Connection = @This();
     pub fn readResponse(
         self: *Connection,
         response_reader: anytype,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) !Incoming {
         const bytes = try self.readResponseHeader(response_reader);
 
         return switch (try Response.classify(&bytes)) {
             .protocol_error => .{
-                .protocol_error = try ProtocolError.parse(&bytes, byte_order),
+                .protocol_error = try ProtocolError.parse(&bytes, endian),
             },
             .reply => .{ .reply = bytes },
             .event => .{
-                .event = try Event.parse(&bytes, byte_order),
+                .event = try Event.parse(&bytes, endian),
             },
         };
     }
