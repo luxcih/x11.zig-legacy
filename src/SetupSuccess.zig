@@ -30,6 +30,10 @@ pub const SetupSuccess = struct {
         return @as(usize, self.pixmap_format_count) * 8;
     }
 
+    pub fn screensOffset(self: SetupSuccess) usize {
+        return self.pixmapFormatsOffset() + self.pixmapFormatsLength();
+    }
+
     fn paddedLength(length: usize) usize {
         return (length + 3) & ~@as(usize, 3);
     }
