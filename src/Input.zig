@@ -1,4 +1,3 @@
-const std = @import("std");
 const Wire = @import("Wire.zig");
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
@@ -25,7 +24,12 @@ pub const Input = struct {
                 if (bytes.len != reply_size) return error.InvalidLength;
                 if (bytes[0] != 1) return error.InvalidResponse;
 
-                const revert_to = std.meta.intToEnum(RevertTo, bytes[1]) catch return error.InvalidResponse;
+                const revert_to: RevertTo = switch (bytes[1]) {
+                    0 => .none,
+                    1 => .pointer_root,
+                    2 => .parent,
+                    else => return error.InvalidResponse,
+                };
                 return .{
                     .revert_to = revert_to,
                     .focus = Wire.readU32(bytes[8..12], byte_order),
