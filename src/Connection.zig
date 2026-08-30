@@ -39,7 +39,9 @@ pub const Connection = struct {
         io: std.Io,
         bytes: []const u8,
     ) !void {
-        var writer = self.stream.writer(io, bytes);
+        var buffer: [1024]u8 = undefined;
+        var writer = self.stream.writer(io, &buffer);
+        try writer.interface.writeAll(bytes);
         try writer.interface.flush();
     }
 
