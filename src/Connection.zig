@@ -33,9 +33,9 @@ pub const Connection = struct {
         self: *Connection,
         io: std.Io,
         setup: Setup,
+        buffer: []u8,
     ) !void {
-        var buffer: [1024]u8 = undefined;
-        const request = try setup.encode(&buffer);
+        const request = try setup.encode(buffer);
 
         var writer = self.stream.writer(io, &.{});
         try writer.interface.writeAll(request);
