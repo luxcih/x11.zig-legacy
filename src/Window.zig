@@ -1,6 +1,6 @@
 const std = @import("std");
-const Setup = @import("Setup.zig").Setup;
 const Wire = @import("Wire.zig");
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const Window = struct {
     pub const Create = struct {
@@ -36,7 +36,7 @@ pub const Window = struct {
         pub fn encode(
             self: Create,
             buffer: []u8,
-            byte_order: Setup.ByteOrder,
+            byte_order: ByteOrder,
         ) EncodeError![]const u8 {
             const length = self.encodedLength();
             if (buffer.len < length) return error.BufferTooSmall;
@@ -114,7 +114,7 @@ pub const Window = struct {
         pub fn encode(
             self: ChangeAttributes,
             buffer: []u8,
-            byte_order: Setup.ByteOrder,
+            byte_order: ByteOrder,
         ) EncodeError![]const u8 {
             if (buffer.len < size)
                 return error.BufferTooSmall;
@@ -143,7 +143,7 @@ pub const Window = struct {
         pub fn encode(
             self: Unmap,
             buffer: []u8,
-            byte_order: Setup.ByteOrder,
+            byte_order: ByteOrder,
         ) EncodeError![]const u8 {
             if (buffer.len < size)
                 return error.BufferTooSmall;
@@ -170,7 +170,7 @@ pub const Window = struct {
         pub fn encode(
             self: Destroy,
             buffer: []u8,
-            byte_order: Setup.ByteOrder,
+            byte_order: ByteOrder,
         ) EncodeError![]const u8 {
             if (buffer.len < size)
                 return error.BufferTooSmall;
@@ -210,7 +210,7 @@ pub const Window = struct {
         pub fn encode(
             self: Configure,
             buffer: []u8,
-            byte_order: Setup.ByteOrder,
+            byte_order: ByteOrder,
         ) EncodeError![]const u8 {
             const length = self.encodedLength();
             if (buffer.len < length)
@@ -272,7 +272,7 @@ pub const Window = struct {
         pub fn encode(
             self: Map,
             buffer: []u8,
-            byte_order: Setup.ByteOrder,
+            byte_order: ByteOrder,
         ) EncodeError![]const u8 {
             if (buffer.len < size) return error.BufferTooSmall;
 
