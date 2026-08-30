@@ -14,7 +14,10 @@ fn getAtomName(
     var read_buffer: [256]u8 = undefined;
     var reader = session.connection.reader(io, &read_buffer);
     const header = try session.connection.readResponseHeader(&reader);
-    const name_length = std.mem.readInt(u16, header[8..10], session.byte_order);
+    const name_length = switch (session.byte_order) {
+        .little => @as(u16, header[8]) | (@as(u16, header[9]) << 8),
+        .big => (@as(u16, header[8]) << 8) | @as(u16, header[9]),
+    };
     const padded = std.mem.alignForward(usize, @as(usize, name_length), 4);
     const body = try std.heap.page_allocator.alloc(u8, padded);
     try reader.interface.readSliceAll(body);
