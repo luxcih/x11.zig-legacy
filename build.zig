@@ -18,4 +18,24 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_tests.step);
+
+    const example_module = b.createModule(.{
+        .root_source_file = b.path("examples/display.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    example_module.addImport("x11", module);
+
+    const example = b.addExecutable(.{
+        .name = "example-display",
+        .root_module = example_module,
+    });
+
+    const run_example = b.addRunArtifact(example);
+
+    const example_step = b.step(
+        "example-display",
+        "Run the display example",
+    );
+    example_step.dependOn(&run_example.step);
 }
