@@ -180,7 +180,6 @@ test "encode QueryKeymap big-endian" {
 
 
 test "encode and parse GetInputFocus big-endian" {
-    const std = @import("std");
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
     const encoded = try Input.GetInputFocus.encode(&request_buffer, .big);
@@ -197,7 +196,6 @@ test "encode and parse GetInputFocus big-endian" {
 }
 
 test "reject invalid GetInputFocus replies" {
-    const std = @import("std");
 
     var reply: [Input.GetInputFocus.reply_size]u8 = [_]u8{0} ** Input.GetInputFocus.reply_size;
     reply[0] = 1;
@@ -218,7 +216,6 @@ test "reject invalid GetInputFocus replies" {
 }
 
 test "encode and parse GetInputFocus" {
-    const std = @import("std");
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
     const encoded = try Input.GetInputFocus.encode(&request_buffer, .little);
