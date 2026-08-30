@@ -1,6 +1,6 @@
 const std = @import("std");
-const Setup = @import("Setup.zig").Setup;
 const Wire = @import("Wire.zig");
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const Rectangle = struct {
     x: i16,
@@ -29,7 +29,7 @@ pub const PolyFillRectangle = struct {
     pub fn encode(
         self: PolyFillRectangle,
         buffer: []u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -110,7 +110,7 @@ pub const PolyLine = struct {
     pub fn encode(
         self: PolyLine,
         buffer: []u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -179,7 +179,7 @@ pub const PolyRectangle = struct {
     pub fn encode(
         self: PolyRectangle,
         buffer: []u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -258,7 +258,7 @@ pub const PolyArc = struct {
     pub fn encode(
         self: PolyArc,
         buffer: []u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -339,7 +339,7 @@ pub const PolyFillArc = struct {
     pub fn encode(
         self: PolyFillArc,
         buffer: []u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -427,7 +427,7 @@ pub const ImageText8 = struct {
     pub fn encode(
         self: ImageText8,
         buffer: []u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) EncodeError![]const u8 {
         const length = try self.encodedLength();
         if (buffer.len < length)
