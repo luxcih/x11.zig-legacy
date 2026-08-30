@@ -1,7 +1,7 @@
 const Wire = @import("Wire.zig");
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const Input = struct {
+const Input = @This();
     pub const GetInputFocus = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{ InvalidLength, InvalidResponse };
@@ -45,7 +45,6 @@ pub const Input = struct {
             return buffer[0..size];
         }
     };
-};
 
 
 test "encode and parse GetInputFocus" {
