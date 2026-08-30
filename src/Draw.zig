@@ -1,6 +1,7 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const std = @import("std");
+const Endian = std.builtin.Endian;
 
 pub const Rectangle = struct {
     x: i16,
@@ -29,7 +30,7 @@ pub const PolyFillRectangle = struct {
     pub fn encode(
         self: PolyFillRectangle,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -37,16 +38,16 @@ pub const PolyFillRectangle = struct {
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
-        Wire.writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+        Wire.writeU32(buffer[4..8], self.drawable, endian);
+        Wire.writeU32(buffer[8..12], self.gc, endian);
 
         var offset: usize = base_size;
         for (self.rectangles) |rectangle| {
-            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(rectangle.x), byte_order);
-            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(rectangle.y), byte_order);
-            Wire.writeU16(buffer[offset + 4 .. offset + 6], rectangle.width, byte_order);
-            Wire.writeU16(buffer[offset + 6 .. offset + 8], rectangle.height, byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(rectangle.x), endian);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(rectangle.y), endian);
+            Wire.writeU16(buffer[offset + 4 .. offset + 6], rectangle.width, endian);
+            Wire.writeU16(buffer[offset + 6 .. offset + 8], rectangle.height, endian);
             offset += rectangle_size;
         }
 
@@ -218,7 +219,7 @@ pub const PolyLine = struct {
     pub fn encode(
         self: PolyLine,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -226,14 +227,14 @@ pub const PolyLine = struct {
 
         buffer[0] = opcode;
         buffer[1] = @intFromEnum(self.coordinate_mode);
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
-        Wire.writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+        Wire.writeU32(buffer[4..8], self.drawable, endian);
+        Wire.writeU32(buffer[8..12], self.gc, endian);
 
         var offset: usize = base_size;
         for (self.points) |point| {
-            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(point.x), byte_order);
-            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(point.y), byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(point.x), endian);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(point.y), endian);
             offset += point_size;
         }
 
@@ -287,7 +288,7 @@ pub const PolyRectangle = struct {
     pub fn encode(
         self: PolyRectangle,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -295,16 +296,16 @@ pub const PolyRectangle = struct {
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
-        Wire.writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+        Wire.writeU32(buffer[4..8], self.drawable, endian);
+        Wire.writeU32(buffer[8..12], self.gc, endian);
 
         var offset: usize = base_size;
         for (self.rectangles) |rectangle| {
-            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(rectangle.x), byte_order);
-            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(rectangle.y), byte_order);
-            Wire.writeU16(buffer[offset + 4 .. offset + 6], rectangle.width, byte_order);
-            Wire.writeU16(buffer[offset + 6 .. offset + 8], rectangle.height, byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(rectangle.x), endian);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(rectangle.y), endian);
+            Wire.writeU16(buffer[offset + 4 .. offset + 6], rectangle.width, endian);
+            Wire.writeU16(buffer[offset + 6 .. offset + 8], rectangle.height, endian);
             offset += rectangle_size;
         }
 
@@ -366,7 +367,7 @@ pub const PolyArc = struct {
     pub fn encode(
         self: PolyArc,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -374,18 +375,18 @@ pub const PolyArc = struct {
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
-        Wire.writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+        Wire.writeU32(buffer[4..8], self.drawable, endian);
+        Wire.writeU32(buffer[8..12], self.gc, endian);
 
         var offset: usize = base_size;
         for (self.arcs) |arc| {
-            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(arc.x), byte_order);
-            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(arc.y), byte_order);
-            Wire.writeU16(buffer[offset + 4 .. offset + 6], arc.width, byte_order);
-            Wire.writeU16(buffer[offset + 6 .. offset + 8], arc.height, byte_order);
-            Wire.writeU16(buffer[offset + 8 .. offset + 10], @bitCast(arc.angle1), byte_order);
-            Wire.writeU16(buffer[offset + 10 .. offset + 12], @bitCast(arc.angle2), byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(arc.x), endian);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(arc.y), endian);
+            Wire.writeU16(buffer[offset + 4 .. offset + 6], arc.width, endian);
+            Wire.writeU16(buffer[offset + 6 .. offset + 8], arc.height, endian);
+            Wire.writeU16(buffer[offset + 8 .. offset + 10], @bitCast(arc.angle1), endian);
+            Wire.writeU16(buffer[offset + 10 .. offset + 12], @bitCast(arc.angle2), endian);
             offset += arc_size;
         }
 
@@ -447,7 +448,7 @@ pub const PolyFillArc = struct {
     pub fn encode(
         self: PolyFillArc,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
         if (buffer.len < length)
@@ -455,18 +456,18 @@ pub const PolyFillArc = struct {
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
-        Wire.writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+        Wire.writeU32(buffer[4..8], self.drawable, endian);
+        Wire.writeU32(buffer[8..12], self.gc, endian);
 
         var offset: usize = base_size;
         for (self.arcs) |arc| {
-            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(arc.x), byte_order);
-            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(arc.y), byte_order);
-            Wire.writeU16(buffer[offset + 4 .. offset + 6], arc.width, byte_order);
-            Wire.writeU16(buffer[offset + 6 .. offset + 8], arc.height, byte_order);
-            Wire.writeU16(buffer[offset + 8 .. offset + 10], @bitCast(arc.angle1), byte_order);
-            Wire.writeU16(buffer[offset + 10 .. offset + 12], @bitCast(arc.angle2), byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(arc.x), endian);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(arc.y), endian);
+            Wire.writeU16(buffer[offset + 4 .. offset + 6], arc.width, endian);
+            Wire.writeU16(buffer[offset + 6 .. offset + 8], arc.height, endian);
+            Wire.writeU16(buffer[offset + 8 .. offset + 10], @bitCast(arc.angle1), endian);
+            Wire.writeU16(buffer[offset + 10 .. offset + 12], @bitCast(arc.angle2), endian);
             offset += arc_size;
         }
 
@@ -535,7 +536,7 @@ pub const ImageText8 = struct {
     pub fn encode(
         self: ImageText8,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         const length = try self.encodedLength();
         if (buffer.len < length)
@@ -543,11 +544,11 @@ pub const ImageText8 = struct {
 
         buffer[0] = opcode;
         buffer[1] = @intCast(self.text.len);
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
-        Wire.writeU32(buffer[8..12], self.gc, byte_order);
-        Wire.writeU16(buffer[12..14], @bitCast(self.x), byte_order);
-        Wire.writeU16(buffer[14..16], @bitCast(self.y), byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+        Wire.writeU32(buffer[4..8], self.drawable, endian);
+        Wire.writeU32(buffer[8..12], self.gc, endian);
+        Wire.writeU16(buffer[12..14], @bitCast(self.x), endian);
+        Wire.writeU16(buffer[14..16], @bitCast(self.y), endian);
 
         @memcpy(buffer[16 .. 16 + self.text.len], self.text);
         @memset(buffer[16 + self.text.len .. length], 0);
