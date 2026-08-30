@@ -6,3 +6,4 @@ pub const Setup = @import("Setup.zig").Setup;
 pub const SetupResponse = @import("SetupResponse.zig").SetupResponse;
 pub const SetupSuccess = @import("SetupSuccess.zig").SetupSuccess;
 pub const PixmapFormat = @import("PixmapFormat.zig").PixmapFormat;
+pub const Screen = @import("Screen.zig").Screen;
