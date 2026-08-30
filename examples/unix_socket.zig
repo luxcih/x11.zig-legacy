@@ -6,10 +6,19 @@ pub fn main() !void {
 
     const io = threaded.io();
 
-    const address = try std.Io.net.UnixAddress.init("/tmp/.X11-unix/X0");
+    const tmpdir = std.posix.getenv("TMPDIR") orelse return error.MissingTmpDir;
+
+    var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
+    const path = try std.fmt.bufPrint(
+        &path_buffer,
+        "{s}/.X11-unix/X1",
+        .{tmpdir},
+    );
+
+    const address = try std.Io.net.UnixAddress.init(path);
 
     var stream = try address.connect(io);
     defer stream.socket.close(io);
 
-    std.debug.print("Connected to the X server socket.\n", .{});
+    std.debug.print("Connected to the X server socket at {s}.\n", .{path});
 }
