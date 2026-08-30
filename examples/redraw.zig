@@ -1,3 +1,6 @@
+//! Demonstrates how an Expose event triggers application redraw logic.
+//! For a live redraw loop, see demo.zig.
+
 const std = @import("std");
 const x11 = @import("x11");
 
@@ -13,7 +16,7 @@ pub fn main() !void {
 
     switch (event) {
         .expose => |expose| std.debug.print(
-            "Expose {}x{}: this is where redrawScene() runs\n",
+            "Expose {}x{}: a real client would redraw here\n",
             .{ expose.width, expose.height },
         ),
         else => unreachable,
