@@ -153,6 +153,81 @@ pub const Event = union(enum) {
 
 };
 
+test "parse big-endian input and configure events" {
+    {
+        const event = try Event.parse(&.{
+            0x82, 38, 0, 0,
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16,
+            0, 10,
+            255, 236,
+            0, 30,
+            0, 40,
+            0, 1,
+            1,
+            0,
+        }, .big);
+
+        switch (event) {
+            .key_press => |key| {
+                try std.testing.expectEqual(@as(u8, 38), key.detail);
+                try std.testing.expectEqual(@as(u32, 0x01020304), key.time);
+                try std.testing.expectEqual(@as(i16, -20), key.root_y);
+                try std.testing.expect(key.same_screen);
+            },
+            else => return error.UnexpectedEvent,
+        }
+    }
+
+    {
+        const event = try Event.parse(&.{
+            22, 0, 0, 0,
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            0, 10,
+            255, 236,
+            2, 128,
+            1, 224,
+            0, 5,
+            1,
+            0, 0, 0, 0, 0,
+        }, .big);
+
+        switch (event) {
+            .configure_notify => |configure| {
+                try std.testing.expectEqual(@as(u32, 0x01020304), configure.event);
+                try std.testing.expectEqual(@as(u32, 0x05060708), configure.window);
+                try std.testing.expectEqual(@as(i16, 10), configure.x);
+                try std.testing.expectEqual(@as(i16, -20), configure.y);
+                try std.testing.expectEqual(@as(u16, 640), configure.width);
+                try std.testing.expect(configure.override_redirect);
+            },
+            else => return error.UnexpectedEvent,
+        }
+    }
+}
+
+test "parse unknown event preserving raw bytes" {
+    const event = try Event.parse(&.{
+        99, 7, 0, 0,
+        1, 2, 3, 4,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,
+    }, .little);
+
+    switch (event) {
+        .unknown => |unknown| {
+            try std.testing.expectEqual(@as(u8, 99), unknown.response_type);
+            try std.testing.expectEqual(@as(u8, 7), unknown.raw[1]);
+        },
+        else => return error.UnexpectedEvent,
+    }
+}
+
 test "parse little-endian expose event" {
     const event = try Event.parse(&.{
         12, 0, 0, 0,
