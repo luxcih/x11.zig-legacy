@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const Display = struct {
+const Display = @This();
     protocol: ?[]const u8,
     host: []const u8,
     separator: Separator,
@@ -94,7 +94,6 @@ pub const Display = struct {
             return error.InvalidDisplay;
         };
     }
-};
 
 test "parse local display" {
     const display = try Display.parse(":0");
