@@ -9,3 +9,4 @@ pub const PixmapFormat = @import("PixmapFormat.zig").PixmapFormat;
 pub const Screen = @import("Screen.zig").Screen;
 pub const Depth = @import("Depth.zig").Depth;
 pub const VisualType = @import("VisualType.zig").VisualType;
+pub const SetupInfo = @import("SetupInfo.zig").SetupInfo;
