@@ -78,4 +78,20 @@ pub fn build(b: *std.Build) void {
     );
     setup_example_step.dependOn(&run_setup_example.step);
 
+    const examples_step = b.step(
+        "examples",
+        "Build all examples",
+    );
+    examples_step.dependOn(&example.step);
+    examples_step.dependOn(&unix_socket_example.step);
+    examples_step.dependOn(&setup_example.step);
+
+    const check_examples_step = b.step(
+        "check-examples",
+        "Compile all examples",
+    );
+    check_examples_step.dependOn(&example.step);
+    check_examples_step.dependOn(&unix_socket_example.step);
+    check_examples_step.dependOn(&setup_example.step);
+
 }
