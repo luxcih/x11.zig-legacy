@@ -204,6 +204,18 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, fill_bytes);
 
+            const change_gc = x11.GC.Change{
+                .gc_id = gc_id,
+                .foreground = 0xff0000,
+            };
+
+            var change_gc_buffer: [x11.GC.Change.size]u8 = undefined;
+            const change_gc_bytes = try change_gc.encode(
+                &change_gc_buffer,
+                setup.byte_order,
+            );
+            try connection.writeAll(init.io, change_gc_bytes);
+
             const line = x11.Draw.Line{
                 .drawable = window_id,
                 .gc = gc_id,
