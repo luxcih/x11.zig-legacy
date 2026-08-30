@@ -115,6 +115,60 @@ test "SetInputFocus rejects a small buffer" {
 }
 
 
+    pub const QueryKeymap = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{InvalidLength, InvalidResponse};
+
+        pub const opcode = 44;
+        pub const size: usize = 4;
+        pub const reply_size: usize = 32;
+
+        pub const Reply = struct {
+            keys: [32]u8,
+
+            pub fn parse(bytes: []const u8) ParseError!Reply {
+                if (bytes.len != reply_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+
+                return .{ .keys = bytes[8..40].* };
+            }
+
+            pub fn isDown(self: Reply, keycode: u8) bool {
+                return (self.keys[keycode / 8] & (@as(u8, 1) << @intCast(keycode % 8))) != 0;
+            }
+        };
+
+        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+test "encode and parse QueryKeymap" {
+    var request: [Input.QueryKeymap.size]u8 = undefined;
+    const encoded = try Input.QueryKeymap.encode(&request, .little);
+    try std.testing.expectEqualSlices(u8, &.{ 44, 0, 1, 0 }, encoded);
+
+    var reply: [Input.QueryKeymap.reply_size]u8 = [_]u8{0} ** Input.QueryKeymap.reply_size;
+    reply[0] = 1;
+    reply[8 + (38 / 8)] |= @as(u8, 1) << (38 % 8);
+
+    const parsed = try Input.QueryKeymap.Reply.parse(&reply);
+    try std.testing.expect(parsed.isDown(38));
+    try std.testing.expect(!parsed.isDown(39));
+}
+
+test "encode QueryKeymap big-endian" {
+    var request: [Input.QueryKeymap.size]u8 = undefined;
+    const encoded = try Input.QueryKeymap.encode(&request, .big);
+    try std.testing.expectEqualSlices(u8, &.{ 44, 0, 0, 1 }, encoded);
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
     const std = @import("std");
 
