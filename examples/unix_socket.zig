@@ -50,10 +50,12 @@ pub fn main(init: std.process.Init) !void {
 
     switch (response) {
         .success => |success| {
-            const setup_success = try x11.SetupSuccess.parse(
+            var setup_info = try x11.SetupInfo.parse(
+                std.heap.page_allocator,
                 additional,
                 setup.byte_order,
             );
+            defer setup_info.deinit(std.heap.page_allocator);
 
             std.debug.print(
                 "X11 setup succeeded: {}.{}\n",
@@ -65,24 +67,13 @@ pub fn main(init: std.process.Init) !void {
             std.debug.print(
                 "Vendor: {s}\nRelease: {}\nScreens: {}\nPixmap formats:\n",
                 .{
-                    setup_success.vendor,
-                    setup_success.release_number,
-                    setup_success.screen_count,
+                    setup_info.success.vendor,
+                    setup_info.success.release_number,
+                    setup_info.screens.len,
                 },
             );
 
-            const formats_offset = setup_success.pixmapFormatsOffset();
-            const formats_length = setup_success.pixmapFormatsLength();
-            const formats = additional[
-                formats_offset .. formats_offset + formats_length
-            ];
-
-            for (0..setup_success.pixmap_format_count) |index| {
-                const offset = index * x11.PixmapFormat.size;
-                const format = try x11.PixmapFormat.parse(
-                    formats[offset .. offset + x11.PixmapFormat.size],
-                );
-
+            for (setup_info.pixmap_formats) |format| {
                 std.debug.print(
                     "  depth {}: {} bits per pixel, {} scanline pad\n",
                     .{
@@ -93,62 +84,40 @@ pub fn main(init: std.process.Init) !void {
                 );
             }
 
-            const screen_offset = setup_success.screensOffset();
-            const screen = try x11.Screen.parse(
-                additional[screen_offset .. screen_offset + x11.Screen.size],
-                setup.byte_order,
-            );
-
-            std.debug.print(
-                "Root screen: {}x{} pixels, depth {}\n",
-                .{
-                    screen.width_pixels,
-                    screen.height_pixels,
-                    screen.root_depth,
-                },
-            );
-
-            var depth_offset = screen_offset + x11.Screen.size;
-
-            for (0..screen.depth_count) |depth_index| {
-                _ = depth_index;
-
-                const depth = try x11.Depth.parse(
-                    additional[depth_offset .. depth_offset + x11.Depth.size],
-                    setup.byte_order,
-                );
+            for (setup_info.screens, 0..) |parsed_screen, screen_index| {
+                const screen = parsed_screen.screen;
 
                 std.debug.print(
-                    "  Depth {} ({} visuals):\n",
-                    .{ depth.depth, depth.visual_count },
+                    "Screen {}: {}x{} pixels, depth {}\n",
+                    .{
+                        screen_index,
+                        screen.width_pixels,
+                        screen.height_pixels,
+                        screen.root_depth,
+                    },
                 );
 
-                var visual_offset = depth_offset + depth.visualsOffset();
-
-                for (0..depth.visual_count) |_| {
-                    const visual = try x11.VisualType.parse(
-                        additional[
-                            visual_offset ..
-                                visual_offset + x11.VisualType.size
-                        ],
-                        setup.byte_order,
-                    );
-
+                for (parsed_screen.depths) |parsed_depth| {
                     std.debug.print(
-                        "    visual 0x{x}: {s}, {} RGB bits\n",
+                        "  Depth {} ({} visuals):\n",
                         .{
-                            visual.visual_id,
-                            @tagName(visual.class),
-                            visual.bits_per_rgb_value,
+                            parsed_depth.depth.depth,
+                            parsed_depth.visuals.len,
                         },
                     );
 
-                    visual_offset += x11.VisualType.size;
+                    for (parsed_depth.visuals) |visual| {
+                        std.debug.print(
+                            "    visual 0x{x}: {s}, {} RGB bits\n",
+                            .{
+                                visual.visual_id,
+                                @tagName(visual.class),
+                                visual.bits_per_rgb_value,
+                            },
+                        );
+                    }
                 }
-
-                depth_offset += depth.totalLength();
             }
-
         },
         .failed => |failed| {
             std.debug.print(
