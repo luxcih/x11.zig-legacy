@@ -1,4 +1,5 @@
 const std = @import("std");
+const Wire = @import("Wire.zig");
 
 pub const Event = union(enum) {
     key_press: Key,
@@ -149,7 +150,7 @@ pub const Event = union(enum) {
         };
     }
 
-    };
+};
 
 test "parse little-endian expose event" {
     const event = try Event.parse(&.{
