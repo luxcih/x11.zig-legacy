@@ -32,8 +32,15 @@ pub const VisualType = struct {
     ) ParseError!VisualType {
         if (bytes.len < size) return error.BufferTooShort;
 
-        const class = std.meta.intToEnum(Class, bytes[4]) catch
-            return error.InvalidClass;
+        const class: Class = switch (bytes[4]) {
+            0 => .static_gray,
+            1 => .gray_scale,
+            2 => .static_color,
+            3 => .pseudo_color,
+            4 => .true_color,
+            5 => .direct_color,
+            else => return error.InvalidClass,
+        };
 
         return .{
             .visual_id = readU32(bytes[0..4], byte_order),
