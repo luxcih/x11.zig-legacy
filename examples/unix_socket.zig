@@ -132,6 +132,23 @@ pub fn main(init: std.process.Init) !void {
                 .{window_id},
             );
 
+            const configure = x11.Window.Configure{
+                .window_id = window_id,
+                .x = 200,
+                .y = 150,
+                .width = 800,
+                .height = 600,
+            };
+
+            var configure_buffer: [28]u8 = undefined;
+            const configure_bytes = try configure.encode(
+                &configure_buffer,
+                setup.byte_order,
+            );
+            try connection.writeAll(init.io, configure_bytes);
+
+            std.debug.print("Configured window to 800x600 at (200, 150)\n", .{});
+
             // Keep the X11 client connection alive and process incoming
             // protocol messages so the server keeps this client's window.
             var message: [32]u8 = undefined;
