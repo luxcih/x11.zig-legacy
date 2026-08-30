@@ -30,9 +30,9 @@ pub const XidAllocator = struct {
     fn applyMask(mask: u32, index: u64) u32 {
         var result: u32 = 0;
         var source_bit: u6 = 0;
-        var destination_bit: u6 = 0;
+        var destination_bit: u5 = 0;
 
-        while (destination_bit < 32) : (destination_bit += 1) {
+        while (true) {
             const destination_mask = @as(u32, 1) << destination_bit;
 
             if (mask & destination_mask == 0)
@@ -42,6 +42,11 @@ pub const XidAllocator = struct {
                 result |= destination_mask;
 
             source_bit += 1;
+
+            if (destination_bit == 31)
+                break;
+
+            destination_bit += 1;
         }
 
         return result;
