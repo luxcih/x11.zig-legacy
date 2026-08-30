@@ -1,5 +1,6 @@
 const std = @import("std");
 const Setup = @import("Setup.zig").Setup;
+const Wire = @import("Wire.zig");
 
 pub const SetupResponse = union(enum) {
     failed: Failed,
@@ -34,17 +35,17 @@ pub const SetupResponse = union(enum) {
         return switch (prefix[0]) {
             0 => .{ .failed = .{
                 .reason_length = prefix[1],
-                .major_version = readU16(prefix[2..4], byte_order),
-                .minor_version = readU16(prefix[4..6], byte_order),
-                .additional_length = readU16(prefix[6..8], byte_order),
+                .major_version = Wire.readU16(prefix[2..4], byte_order),
+                .minor_version = Wire.readU16(prefix[4..6], byte_order),
+                .additional_length = Wire.readU16(prefix[6..8], byte_order),
             } },
             1 => .{ .success = .{
-                .major_version = readU16(prefix[2..4], byte_order),
-                .minor_version = readU16(prefix[4..6], byte_order),
-                .additional_length = readU16(prefix[6..8], byte_order),
+                .major_version = Wire.readU16(prefix[2..4], byte_order),
+                .minor_version = Wire.readU16(prefix[4..6], byte_order),
+                .additional_length = Wire.readU16(prefix[6..8], byte_order),
             } },
             2 => .{ .authenticate = .{
-                .additional_length = readU16(prefix[6..8], byte_order),
+                .additional_length = Wire.readU16(prefix[6..8], byte_order),
             } },
             else => error.InvalidStatus,
         };
@@ -56,7 +57,7 @@ pub const SetupResponse = union(enum) {
         };
     }
 
-    fn readU16(bytes: []const u8, byte_order: Setup.ByteOrder) u16 {
+    fn Wire.readU16(bytes: []const u8, byte_order: Setup.ByteOrder) u16 {
         return switch (byte_order) {
             .little => @as(u16, bytes[0]) |
                 (@as(u16, bytes[1]) << 8),
