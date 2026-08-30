@@ -240,3 +240,93 @@ test "encode little-endian PolyRectangle request" {
         224, 1,
     }, encoded);
 }
+
+
+pub const Arc = struct {
+    x: i16,
+    y: i16,
+    width: u16,
+    height: u16,
+    angle1: i16,
+    angle2: i16,
+};
+
+pub const OutlineArc = struct {
+    pub const EncodeError = error{
+        BufferTooSmall,
+    };
+
+    pub const opcode = 68;
+    pub const base_size: usize = 12;
+    pub const arc_size: usize = 12;
+
+    drawable: u32,
+    gc: u32,
+    arcs: []const Arc,
+
+    pub fn encodedLength(self: OutlineArc) usize {
+        return base_size + self.arcs.len * arc_size;
+    }
+
+    pub fn encode(
+        self: OutlineArc,
+        buffer: []u8,
+        byte_order: Setup.ByteOrder,
+    ) EncodeError![]const u8 {
+        const length = self.encodedLength();
+        if (buffer.len < length)
+            return error.BufferTooSmall;
+
+        buffer[0] = opcode;
+        buffer[1] = 0;
+        writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        writeU32(buffer[4..8], self.drawable, byte_order);
+        writeU32(buffer[8..12], self.gc, byte_order);
+
+        var offset: usize = base_size;
+        for (self.arcs) |arc| {
+            writeU16(buffer[offset .. offset + 2], @bitCast(arc.x), byte_order);
+            writeU16(buffer[offset + 2 .. offset + 4], @bitCast(arc.y), byte_order);
+            writeU16(buffer[offset + 4 .. offset + 6], arc.width, byte_order);
+            writeU16(buffer[offset + 6 .. offset + 8], arc.height, byte_order);
+            writeU16(buffer[offset + 8 .. offset + 10], @bitCast(arc.angle1), byte_order);
+            writeU16(buffer[offset + 10 .. offset + 12], @bitCast(arc.angle2), byte_order);
+            offset += arc_size;
+        }
+
+        return buffer[0..offset];
+    }
+};
+
+test "encode little-endian PolyArc request" {
+    const request = OutlineArc{
+        .drawable = 0x01020304,
+        .gc = 0x05060708,
+        .arcs = &.{
+            .{
+                .x = 10,
+                .y = -20,
+                .width = 100,
+                .height = 200,
+                .angle1 = 0,
+                .angle2 = 360 * 64,
+            },
+        },
+    };
+
+    var buffer: [24]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        68, 0,
+        6, 0,
+        4, 3, 2, 1,
+        8, 7, 6, 5,
+        10, 0,
+        236, 255,
+        100, 0,
+        200, 0,
+        0, 0,
+        0, 90,
+    }, encoded);
+}
