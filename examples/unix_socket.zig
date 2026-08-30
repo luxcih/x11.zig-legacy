@@ -34,5 +34,46 @@ pub fn main(init: std.process.Init) !void {
     var prefix: [8]u8 = undefined;
     try reader.interface.readSliceAll(&prefix);
 
-    std.debug.print("Setup response status: {}\n", .{prefix[0]});
+    const response = try x11.SetupResponse.parsePrefix(
+        prefix,
+        setup.byte_order,
+    );
+
+    const additional_length = response.additionalBytes();
+    const additional = try std.heap.page_allocator.alloc(
+        u8,
+        additional_length,
+    );
+    defer std.heap.page_allocator.free(additional);
+
+    try reader.interface.readSliceAll(additional);
+
+    switch (response) {
+        .success => |success| {
+            std.debug.print(
+                "X11 setup succeeded: version {}.{} ({} additional bytes)\n",
+                .{
+                    success.major_version,
+                    success.minor_version,
+                    additional.len,
+                },
+            );
+        },
+        .failed => |failed| {
+            std.debug.print(
+                "X11 setup failed: version {}.{} ({} additional bytes)\n",
+                .{
+                    failed.major_version,
+                    failed.minor_version,
+                    additional.len,
+                },
+            );
+        },
+        .authenticate => {
+            std.debug.print(
+                "X11 setup requires authentication ({} additional bytes)\n",
+                .{additional.len},
+            );
+        },
+    }
 }
