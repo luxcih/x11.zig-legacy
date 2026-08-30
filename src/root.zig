@@ -13,15 +13,15 @@ pub const Setup = @import("Setup.zig");
 pub const SetupResponse = @import("SetupResponse.zig").SetupResponse;
 pub const SetupInfo = @import("SetupInfo.zig").SetupInfo;
 
-pub const PixmapFormat = @import("PixmapFormat.zig").PixmapFormat;
-pub const Screen = @import("Screen.zig").Screen;
-pub const Depth = @import("Depth.zig").Depth;
-pub const VisualType = @import("VisualType.zig").VisualType;
+pub const PixmapFormat = @import("PixmapFormat.zig");
+pub const Screen = @import("Screen.zig");
+pub const Depth = @import("Depth.zig");
+pub const VisualType = @import("VisualType.zig");
 
 pub const XidAllocator = @import("XidAllocator.zig").XidAllocator;
 
 pub const Window = @import("Window.zig");
-pub const GC = @import("GC.zig").GC;
+pub const GC = @import("GC.zig");
 pub const Draw = @import("Draw.zig");
 
 pub const Event = @import("Event.zig").Event;
