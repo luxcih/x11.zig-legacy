@@ -45,16 +45,18 @@ pub fn build(b: *std.Build) void {
             .root_module = example_module,
         });
 
-        const compile_step_name = b.fmt("example-{s}", .{name});
-        const compile_step_description = b.fmt(
-            "Build the {s} example",
+        const run_example = b.addRunArtifact(example);
+
+        const run_step_name = b.fmt("example-{s}", .{name});
+        const run_step_description = b.fmt(
+            "Run the {s} example",
             .{name},
         );
         const example_step = b.step(
-            compile_step_name,
-            compile_step_description,
+            run_step_name,
+            run_step_description,
         );
-        example_step.dependOn(&example.step);
+        example_step.dependOn(&run_example.step);
 
         examples_step.dependOn(&example.step);
         check_examples_step.dependOn(&example.step);
