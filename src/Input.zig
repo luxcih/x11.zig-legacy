@@ -1,3 +1,4 @@
+const std = @import("std");
 const Wire = @import("Wire.zig");
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
