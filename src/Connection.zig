@@ -1,5 +1,6 @@
 const std = @import("std");
 const Display = @import("Display.zig").Display;
+const Setup = @import("Setup.zig").Setup;
 
 pub const Connection = struct {
     stream: std.Io.net.Stream,
@@ -26,6 +27,19 @@ pub const Connection = struct {
         const stream = try address.connect(io);
 
         return init(stream);
+    }
+
+    pub fn sendSetup(
+        self: *Connection,
+        io: std.Io,
+        setup: Setup,
+    ) !void {
+        var buffer: [1024]u8 = undefined;
+        const request = try setup.encode(&buffer);
+
+        var writer = self.stream.writer(io, &.{});
+        try writer.interface.writeAll(request);
+        try writer.interface.flush();
     }
 
     pub fn close(self: *Connection, io: std.Io) void {
