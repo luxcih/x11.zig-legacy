@@ -1,6 +1,6 @@
 .{
     .name = .x11,
-    .version = "0.0.0",
+    .version = "0.1.0",
     .fingerprint = 0x3220e7722b94e26c, // Changing this has security and trust implications.
     .minimum_zig_version = "0.16.0",
     .dependencies = .{},
