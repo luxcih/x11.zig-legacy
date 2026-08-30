@@ -155,6 +155,76 @@ pub const Window = struct {
         }
     };
 
+    pub const Configure = struct {
+        pub const EncodeError = error{
+            BufferTooSmall,
+        };
+
+        pub const opcode = 12;
+        pub const base_size: usize = 12;
+
+        window_id: u32,
+        x: ?i32 = null,
+        y: ?i32 = null,
+        width: ?u32 = null,
+        height: ?u32 = null,
+
+        pub fn encodedLength(self: Configure) usize {
+            var count: usize = 0;
+            if (self.x != null) count += 1;
+            if (self.y != null) count += 1;
+            if (self.width != null) count += 1;
+            if (self.height != null) count += 1;
+            return base_size + count * 4;
+        }
+
+        pub fn encode(
+            self: Configure,
+            buffer: []u8,
+            byte_order: Setup.ByteOrder,
+        ) EncodeError![]const u8 {
+            const length = self.encodedLength();
+            if (buffer.len < length)
+                return error.BufferTooSmall;
+
+            var value_mask: u16 = 0;
+            var offset: usize = base_size;
+
+            if (self.x) |value| {
+                value_mask |= 1 << 0;
+                Create.writeU32(buffer[offset .. offset + 4], @bitCast(value), byte_order);
+                offset += 4;
+            }
+
+            if (self.y) |value| {
+                value_mask |= 1 << 1;
+                Create.writeU32(buffer[offset .. offset + 4], @bitCast(value), byte_order);
+                offset += 4;
+            }
+
+            if (self.width) |value| {
+                value_mask |= 1 << 2;
+                Create.writeU32(buffer[offset .. offset + 4], value, byte_order);
+                offset += 4;
+            }
+
+            if (self.height) |value| {
+                value_mask |= 1 << 3;
+                Create.writeU32(buffer[offset .. offset + 4], value, byte_order);
+                offset += 4;
+            }
+
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Create.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+            Create.writeU32(buffer[4..8], self.window_id, byte_order);
+            Create.writeU16(buffer[8..10], value_mask, byte_order);
+            Create.writeU16(buffer[10..12], 0, byte_order);
+
+            return buffer[0..offset];
+        }
+    };
+
     pub const Map = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -254,5 +324,31 @@ test "encode little-endian unmap window request" {
         10, 0,
         2, 0,
         4, 3, 2, 1,
+    }, encoded);
+}
+
+
+test "encode little-endian configure window request" {
+    const request = Window.Configure{
+        .window_id = 0x01020304,
+        .x = 100,
+        .y = -50,
+        .width = 800,
+        .height = 600,
+    };
+
+    var buffer: [28]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        12, 0,
+        7, 0,
+        4, 3, 2, 1,
+        15, 0,
+        0, 0,
+        100, 0, 0, 0,
+        206, 255, 255, 255,
+        32, 3, 0, 0,
+        88, 2, 0, 0,
     }, encoded);
 }
