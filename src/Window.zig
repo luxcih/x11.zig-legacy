@@ -578,3 +578,78 @@ test "encode little-endian change attributes request" {
         0, 128, 10, 0,
     }, encoded);
 }
+
+
+test "encode and parse GetGeometry" {
+    const request = Window.GetGeometry{ .drawable = 0x01020304 };
+    var request_buffer: [Window.GetGeometry.size]u8 = undefined;
+    const encoded = try request.encode(&request_buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{ 14, 0, 2, 0, 4, 3, 2, 1 }, encoded);
+
+    var reply: [Window.GetGeometry.reply_size]u8 = [_]u8{0} ** Window.GetGeometry.reply_size;
+    reply[0] = 1;
+    reply[1] = 24;
+    Wire.writeU32(reply[8..12], 0x01020304, .little);
+    Wire.writeI16(reply[12..14], -10, .little);
+    Wire.writeI16(reply[14..16], 20, .little);
+    Wire.writeU16(reply[16..18], 640, .little);
+    Wire.writeU16(reply[18..20], 480, .little);
+    Wire.writeU16(reply[20..22], 2, .little);
+
+    const parsed = try Window.GetGeometry.Reply.parse(&reply, .little);
+    try std.testing.expectEqual(@as(u8, 24), parsed.depth);
+    try std.testing.expectEqual(@as(i16, -10), parsed.x);
+    try std.testing.expectEqual(@as(u16, 640), parsed.width);
+}
+
+test "encode and parse GetWindowAttributes" {
+    const request = Window.GetWindowAttributes{ .window_id = 0x01020304 };
+    var request_buffer: [Window.GetWindowAttributes.size]u8 = undefined;
+    const encoded = try request.encode(&request_buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{ 3, 0, 2, 0, 4, 3, 2, 1 }, encoded);
+
+    var reply: [Window.GetWindowAttributes.reply_size]u8 = [_]u8{0} ** Window.GetWindowAttributes.reply_size;
+    reply[0] = 1;
+    reply[1] = 2;
+    Wire.writeU32(reply[8..12], 0x01020304, .little);
+    Wire.writeU16(reply[12..14], 1, .little);
+    reply[24] = 1;
+    reply[25] = 1;
+    reply[26] = 2;
+    reply[27] = 1;
+
+    const parsed = try Window.GetWindowAttributes.Reply.parse(&reply, .little);
+    try std.testing.expectEqual(@as(u32, 0x01020304), parsed.visual);
+    try std.testing.expect(parsed.save_under);
+    try std.testing.expect(parsed.map_is_installed);
+    try std.testing.expect(parsed.override_redirect);
+}
+
+test "encode and parse QueryTree" {
+    const request = Window.QueryTree{ .window_id = 0x01020304 };
+    var request_buffer: [Window.QueryTree.size]u8 = undefined;
+    const encoded = try request.encode(&request_buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{ 15, 0, 2, 0, 4, 3, 2, 1 }, encoded);
+
+    var header_bytes: [Window.QueryTree.reply_header_size]u8 = [_]u8{0} ** Window.QueryTree.reply_header_size;
+    header_bytes[0] = 1;
+    Wire.writeU32(header_bytes[8..12], 1, .little);
+    Wire.writeU32(header_bytes[12..16], 2, .little);
+    Wire.writeU16(header_bytes[16..18], 2, .little);
+
+    const header = try Window.QueryTree.ReplyHeader.parse(&header_bytes, .little);
+    try std.testing.expectEqual(@as(usize, 8), header.childrenBytes());
+
+    var child_bytes: [8]u8 = undefined;
+    Wire.writeU32(child_bytes[0..4], 3, .little);
+    Wire.writeU32(child_bytes[4..8], 4, .little);
+    const children = try Window.QueryTree.parseChildren(
+        std.testing.allocator,
+        &child_bytes,
+        header.children_count,
+        .little,
+    );
+    defer std.testing.allocator.free(children);
+
+    try std.testing.expectEqualSlices(u32, &.{ 3, 4 }, children);
+}
