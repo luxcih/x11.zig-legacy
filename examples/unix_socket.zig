@@ -111,6 +111,47 @@ pub fn main(init: std.process.Init) !void {
             var depth_offset = screen_offset + x11.Screen.size;
 
             for (0..screen.depth_count) |depth_index| {
+                _ = depth_index;
+
+                const depth = try x11.Depth.parse(
+                    additional[depth_offset .. depth_offset + x11.Depth.size],
+                    setup.byte_order,
+                );
+
+                std.debug.print(
+                    "  Depth {} ({} visuals):\n",
+                    .{ depth.depth, depth.visual_count },
+                );
+
+                var visual_offset = depth_offset + depth.visualsOffset();
+
+                for (0..depth.visual_count) |_| {
+                    const visual = try x11.VisualType.parse(
+                        additional[
+                            visual_offset ..
+                                visual_offset + x11.VisualType.size
+                        ],
+                        setup.byte_order,
+                    );
+
+                    std.debug.print(
+                        "    visual 0x{x}: {s}, {} RGB bits\n",
+                        .{
+                            visual.visual_id,
+                            @tagName(visual.class),
+                            visual.bits_per_rgb_value,
+                        },
+                    );
+
+                    visual_offset += x11.VisualType.size;
+                }
+
+                depth_offset += depth.totalLength();
+            }
+
+            var depth_offset = screen_offset + x11.Screen.size;
+
+            for (0..screen.depth_count) |depth_index| {
                 const depth = try x11.Depth.parse(
                     additional[depth_offset .. depth_offset + x11.Depth.size],
                     setup.byte_order,
