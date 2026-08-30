@@ -6,7 +6,11 @@ pub fn main() !void {
 
     const io = threaded.io();
 
-    const tmpdir = std.posix.getenv("TMPDIR") orelse return error.MissingTmpDir;
+    const tmpdir = std.process.getEnvVarOwned(
+        std.heap.page_allocator,
+        "TMPDIR",
+    ) catch return error.MissingTmpDir;
+    defer std.heap.page_allocator.free(tmpdir);
 
     var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
     const path = try std.fmt.bufPrint(
