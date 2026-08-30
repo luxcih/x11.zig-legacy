@@ -1,6 +1,30 @@
 const std = @import("std");
 const x11 = @import("x11");
 
+fn drawScene(
+    connection: *x11.Connection,
+    io: std.Io,
+    byte_order: x11.Setup.ByteOrder,
+    green_gc_bytes: []const u8,
+    fill_bytes: []const u8,
+    change_gc_bytes: []const u8,
+    line_bytes: []const u8,
+    outline_bytes: []const u8,
+    arc_bytes: []const u8,
+    filled_arc_bytes: []const u8,
+    text_bytes: []const u8,
+) !void {
+    try connection.writeAll(io, green_gc_bytes);
+    try connection.writeAll(io, fill_bytes);
+
+    try connection.writeAll(io, change_gc_bytes);
+    try connection.writeAll(io, line_bytes);
+    try connection.writeAll(io, outline_bytes);
+    try connection.writeAll(io, arc_bytes);
+    try connection.writeAll(io, filled_arc_bytes);
+    try connection.writeAll(io, text_bytes);
+}
+
 pub fn main(init: std.process.Init) !void {
     const display = try x11.Display.parse(":0");
 
@@ -324,6 +348,20 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, text_bytes);
 
+            try drawScene(
+                &connection,
+                init.io,
+                setup.byte_order,
+                green_gc_bytes,
+                fill_bytes,
+                change_gc_bytes,
+                line_bytes,
+                outline_bytes,
+                arc_bytes,
+                filled_arc_bytes,
+                text_bytes,
+            );
+
             std.debug.print(
                 "Drew rectangle, line, outline, circle, and filled circle\n",
                 .{},
@@ -377,15 +415,19 @@ pub fn main(init: std.process.Init) !void {
                             .{ expose.width, expose.height, expose.x, expose.y },
                         );
 
-                        try connection.writeAll(init.io, green_gc_bytes);
-                        try connection.writeAll(init.io, fill_bytes);
-
-                        try connection.writeAll(init.io, change_gc_bytes);
-                        try connection.writeAll(init.io, line_bytes);
-                        try connection.writeAll(init.io, outline_bytes);
-                        try connection.writeAll(init.io, arc_bytes);
-                        try connection.writeAll(init.io, filled_arc_bytes);
-                        try connection.writeAll(init.io, text_bytes);
+                        try drawScene(
+                            &connection,
+                            init.io,
+                            setup.byte_order,
+                            green_gc_bytes,
+                            fill_bytes,
+                            change_gc_bytes,
+                            line_bytes,
+                            outline_bytes,
+                            arc_bytes,
+                            filled_arc_bytes,
+                            text_bytes,
+                        );
                     },
                     .map_notify => std.debug.print("MapNotify event\n", .{}),
                     .configure_notify => |configure_notify| std.debug.print(
