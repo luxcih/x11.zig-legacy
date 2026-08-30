@@ -1,5 +1,6 @@
 const std = @import("std");
 const Setup = @import("Setup.zig").Setup;
+const Wire = @import("Wire.zig");
 
 pub const VisualType = struct {
     pub const ParseError = error{
@@ -43,35 +44,13 @@ pub const VisualType = struct {
         };
 
         return .{
-            .visual_id = readU32(bytes[0..4], byte_order),
+            .visual_id = Wire.readU32(bytes[0..4], byte_order),
             .class = class,
             .bits_per_rgb_value = bytes[5],
-            .colormap_entries = readU16(bytes[6..8], byte_order),
-            .red_mask = readU32(bytes[8..12], byte_order),
-            .green_mask = readU32(bytes[12..16], byte_order),
-            .blue_mask = readU32(bytes[16..20], byte_order),
-        };
-    }
-
-    fn readU16(bytes: []const u8, byte_order: Setup.ByteOrder) u16 {
-        return switch (byte_order) {
-            .little => @as(u16, bytes[0]) |
-                (@as(u16, bytes[1]) << 8),
-            .big => (@as(u16, bytes[0]) << 8) |
-                @as(u16, bytes[1]),
-        };
-    }
-
-    fn readU32(bytes: []const u8, byte_order: Setup.ByteOrder) u32 {
-        return switch (byte_order) {
-            .little => @as(u32, bytes[0]) |
-                (@as(u32, bytes[1]) << 8) |
-                (@as(u32, bytes[2]) << 16) |
-                (@as(u32, bytes[3]) << 24),
-            .big => (@as(u32, bytes[0]) << 24) |
-                (@as(u32, bytes[1]) << 16) |
-                (@as(u32, bytes[2]) << 8) |
-                @as(u32, bytes[3]),
+            .colormap_entries = Wire.readU16(bytes[6..8], byte_order),
+            .red_mask = Wire.readU32(bytes[8..12], byte_order),
+            .green_mask = Wire.readU32(bytes[12..16], byte_order),
+            .blue_mask = Wire.readU32(bytes[16..20], byte_order),
         };
     }
 };
