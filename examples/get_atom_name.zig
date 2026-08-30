@@ -13,10 +13,11 @@ pub fn main(init: std.process.Init) !void {
     var read_buffer: [256]u8 = undefined;
     var reader = session.connection.reader(init.io, &read_buffer);
     const header = try session.connection.readResponseHeader(&reader);
-    const reply = try x11.Atom.GetName.Reply.parsePrefix(&header, session.byte_order);
+    const name_length = std.mem.readInt(u16, header[8..10], session.byte_order);
+    const padded = std.mem.alignForward(usize, @as(usize, name_length), 4);
+    const body = try init.arena.allocator().alloc(u8, padded);
+    try reader.interface.readSliceAll(body);
 
-    const padded = std.mem.alignForward(usize, reply.name_length, 4);
-    var name = try init.arena.allocator().alloc(u8, padded);
-    try reader.interface.readSliceAll(name);
-    std.debug.print("atom {d}: {s}\n", .{ request.atom, name[0..reply.name_length] });
+    const reply = try x11.Atom.GetName.Reply.parse(&header, body, session.byte_order);
+    std.debug.print("atom {d}: {s}\n", .{ request.atom, reply.name });
 }
