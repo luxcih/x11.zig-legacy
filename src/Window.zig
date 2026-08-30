@@ -1,5 +1,6 @@
 const std = @import("std");
 const Setup = @import("Setup.zig").Setup;
+const Wire = @import("Wire.zig");
 
 pub const Window = struct {
     pub const Create = struct {
@@ -42,31 +43,31 @@ pub const Window = struct {
 
             buffer[0] = opcode;
             buffer[1] = self.depth;
-            writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-            writeU32(buffer[4..8], self.window_id, byte_order);
-            writeU32(buffer[8..12], self.parent, byte_order);
-            writeI16(buffer[12..14], self.x, byte_order);
-            writeI16(buffer[14..16], self.y, byte_order);
-            writeU16(buffer[16..18], self.width, byte_order);
-            writeU16(buffer[18..20], self.height, byte_order);
-            writeU16(buffer[20..22], self.border_width, byte_order);
-            writeU16(buffer[22..24], @intFromEnum(self.class), byte_order);
-            writeU32(buffer[24..28], self.visual, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU32(buffer[8..12], self.parent, byte_order);
+            Wire.writeI16(buffer[12..14], self.x, byte_order);
+            Wire.writeI16(buffer[14..16], self.y, byte_order);
+            Wire.writeU16(buffer[16..18], self.width, byte_order);
+            Wire.writeU16(buffer[18..20], self.height, byte_order);
+            Wire.writeU16(buffer[20..22], self.border_width, byte_order);
+            Wire.writeU16(buffer[22..24], @intFromEnum(self.class), byte_order);
+            Wire.writeU32(buffer[24..28], self.visual, byte_order);
             var offset: usize = size;
             var value_mask: u32 = 0;
 
             if (self.background_pixel) |pixel| {
                 value_mask |= 1 << 1;
-                writeU32(buffer[offset .. offset + 4], pixel, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], pixel, byte_order);
                 offset += 4;
             }
 
-            writeU32(buffer[28..32], value_mask, byte_order);
+            Wire.writeU32(buffer[28..32], value_mask, byte_order);
 
             return buffer[0..offset];
         }
 
-        fn writeU16(buffer: []u8, value: u16, byte_order: Setup.ByteOrder) void {
+        fn Wire.writeU16(buffer: []u8, value: u16, byte_order: Setup.ByteOrder) void {
             switch (byte_order) {
                 .little => {
                     buffer[0] = @truncate(value);
@@ -79,11 +80,11 @@ pub const Window = struct {
             }
         }
 
-        fn writeI16(buffer: []u8, value: i16, byte_order: Setup.ByteOrder) void {
-            writeU16(buffer, @bitCast(value), byte_order);
+        fn Wire.writeI16(buffer: []u8, value: i16, byte_order: Setup.ByteOrder) void {
+            Wire.writeU16(buffer, @bitCast(value), byte_order);
         }
 
-        fn writeU32(buffer: []u8, value: u32, byte_order: Setup.ByteOrder) void {
+        fn Wire.writeU32(buffer: []u8, value: u32, byte_order: Setup.ByteOrder) void {
             switch (byte_order) {
                 .little => {
                     buffer[0] = @truncate(value);
@@ -153,10 +154,10 @@ pub const Window = struct {
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Create.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Create.writeU32(buffer[4..8], self.window_id, byte_order);
-            Create.writeU32(buffer[8..12], event_mask_bit, byte_order);
-            Create.writeU32(buffer[12..16], @bitCast(self.event_mask), byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU32(buffer[8..12], event_mask_bit, byte_order);
+            Wire.writeU32(buffer[12..16], @bitCast(self.event_mask), byte_order);
 
             return buffer[0..size];
         }
@@ -182,8 +183,8 @@ pub const Window = struct {
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Create.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Create.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
 
             return buffer[0..size];
         }
@@ -209,8 +210,8 @@ pub const Window = struct {
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Create.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Create.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
 
             return buffer[0..size];
         }
@@ -253,34 +254,34 @@ pub const Window = struct {
 
             if (self.x) |value| {
                 value_mask |= 1 << 0;
-                Create.writeU32(buffer[offset .. offset + 4], @bitCast(value), byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], @bitCast(value), byte_order);
                 offset += 4;
             }
 
             if (self.y) |value| {
                 value_mask |= 1 << 1;
-                Create.writeU32(buffer[offset .. offset + 4], @bitCast(value), byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], @bitCast(value), byte_order);
                 offset += 4;
             }
 
             if (self.width) |value| {
                 value_mask |= 1 << 2;
-                Create.writeU32(buffer[offset .. offset + 4], value, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], value, byte_order);
                 offset += 4;
             }
 
             if (self.height) |value| {
                 value_mask |= 1 << 3;
-                Create.writeU32(buffer[offset .. offset + 4], value, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], value, byte_order);
                 offset += 4;
             }
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Create.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-            Create.writeU32(buffer[4..8], self.window_id, byte_order);
-            Create.writeU16(buffer[8..10], value_mask, byte_order);
-            Create.writeU16(buffer[10..12], 0, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[8..10], value_mask, byte_order);
+            Wire.writeU16(buffer[10..12], 0, byte_order);
 
             return buffer[0..offset];
         }
@@ -310,8 +311,8 @@ pub const Window = struct {
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            Create.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            Create.writeU32(buffer[4..8], self.window_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
 
             return buffer[0..size];
         }
