@@ -800,6 +800,111 @@ pub const RotateProperties = struct {
 };
 
 
+test "encode big-endian window protocol requests" {
+    {
+        const request = Window.Create{
+            .depth = 24,
+            .window_id = 0x01020304,
+            .parent = 0x05060708,
+            .x = 10,
+            .y = -20,
+            .width = 640,
+            .height = 480,
+        };
+        var buffer: [Window.Create.size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            1, 24, 0, 8,
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            0, 10,
+            255, 236,
+            2, 128,
+            1, 224,
+            0, 0,
+            0, 1,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+        }, encoded);
+    }
+
+    {
+        const request = Window.Configure{
+            .window_id = 0x01020304,
+            .x = 100,
+            .y = -50,
+            .width = 800,
+            .height = 600,
+        };
+        var buffer: [28]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            12, 0, 0, 7,
+            1, 2, 3, 4,
+            0, 15,
+            0, 0,
+            0, 0, 0, 100,
+            255, 255, 255, 206,
+            0, 0, 3, 32,
+            0, 0, 2, 88,
+        }, encoded);
+    }
+
+    {
+        const request = Window.ChangeAttributes{
+            .window_id = 0x01020304,
+            .event_mask = .{
+                .exposure = true,
+                .structure_notify = true,
+            },
+        };
+        var buffer: [Window.ChangeAttributes.size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            2, 0, 0, 4,
+            1, 2, 3, 4,
+            0, 0, 8, 0,
+            0, 10, 128, 0,
+        }, encoded);
+    }
+
+    {
+        const request = Window.GetProperty{
+            .window_id = 0x01020304,
+            .property = 0x11121314,
+            .long_length = 1024,
+        };
+        var buffer: [Window.GetProperty.request_size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            20, 0, 0, 6,
+            1, 2, 3, 4,
+            17, 18, 19, 20,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 4, 0,
+        }, encoded);
+    }
+
+    {
+        const request = Window.RotateProperties{
+            .window_id = 0x01020304,
+            .delta = -1,
+            .properties = &.{ 1, 31, 0x11121314 },
+        };
+        var buffer: [24]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+        try std.testing.expectEqualSlices(u8, &.{
+            114, 0, 0, 6,
+            1, 2, 3, 4,
+            0, 3, 255, 255,
+            0, 0, 0, 1,
+            0, 0, 0, 31,
+            17, 18, 19, 20,
+        }, encoded);
+    }
+}
+
 test "encode little-endian create window request" {
     const request = Window.Create{
         .depth = 24,
