@@ -1,3 +1,6 @@
+//! Demonstrates encoding graphics-context requests.
+//! For a real GC used for drawing, see demo.zig.
+
 const std = @import("std");
 const x11 = @import("x11");
 
@@ -23,7 +26,7 @@ pub fn main() !void {
     const free_bytes = try free.encode(&free_buffer, .little);
 
     std.debug.print(
-        "CreateGC: {} bytes\nChangeGC: {} bytes\nFreeGC: {} bytes\n",
+        "Encoded GC requests:\n  CreateGC: {} bytes\n  ChangeGC: {} bytes\n  FreeGC: {} bytes\n",
         .{ create_bytes.len, change_bytes.len, free_bytes.len },
     );
 }
