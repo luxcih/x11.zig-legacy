@@ -54,3 +54,17 @@ test "classify a complete X11 response header" {
 test "reject incorrectly sized response header" {
     try std.testing.expectError(error.InvalidLength, classify(&.{ 1 }));
 }
+
+test "synthetic bit does not change reply or error classification" {
+    // The high bit is meaningful for events only, but classification strips it
+    // uniformly before determining the response category.
+    try std.testing.expectEqual(Type.protocol_error, Type.classify(0x80));
+    try std.testing.expectEqual(Type.reply, Type.classify(0x81));
+}
+
+test "classify synthetic event response header" {
+    var bytes: [size]u8 = [_]u8{0} ** size;
+    bytes[0] = 0x8c;
+
+    try std.testing.expectEqual(Type.event, try classify(&bytes));
+}
