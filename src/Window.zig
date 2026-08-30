@@ -101,6 +101,33 @@ pub const Window = struct {
         }
     };
 
+    pub const Unmap = struct {
+        pub const EncodeError = error{
+            BufferTooSmall,
+        };
+
+        pub const opcode = 10;
+        pub const size: usize = 8;
+
+        window_id: u32,
+
+        pub fn encode(
+            self: Unmap,
+            buffer: []u8,
+            byte_order: Setup.ByteOrder,
+        ) EncodeError![]const u8 {
+            if (buffer.len < size)
+                return error.BufferTooSmall;
+
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Create.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Create.writeU32(buffer[4..8], self.window_id, byte_order);
+
+            return buffer[0..size];
+        }
+    };
+
     pub const Destroy = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -209,6 +236,22 @@ test "encode little-endian destroy window request" {
 
     try std.testing.expectEqualSlices(u8, &.{
         4, 0,
+        2, 0,
+        4, 3, 2, 1,
+    }, encoded);
+}
+
+
+test "encode little-endian unmap window request" {
+    const request = Window.Unmap{
+        .window_id = 0x01020304,
+    };
+
+    var buffer: [Window.Unmap.size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        10, 0,
         2, 0,
         4, 3, 2, 1,
     }, encoded);
