@@ -47,6 +47,74 @@ const Input = @This();
     };
 
 
+    pub const SetInputFocus = struct {
+        pub const EncodeError = error{BufferTooSmall};
+
+        pub const opcode = 42;
+        pub const size: usize = 12;
+
+        pub const RevertTo = enum(u8) {
+            none = 0,
+            pointer_root = 1,
+            parent = 2,
+        };
+
+        revert_to: RevertTo = .none,
+        focus: u32,
+        time: u32 = 0,
+
+        pub fn encode(
+            self: SetInputFocus,
+            buffer: []u8,
+            byte_order: ByteOrder,
+        ) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+
+            buffer[0] = opcode;
+            buffer[1] = @intFromEnum(self.revert_to);
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.focus, byte_order);
+            Wire.writeU32(buffer[8..12], self.time, byte_order);
+
+            return buffer[0..size];
+        }
+    };
+
+test "encode SetInputFocus" {
+    const request = Input.SetInputFocus{
+        .revert_to = .parent,
+        .focus = 0x01020304,
+        .time = 0x05060708,
+    };
+
+    var buffer: [Input.SetInputFocus.size]u8 = undefined;
+
+    const little = try request.encode(&buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{
+        42, 2, 3, 0,
+        4, 3, 2, 1,
+        8, 7, 6, 5,
+    }, little);
+
+    const big = try request.encode(&buffer, .big);
+    try std.testing.expectEqualSlices(u8, &.{
+        42, 2, 0, 3,
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+    }, big);
+}
+
+test "SetInputFocus rejects a small buffer" {
+    const request = Input.SetInputFocus{ .focus = 1 };
+    var buffer: [Input.SetInputFocus.size - 1]u8 = undefined;
+
+    try std.testing.expectError(
+        error.BufferTooSmall,
+        request.encode(&buffer, .little),
+    );
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
     const std = @import("std");
 
