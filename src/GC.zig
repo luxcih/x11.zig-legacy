@@ -1,5 +1,6 @@
 const std = @import("std");
 const Setup = @import("Setup.zig").Setup;
+const Wire = @import("Wire.zig");
 
 pub const GC = struct {
     pub const Create = struct {
@@ -32,16 +33,16 @@ pub const GC = struct {
 
             if (self.foreground) |foreground| {
                 value_mask |= 1 << 2;
-                writeU32(buffer[offset .. offset + 4], foreground, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], foreground, byte_order);
                 offset += 4;
             }
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-            writeU32(buffer[4..8], self.gc_id, byte_order);
-            writeU32(buffer[8..12], self.drawable, byte_order);
-            writeU32(buffer[12..16], value_mask, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.gc_id, byte_order);
+            Wire.writeU32(buffer[8..12], self.drawable, byte_order);
+            Wire.writeU32(buffer[12..16], value_mask, byte_order);
 
             return buffer[0..offset];
         }
@@ -82,27 +83,27 @@ pub const GC = struct {
 
             if (self.background) |background| {
                 value_mask |= 1 << 3;
-                writeU32(buffer[offset .. offset + 4], background, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], background, byte_order);
                 offset += 4;
             }
 
             if (self.foreground) |foreground| {
                 value_mask |= 1 << 2;
-                writeU32(buffer[offset .. offset + 4], foreground, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], foreground, byte_order);
                 offset += 4;
             }
 
             if (self.line_width) |line_width| {
                 value_mask |= 1 << 4;
-                writeU32(buffer[offset .. offset + 4], line_width, byte_order);
+                Wire.writeU32(buffer[offset .. offset + 4], line_width, byte_order);
                 offset += 4;
             }
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-            writeU32(buffer[4..8], self.gc_id, byte_order);
-            writeU32(buffer[8..12], value_mask, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.gc_id, byte_order);
+            Wire.writeU32(buffer[8..12], value_mask, byte_order);
 
             return buffer[0..offset];
         }
@@ -129,27 +130,14 @@ pub const GC = struct {
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            writeU16(buffer[2..4], @intCast(size / 4), byte_order);
-            writeU32(buffer[4..8], self.gc_id, byte_order);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.gc_id, byte_order);
 
             return buffer[0..size];
         }
     };
 
-    fn writeU16(bytes: []u8, value: u16, byte_order: Setup.ByteOrder) void {
-        switch (byte_order) {
-            .little => std.mem.writeInt(u16, bytes[0..2], value, .little),
-            .big => std.mem.writeInt(u16, bytes[0..2], value, .big),
-        }
-    }
-
-    fn writeU32(bytes: []u8, value: u32, byte_order: Setup.ByteOrder) void {
-        switch (byte_order) {
-            .little => std.mem.writeInt(u32, bytes[0..4], value, .little),
-            .big => std.mem.writeInt(u32, bytes[0..4], value, .big),
-        }
-    }
-};
+    };
 
 test "encode little-endian CreateGC with foreground" {
     const request = GC.Create{
