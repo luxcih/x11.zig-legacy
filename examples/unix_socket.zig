@@ -120,6 +120,9 @@ pub fn main(init: std.process.Init) !void {
                 .event_mask = .{
                     .key_press = true,
                     .key_release = true,
+                    .button_press = true,
+                    .button_release = true,
+                    .pointer_motion = true,
                     .exposure = true,
                     .structure_notify = true,
                 },
@@ -182,6 +185,18 @@ pub fn main(init: std.process.Init) !void {
                     .key_release => |key| std.debug.print(
                         "KeyRelease: keycode {}\n",
                         .{key.detail},
+                    ),
+                    .button_press => |button| std.debug.print(
+                        "ButtonPress: button {} at ({}, {})\n",
+                        .{ button.detail, button.event_x, button.event_y },
+                    ),
+                    .button_release => |button| std.debug.print(
+                        "ButtonRelease: button {} at ({}, {})\n",
+                        .{ button.detail, button.event_x, button.event_y },
+                    ),
+                    .motion_notify => |motion| std.debug.print(
+                        "MotionNotify at ({}, {})\n",
+                        .{ motion.event_x, motion.event_y },
                     ),
                     .expose => |expose| std.debug.print(
                         "Expose {}x{} at ({}, {})\n",
