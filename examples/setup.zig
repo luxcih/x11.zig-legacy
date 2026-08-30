@@ -72,8 +72,8 @@ pub fn main(init: std.process.Init) !void {
                     .{
                         index,
                         screen.root,
-                        screen.width_in_pixels,
-                        screen.height_in_pixels,
+                        screen.width_pixels,
+                        screen.height_pixels,
                         screen.root_depth,
                     },
                 );
