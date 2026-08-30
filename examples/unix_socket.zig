@@ -132,6 +132,25 @@ pub fn main(init: std.process.Init) !void {
             var message: [32]u8 = undefined;
             while (true) {
                 try reader.interface.readSliceAll(&message);
+
+                switch (message[0]) {
+                    0 => std.debug.print(
+                        "X11 error: code {}, request {}, minor opcode {}, resource 0x{x}\n",
+                        .{
+                            message[1],
+                            message[10],
+                            (@as(u16, message[8]) | (@as(u16, message[9]) << 8)),
+                            (@as(u32, message[4]) |
+                                (@as(u32, message[5]) << 8) |
+                                (@as(u32, message[6]) << 16) |
+                                (@as(u32, message[7]) << 24)),
+                        },
+                    ),
+                    else => std.debug.print(
+                        "X11 message type {}\n",
+                        .{message[0]},
+                    ),
+                }
             }
         },
         .failed => |failed| {
