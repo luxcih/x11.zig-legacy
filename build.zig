@@ -58,4 +58,24 @@ pub fn build(b: *std.Build) void {
     );
     unix_socket_example_step.dependOn(&run_unix_socket_example.step);
 
+    const setup_example_module = b.createModule(.{
+        .root_source_file = b.path("examples/setup.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    setup_example_module.addImport("x11", module);
+
+    const setup_example = b.addExecutable(.{
+        .name = "example-setup",
+        .root_module = setup_example_module,
+    });
+
+    const run_setup_example = b.addRunArtifact(setup_example);
+
+    const setup_example_step = b.step(
+        "example-setup",
+        "Run the X11 setup example",
+    );
+    setup_example_step.dependOn(&run_setup_example.step);
+
 }
