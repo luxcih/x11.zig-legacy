@@ -78,3 +78,14 @@ test "parse little-endian screen" {
     try std.testing.expect(screen.save_unders);
     try std.testing.expectEqual(@as(u8, 3), screen.depth_count);
 }
+
+test "parse big-endian screen" {
+    const screen = try Screen.parse(&.{
+        0,0,0,1, 0,0,0,2, 0,0,0,3, 0,0,0,4,
+        0,0,0,5, 2,128, 1,224, 0,100, 0,50, 0,1, 0,2,
+        0,0,0,9, 1,1,24,3,
+    }, .big);
+    try std.testing.expectEqual(@as(u32, 1), screen.root);
+    try std.testing.expectEqual(@as(u16, 640), screen.width_pixels);
+    try std.testing.expectEqual(@as(u16, 480), screen.height_pixels);
+}
