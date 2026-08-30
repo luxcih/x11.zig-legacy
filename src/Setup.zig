@@ -2,7 +2,7 @@ const std = @import("std");
 const Wire = @import("Wire.zig");
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const Setup = struct {
+const Setup = @This();
     pub const EncodeError = error{
         BufferTooSmall,
         AuthorizationTooLong,
@@ -63,7 +63,6 @@ pub const Setup = struct {
         return padded_end;
     }
 
-};
 
 test "encode little-endian setup without authorization" {
     const setup = Setup{};
