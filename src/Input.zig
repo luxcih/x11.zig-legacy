@@ -179,6 +179,96 @@ test "encode QueryKeymap big-endian" {
 }
 
 
+    pub const WarpPointer = struct {
+        pub const EncodeError = error{BufferTooSmall};
+
+        pub const opcode = 41;
+        pub const size: usize = 24;
+
+        src_window: u32 = 0,
+        dst_window: u32 = 0,
+        src_x: i16 = 0,
+        src_y: i16 = 0,
+        src_width: u16 = 0,
+        src_height: u16 = 0,
+        dst_x: i16,
+        dst_y: i16,
+
+        pub fn encode(
+            self: WarpPointer,
+            buffer: []u8,
+            byte_order: ByteOrder,
+        ) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.src_window, byte_order);
+            Wire.writeU32(buffer[8..12], self.dst_window, byte_order);
+            Wire.writeI16(buffer[12..14], self.src_x, byte_order);
+            Wire.writeI16(buffer[14..16], self.src_y, byte_order);
+            Wire.writeU16(buffer[16..18], self.src_width, byte_order);
+            Wire.writeU16(buffer[18..20], self.src_height, byte_order);
+            Wire.writeI16(buffer[20..22], self.dst_x, byte_order);
+            Wire.writeI16(buffer[22..24], self.dst_y, byte_order);
+
+            return buffer[0..size];
+        }
+    };
+
+test "encode WarpPointer" {
+    const request = Input.WarpPointer{
+        .src_window = 0x01020304,
+        .dst_window = 0x05060708,
+        .src_x = -10,
+        .src_y = 20,
+        .src_width = 30,
+        .src_height = 40,
+        .dst_x = 50,
+        .dst_y = -60,
+    };
+
+    var buffer: [Input.WarpPointer.size]u8 = undefined;
+
+    const little = try request.encode(&buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{
+        41, 0, 6, 0,
+        4, 3, 2, 1,
+        8, 7, 6, 5,
+        246, 255,
+        20, 0,
+        30, 0,
+        40, 0,
+        50, 0,
+        196, 255,
+    }, little);
+
+    const big = try request.encode(&buffer, .big);
+    try std.testing.expectEqualSlices(u8, &.{
+        41, 0, 0, 6,
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        255, 246,
+        0, 20,
+        0, 30,
+        0, 40,
+        0, 50,
+        255, 196,
+    }, big);
+}
+
+test "WarpPointer rejects a small buffer" {
+    const request = Input.WarpPointer{ .dst_x = 0, .dst_y = 0 };
+    var buffer: [Input.WarpPointer.size - 1]u8 = undefined;
+
+    try std.testing.expectError(
+        error.BufferTooSmall,
+        request.encode(&buffer, .little),
+    );
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
