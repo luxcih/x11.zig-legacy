@@ -109,6 +109,7 @@ pub fn main(init: std.process.Init) !void {
                 &create_buffer,
                 setup.byte_order,
             );
+            std.debug.print("CreateWindow bytes: {any}\n", .{create_bytes});
             try connection.writeAll(init.io, create_bytes);
 
             const map = x11.Window.Map{
@@ -120,6 +121,7 @@ pub fn main(init: std.process.Init) !void {
                 &map_buffer,
                 setup.byte_order,
             );
+            std.debug.print("MapWindow bytes: {any}\n", .{map_bytes});
             try connection.writeAll(init.io, map_bytes);
 
             std.debug.print(
