@@ -48,3 +48,8 @@ test "parse little-endian depth" {
     try std.testing.expectEqual(@as(usize, 72), depth.visualsLength());
     try std.testing.expectEqual(@as(usize, 80), depth.totalLength());
 }
+
+test "parse big-endian depth" {
+    const depth = try Depth.parse(&.{ 24, 0, 0, 3, 0, 0, 0, 0 }, .big);
+    try std.testing.expectEqual(@as(u16, 3), depth.visual_count);
+}
