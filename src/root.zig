@@ -26,4 +26,5 @@ pub const Draw = @import("Draw.zig");
 
 pub const Event = @import("Event.zig").Event;
 pub const Error = @import("Error.zig").Error;
+pub const Response = @import("Response.zig");
 pub const Input = @import("Input.zig").Input;
