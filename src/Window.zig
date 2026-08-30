@@ -1,3 +1,4 @@
+const std = @import("std");
 const Setup = @import("Setup.zig").Setup;
 
 pub const Window = struct {
