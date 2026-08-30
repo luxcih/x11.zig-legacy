@@ -20,7 +20,7 @@ pub const Window = struct {
         border_width: u16 = 0,
         class: Class = .input_output,
         visual: u32 = 0,
-        value_mask: u32 = 0,
+        background_pixel: ?u32 = null,
 
         pub const Class = enum(u16) {
             copy_from_parent = 0,
@@ -29,8 +29,7 @@ pub const Window = struct {
         };
 
         pub fn encodedLength(self: Create) usize {
-            _ = self;
-            return size;
+            return size + if (self.background_pixel != null) 4 else 0;
         }
 
         pub fn encode(
@@ -38,11 +37,12 @@ pub const Window = struct {
             buffer: []u8,
             byte_order: Setup.ByteOrder,
         ) EncodeError![]const u8 {
-            if (buffer.len < size) return error.BufferTooSmall;
+            const length = self.encodedLength();
+            if (buffer.len < length) return error.BufferTooSmall;
 
             buffer[0] = opcode;
             buffer[1] = self.depth;
-            writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Window.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
             writeU32(buffer[4..8], self.window_id, byte_order);
             writeU32(buffer[8..12], self.parent, byte_order);
             writeI16(buffer[12..14], self.x, byte_order);
