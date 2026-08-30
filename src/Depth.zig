@@ -1,6 +1,6 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const Endian = std.builtin.Endian;
 
 const Depth = @This();
     pub const ParseError = error{
@@ -14,13 +14,13 @@ const Depth = @This();
 
     pub fn parse(
         bytes: []const u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) ParseError!Depth {
         if (bytes.len < size) return error.BufferTooShort;
 
         return .{
             .depth = bytes[0],
-            .visual_count = Wire.readU16(bytes[2..4], byte_order),
+            .visual_count = Wire.readU16(bytes[2..4], endian),
         };
     }
 
