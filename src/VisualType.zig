@@ -2,7 +2,7 @@ const std = @import("std");
 const Wire = @import("Wire.zig");
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const VisualType = struct {
+const VisualType = @This();
     pub const ParseError = error{
         BufferTooShort,
         InvalidClass,
@@ -53,7 +53,6 @@ pub const VisualType = struct {
             .blue_mask = Wire.readU32(bytes[16..20], byte_order),
         };
     }
-};
 
 test "parse little-endian true color visual" {
     const visual = try VisualType.parse(&.{
