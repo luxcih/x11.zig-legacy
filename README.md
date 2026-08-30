@@ -112,4 +112,4 @@ framework.
 
 ## License
 
-A license has not been chosen yet.
+MIT
