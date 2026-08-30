@@ -298,6 +298,21 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, filled_arc_bytes);
 
+            const text = x11.Draw.ImageText8{
+                .drawable = window_id,
+                .gc = gc_id,
+                .x = 100,
+                .y = 550,
+                .text = "Hello from x11.zig!",
+            };
+
+            var text_buffer: [64]u8 = undefined;
+            const text_bytes = try text.encode(
+                &text_buffer,
+                setup.byte_order,
+            );
+            try connection.writeAll(init.io, text_bytes);
+
             std.debug.print(
                 "Drew rectangle, line, outline, circle, and filled circle\n",
                 .{},
