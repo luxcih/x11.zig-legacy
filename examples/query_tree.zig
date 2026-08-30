@@ -12,7 +12,7 @@ pub fn main(init: std.process.Init) !void {
 
     var read_buffer: [4096]u8 = undefined;
     var reader = session.connection.reader(init.io, &read_buffer);
-    const header_bytes = try session.connection.readResponseHeader(reader);
+    const header_bytes = try session.connection.readResponseHeader(&reader);
 
     const header = try x11.Window.QueryTree.ReplyHeader.parse(&header_bytes, session.byte_order);
     const allocator = std.heap.page_allocator;
