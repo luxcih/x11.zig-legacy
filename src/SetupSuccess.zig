@@ -22,6 +22,18 @@ pub const SetupSuccess = struct {
     min_keycode: u8,
     max_keycode: u8,
 
+    pub fn pixmapFormatsOffset(self: SetupSuccess) usize {
+        return 32 + paddedLength(self.vendor.len);
+    }
+
+    pub fn pixmapFormatsLength(self: SetupSuccess) usize {
+        return @as(usize, self.pixmap_format_count) * 8;
+    }
+
+    fn paddedLength(length: usize) usize {
+        return (length + 3) & ~@as(usize, 3);
+    }
+
     pub fn parse(
         body: []const u8,
         byte_order: Setup.ByteOrder,
@@ -103,4 +115,6 @@ test "parse little-endian setup success header" {
     try std.testing.expectEqualStrings("Xor", success.vendor);
     try std.testing.expectEqual(@as(u8, 1), success.screen_count);
     try std.testing.expectEqual(@as(u8, 2), success.pixmap_format_count);
+    try std.testing.expectEqual(@as(usize, 36), success.pixmapFormatsOffset());
+    try std.testing.expectEqual(@as(usize, 16), success.pixmapFormatsLength());
 }
