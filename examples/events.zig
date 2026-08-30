@@ -1,3 +1,6 @@
+//! Demonstrates parsing a raw X11 event.
+//! For a live event loop, see demo.zig.
+
 const std = @import("std");
 const x11 = @import("x11");
 
