@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
     }
 
     const examples = b.step("examples", "Build all examples");
-    examples.dependOn(&check_examples.step);
+    examples.dependOn(check_examples);
 }
 
 fn addExample(
