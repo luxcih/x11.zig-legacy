@@ -1,3 +1,3 @@
-//! A native Zig implementation of an X11 client library.
+//! A native X11 client library written in Zig.
 
-pub const Display = @import("Display.zig");
+pub const Display = @import("Display.zig").Display;
