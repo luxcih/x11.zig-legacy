@@ -137,7 +137,7 @@ pub const GC = struct {
         }
     };
 
-    };
+};
 
 test "encode little-endian CreateGC with foreground" {
     const request = GC.Create{
