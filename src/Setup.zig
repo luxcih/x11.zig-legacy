@@ -39,10 +39,10 @@ pub const Setup = struct {
         };
         buffer[1] = 0;
 
-        writeU16(buffer[2..4], self.major_version, self.byte_order);
-        writeU16(buffer[4..6], self.minor_version, self.byte_order);
-        writeU16(buffer[6..8], @intCast(self.authorization_name.len), self.byte_order);
-        writeU16(buffer[8..10], @intCast(self.authorization_data.len), self.byte_order);
+        Wire.writeU16(buffer[2..4], self.major_version, self.byte_order);
+        Wire.writeU16(buffer[4..6], self.minor_version, self.byte_order);
+        Wire.writeU16(buffer[6..8], @intCast(self.authorization_name.len), self.byte_order);
+        Wire.writeU16(buffer[8..10], @intCast(self.authorization_data.len), self.byte_order);
         buffer[10] = 0;
         buffer[11] = 0;
 
@@ -66,19 +66,7 @@ pub const Setup = struct {
         return padded_end;
     }
 
-    fn writeU16(buffer: []u8, value: u16, byte_order: ByteOrder) void {
-        switch (byte_order) {
-            .little => {
-                buffer[0] = @truncate(value);
-                buffer[1] = @truncate(value >> 8);
-            },
-            .big => {
-                buffer[0] = @truncate(value >> 8);
-                buffer[1] = @truncate(value);
-            },
-        }
-    }
-};
+    };
 
 test "encode little-endian setup without authorization" {
     const setup = Setup{};
