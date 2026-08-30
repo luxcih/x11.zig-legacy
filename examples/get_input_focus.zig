@@ -11,8 +11,7 @@ pub fn main(init: std.process.Init) !void {
 
     var read_buffer: [64]u8 = undefined;
     var reader = session.connection.reader(init.io, &read_buffer);
-    var reply_bytes: [x11.Input.GetInputFocus.reply_size]u8 = undefined;
-    try reader.interface.readSliceAll(&reply_bytes);
+    const reply_bytes = try session.connection.readResponseHeader(reader);
 
     const reply = try x11.Input.GetInputFocus.Reply.parse(&reply_bytes, session.byte_order);
     std.debug.print("Input focus: window=0x{x}, revert_to={s}\n", .{ reply.focus, @tagName(reply.revert_to) });
