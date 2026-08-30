@@ -1,6 +1,6 @@
-const Setup = @import("Setup.zig").Setup;
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const ByteOrder = Setup.ByteOrder;
+pub const ByteOrder = ByteOrder;
 
 pub fn writeU16(bytes: []u8, value: u16, byte_order: ByteOrder) void {
     switch (byte_order) {
