@@ -1,6 +1,6 @@
 const std = @import("std");
-const Setup = @import("Setup.zig").Setup;
 const Wire = @import("Wire.zig");
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const Depth = struct {
     pub const ParseError = error{
@@ -14,7 +14,7 @@ pub const Depth = struct {
 
     pub fn parse(
         bytes: []const u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) ParseError!Depth {
         if (bytes.len < size) return error.BufferTooShort;
 
