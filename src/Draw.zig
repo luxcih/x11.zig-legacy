@@ -1,5 +1,6 @@
 const std = @import("std");
 const Setup = @import("Setup.zig").Setup;
+const Wire = @import("Wire.zig");
 
 pub const Rectangle = struct {
     x: i16,
@@ -36,16 +37,16 @@ pub const Fill = struct {
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        writeU32(buffer[4..8], self.drawable, byte_order);
-        writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
+        Wire.writeU32(buffer[8..12], self.gc, byte_order);
 
         var offset: usize = base_size;
         for (self.rectangles) |rectangle| {
-            writeU16(buffer[offset .. offset + 2], @bitCast(rectangle.x), byte_order);
-            writeU16(buffer[offset + 2 .. offset + 4], @bitCast(rectangle.y), byte_order);
-            writeU16(buffer[offset + 4 .. offset + 6], rectangle.width, byte_order);
-            writeU16(buffer[offset + 6 .. offset + 8], rectangle.height, byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(rectangle.x), byte_order);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(rectangle.y), byte_order);
+            Wire.writeU16(buffer[offset + 4 .. offset + 6], rectangle.width, byte_order);
+            Wire.writeU16(buffer[offset + 6 .. offset + 8], rectangle.height, byte_order);
             offset += rectangle_size;
         }
 
@@ -53,18 +54,8 @@ pub const Fill = struct {
     }
 };
 
-fn writeU16(bytes: []u8, value: u16, byte_order: Setup.ByteOrder) void {
-    switch (byte_order) {
-        .little => std.mem.writeInt(u16, bytes[0..2], value, .little),
-        .big => std.mem.writeInt(u16, bytes[0..2], value, .big),
-    }
 }
 
-fn writeU32(bytes: []u8, value: u32, byte_order: Setup.ByteOrder) void {
-    switch (byte_order) {
-        .little => std.mem.writeInt(u32, bytes[0..4], value, .little),
-        .big => std.mem.writeInt(u32, bytes[0..4], value, .big),
-    }
 }
 
 test "encode little-endian PolyFillRectangle request" {
@@ -131,14 +122,14 @@ pub const Line = struct {
 
         buffer[0] = opcode;
         buffer[1] = @intFromEnum(self.coordinate_mode);
-        writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        writeU32(buffer[4..8], self.drawable, byte_order);
-        writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
+        Wire.writeU32(buffer[8..12], self.gc, byte_order);
 
         var offset: usize = base_size;
         for (self.points) |point| {
-            writeU16(buffer[offset .. offset + 2], @bitCast(point.x), byte_order);
-            writeU16(buffer[offset + 2 .. offset + 4], @bitCast(point.y), byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(point.x), byte_order);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(point.y), byte_order);
             offset += point_size;
         }
 
@@ -200,16 +191,16 @@ pub const OutlineRectangle = struct {
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        writeU32(buffer[4..8], self.drawable, byte_order);
-        writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
+        Wire.writeU32(buffer[8..12], self.gc, byte_order);
 
         var offset: usize = base_size;
         for (self.rectangles) |rectangle| {
-            writeU16(buffer[offset .. offset + 2], @bitCast(rectangle.x), byte_order);
-            writeU16(buffer[offset + 2 .. offset + 4], @bitCast(rectangle.y), byte_order);
-            writeU16(buffer[offset + 4 .. offset + 6], rectangle.width, byte_order);
-            writeU16(buffer[offset + 6 .. offset + 8], rectangle.height, byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(rectangle.x), byte_order);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(rectangle.y), byte_order);
+            Wire.writeU16(buffer[offset + 4 .. offset + 6], rectangle.width, byte_order);
+            Wire.writeU16(buffer[offset + 6 .. offset + 8], rectangle.height, byte_order);
             offset += rectangle_size;
         }
 
@@ -279,18 +270,18 @@ pub const OutlineArc = struct {
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        writeU32(buffer[4..8], self.drawable, byte_order);
-        writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
+        Wire.writeU32(buffer[8..12], self.gc, byte_order);
 
         var offset: usize = base_size;
         for (self.arcs) |arc| {
-            writeU16(buffer[offset .. offset + 2], @bitCast(arc.x), byte_order);
-            writeU16(buffer[offset + 2 .. offset + 4], @bitCast(arc.y), byte_order);
-            writeU16(buffer[offset + 4 .. offset + 6], arc.width, byte_order);
-            writeU16(buffer[offset + 6 .. offset + 8], arc.height, byte_order);
-            writeU16(buffer[offset + 8 .. offset + 10], @bitCast(arc.angle1), byte_order);
-            writeU16(buffer[offset + 10 .. offset + 12], @bitCast(arc.angle2), byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(arc.x), byte_order);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(arc.y), byte_order);
+            Wire.writeU16(buffer[offset + 4 .. offset + 6], arc.width, byte_order);
+            Wire.writeU16(buffer[offset + 6 .. offset + 8], arc.height, byte_order);
+            Wire.writeU16(buffer[offset + 8 .. offset + 10], @bitCast(arc.angle1), byte_order);
+            Wire.writeU16(buffer[offset + 10 .. offset + 12], @bitCast(arc.angle2), byte_order);
             offset += arc_size;
         }
 
@@ -360,18 +351,18 @@ pub const FillArc = struct {
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        writeU32(buffer[4..8], self.drawable, byte_order);
-        writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
+        Wire.writeU32(buffer[8..12], self.gc, byte_order);
 
         var offset: usize = base_size;
         for (self.arcs) |arc| {
-            writeU16(buffer[offset .. offset + 2], @bitCast(arc.x), byte_order);
-            writeU16(buffer[offset + 2 .. offset + 4], @bitCast(arc.y), byte_order);
-            writeU16(buffer[offset + 4 .. offset + 6], arc.width, byte_order);
-            writeU16(buffer[offset + 6 .. offset + 8], arc.height, byte_order);
-            writeU16(buffer[offset + 8 .. offset + 10], @bitCast(arc.angle1), byte_order);
-            writeU16(buffer[offset + 10 .. offset + 12], @bitCast(arc.angle2), byte_order);
+            Wire.writeU16(buffer[offset .. offset + 2], @bitCast(arc.x), byte_order);
+            Wire.writeU16(buffer[offset + 2 .. offset + 4], @bitCast(arc.y), byte_order);
+            Wire.writeU16(buffer[offset + 4 .. offset + 6], arc.width, byte_order);
+            Wire.writeU16(buffer[offset + 6 .. offset + 8], arc.height, byte_order);
+            Wire.writeU16(buffer[offset + 8 .. offset + 10], @bitCast(arc.angle1), byte_order);
+            Wire.writeU16(buffer[offset + 10 .. offset + 12], @bitCast(arc.angle2), byte_order);
             offset += arc_size;
         }
 
@@ -448,11 +439,11 @@ pub const ImageText8 = struct {
 
         buffer[0] = opcode;
         buffer[1] = @intCast(self.text.len);
-        writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        writeU32(buffer[4..8], self.drawable, byte_order);
-        writeU32(buffer[8..12], self.gc, byte_order);
-        writeU16(buffer[12..14], @bitCast(self.x), byte_order);
-        writeU16(buffer[14..16], @bitCast(self.y), byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        Wire.writeU32(buffer[4..8], self.drawable, byte_order);
+        Wire.writeU32(buffer[8..12], self.gc, byte_order);
+        Wire.writeU16(buffer[12..14], @bitCast(self.x), byte_order);
+        Wire.writeU16(buffer[14..16], @bitCast(self.y), byte_order);
 
         @memcpy(buffer[16 .. 16 + self.text.len], self.text);
         @memset(buffer[16 + self.text.len .. length], 0);
