@@ -16,3 +16,5 @@ pub const Window = @import("Window.zig").Window;
 pub const Event = @import("Event.zig").Event;
 
 pub const GC = @import("GC.zig").GC;
+
+pub const Draw = @import("Draw.zig");
