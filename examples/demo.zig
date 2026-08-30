@@ -28,6 +28,74 @@ fn drawScene(
     try connection.writeAll(io, scene.text);
 }
 
+fn createWindow(
+    connection: *x11.Connection,
+    io: std.Io,
+    byte_order: x11.Setup.ByteOrder,
+    screen: x11.Screen,
+    window_id: u32,
+) !void {
+    const create = x11.Window.Create{
+        .depth = 0, // CopyFromParent
+        .window_id = window_id,
+        .parent = screen.root,
+        .x = 100,
+        .y = 100,
+        .width = 640,
+        .height = 480,
+        .background_pixel = screen.white_pixel,
+    };
+
+    var create_buffer: [x11.Window.Create.size + 4]u8 = undefined;
+    const create_bytes = try create.encode(&create_buffer, byte_order);
+    try connection.writeAll(io, create_bytes);
+
+    const change_attributes = x11.Window.ChangeAttributes{
+        .window_id = window_id,
+        .event_mask = .{
+            .key_press = true,
+            .key_release = true,
+            .button_press = true,
+            .button_release = true,
+            .pointer_motion = true,
+            .exposure = true,
+            .structure_notify = true,
+        },
+    };
+
+    var change_attributes_buffer: [x11.Window.ChangeAttributes.size]u8 = undefined;
+    const change_attributes_bytes = try change_attributes.encode(
+        &change_attributes_buffer,
+        byte_order,
+    );
+    try connection.writeAll(io, change_attributes_bytes);
+
+    const map = x11.Window.Map{ .window_id = window_id };
+    var map_buffer: [x11.Window.Map.size]u8 = undefined;
+    const map_bytes = try map.encode(&map_buffer, byte_order);
+    try connection.writeAll(io, map_bytes);
+
+    const configure = x11.Window.Configure{
+        .window_id = window_id,
+        .x = 200,
+        .y = 150,
+        .width = 800,
+        .height = 600,
+    };
+
+    var configure_buffer: [28]u8 = undefined;
+    const configure_bytes = try configure.encode(
+        &configure_buffer,
+        byte_order,
+    );
+    try connection.writeAll(io, configure_bytes);
+
+    std.debug.print(
+        "Created, mapped, and configured window 0x{x}\n",
+        .{window_id},
+    );
+}
+
 fn runEventLoop(
     connection: *x11.Connection,
     io: std.Io,
@@ -198,77 +266,13 @@ pub fn main(init: std.process.Init) !void {
 
             const window_id = try ids.next();
 
-            const create = x11.Window.Create{
-                .depth = 0, // CopyFromParent
-                .window_id = window_id,
-                .parent = screen.root,
-                .x = 100,
-                .y = 100,
-                .width = 640,
-                .height = 480,
-                .background_pixel = screen.white_pixel,
-            };
-
-            var create_buffer: [x11.Window.Create.size + 4]u8 = undefined;
-            const create_bytes = try create.encode(
-                &create_buffer,
+            try createWindow(
+                &connection,
+                init.io,
                 setup.byte_order,
+                screen,
+                window_id,
             );
-            try connection.writeAll(init.io, create_bytes);
-
-            const change_attributes = x11.Window.ChangeAttributes{
-                .window_id = window_id,
-                .event_mask = .{
-                    .key_press = true,
-                    .key_release = true,
-                    .button_press = true,
-                    .button_release = true,
-                    .pointer_motion = true,
-                    .exposure = true,
-                    .structure_notify = true,
-                },
-            };
-
-            var change_attributes_buffer: [x11.Window.ChangeAttributes.size]u8 = undefined;
-            const change_attributes_bytes = try change_attributes.encode(
-                &change_attributes_buffer,
-                setup.byte_order,
-            );
-            try connection.writeAll(init.io, change_attributes_bytes);
-
-            const map = x11.Window.Map{
-                .window_id = window_id,
-            };
-
-            var map_buffer: [x11.Window.Map.size]u8 = undefined;
-            const map_bytes = try map.encode(
-                &map_buffer,
-                setup.byte_order,
-            );
-            try connection.writeAll(init.io, map_bytes);
-            std.debug.print("sent MapWindow\n", .{});
-
-            std.debug.print(
-                "Created and mapped window 0x{x}\n",
-                .{window_id},
-            );
-
-            const configure = x11.Window.Configure{
-                .window_id = window_id,
-                .x = 200,
-                .y = 150,
-                .width = 800,
-                .height = 600,
-            };
-
-            var configure_buffer: [28]u8 = undefined;
-            const configure_bytes = try configure.encode(
-                &configure_buffer,
-                setup.byte_order,
-            );
-            try connection.writeAll(init.io, configure_bytes);
-
-            std.debug.print("Configured window to 800x600 at (200, 150)\n", .{});
 
             const gc_id = try ids.next();
 
