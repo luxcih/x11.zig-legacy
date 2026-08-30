@@ -716,18 +716,19 @@ pub const ListProperties = struct {
     pub const Reply = struct {
         atoms: []u32,
 
+        pub fn atomCount(header: []const u8, byte_order: ByteOrder) ParseError!u16 {
+            if (header.len != reply_size) return error.InvalidLength;
+            if (header[0] != 1) return error.InvalidResponse;
+            return Wire.readU16(header[8..10], byte_order);
+        }
+
         pub fn parse(
             allocator: std.mem.Allocator,
             header: []const u8,
             atoms_bytes: []const u8,
             byte_order: ByteOrder,
         ) ParseError!Reply {
-            if (header.len != reply_size)
-                return error.InvalidLength;
-            if (header[0] != 1)
-                return error.InvalidResponse;
-
-            const count = Wire.readU16(header[8..10], byte_order);
+            const count = try atomCount(header, byte_order);
             const byte_count = @as(usize, count) * @sizeOf(u32);
             if (atoms_bytes.len != byte_count)
                 return error.InvalidAtomsLength;
