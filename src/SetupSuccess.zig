@@ -45,9 +45,9 @@ pub const SetupSuccess = struct {
             .image_byte_order = body[22],
             .bitmap_bit_order = body[23],
             .bitmap_scanline_unit = body[24],
-            .bitmap_scanline_pad = body[26],
-            .min_keycode = body[27],
-            .max_keycode = body[28],
+            .bitmap_scanline_pad = body[25],
+            .min_keycode = body[26],
+            .max_keycode = body[27],
         };
     }
 
