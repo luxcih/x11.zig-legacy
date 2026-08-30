@@ -82,3 +82,53 @@ test "encode little-endian CreateGC with foreground" {
         0, 255, 0, 0,
     }, encoded);
 }
+
+
+pub const Change = struct {
+    pub const EncodeError = error{
+        BufferTooSmall,
+    };
+
+    pub const opcode = 56;
+    pub const foreground_bit: u32 = 1 << 2;
+    pub const size: usize = 16;
+
+    gc_id: u32,
+    foreground: u32,
+
+    pub fn encode(
+        self: Change,
+        buffer: []u8,
+        byte_order: Setup.ByteOrder,
+    ) EncodeError![]const u8 {
+        if (buffer.len < size)
+            return error.BufferTooSmall;
+
+        buffer[0] = opcode;
+        buffer[1] = 0;
+        writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+        writeU32(buffer[4..8], self.gc_id, byte_order);
+        writeU32(buffer[8..12], foreground_bit, byte_order);
+        writeU32(buffer[12..16], self.foreground, byte_order);
+
+        return buffer[0..size];
+    }
+};
+
+test "encode little-endian ChangeGC foreground" {
+    const request = Change{
+        .gc_id = 0x05060708,
+        .foreground = 0x00ff00,
+    };
+
+    var buffer: [16]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        56, 0,
+        4, 0,
+        8, 7, 6, 5,
+        4, 0, 0, 0,
+        0, 255, 0, 0,
+    }, encoded);
+}
