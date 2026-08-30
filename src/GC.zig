@@ -53,28 +53,58 @@ pub const GC = struct {
         };
 
         pub const opcode = 56;
-        pub const foreground_bit: u32 = 1 << 2;
-        pub const size: usize = 16;
+        pub const base_size: usize = 12;
 
         gc_id: u32,
-        foreground: u32,
+        foreground: ?u32 = null,
+        background: ?u32 = null,
+        line_width: ?u32 = null,
+
+        pub fn encodedLength(self: Change) usize {
+            var length = base_size;
+            if (self.foreground != null) length += 4;
+            if (self.background != null) length += 4;
+            if (self.line_width != null) length += 4;
+            return length;
+        }
 
         pub fn encode(
             self: Change,
             buffer: []u8,
             byte_order: Setup.ByteOrder,
         ) EncodeError![]const u8 {
-            if (buffer.len < size)
+            const length = self.encodedLength();
+            if (buffer.len < length)
                 return error.BufferTooSmall;
+
+            var value_mask: u32 = 0;
+            var offset: usize = base_size;
+
+            if (self.background) |background| {
+                value_mask |= 1 << 3;
+                writeU32(buffer[offset .. offset + 4], background, byte_order);
+                offset += 4;
+            }
+
+            if (self.foreground) |foreground| {
+                value_mask |= 1 << 2;
+                writeU32(buffer[offset .. offset + 4], foreground, byte_order);
+                offset += 4;
+            }
+
+            if (self.line_width) |line_width| {
+                value_mask |= 1 << 4;
+                writeU32(buffer[offset .. offset + 4], line_width, byte_order);
+                offset += 4;
+            }
 
             buffer[0] = opcode;
             buffer[1] = 0;
-            writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            writeU16(buffer[2..4], @intCast(length / 4), byte_order);
             writeU32(buffer[4..8], self.gc_id, byte_order);
-            writeU32(buffer[8..12], foreground_bit, byte_order);
-            writeU32(buffer[12..16], self.foreground, byte_order);
+            writeU32(buffer[8..12], value_mask, byte_order);
 
-            return buffer[0..size];
+            return buffer[0..offset];
         }
     };
 
@@ -113,20 +143,24 @@ test "encode little-endian CreateGC with foreground" {
     }, encoded);
 }
 
-test "encode little-endian ChangeGC foreground" {
+test "encode little-endian ChangeGC values" {
     const request = GC.Change{
         .gc_id = 0x05060708,
         .foreground = 0x00ff00,
+        .background = 0x0000ff,
+        .line_width = 3,
     };
 
-    var buffer: [16]u8 = undefined;
+    var buffer: [24]u8 = undefined;
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
         56, 0,
-        4, 0,
+        6, 0,
         8, 7, 6, 5,
-        4, 0, 0, 0,
+        28, 0, 0, 0,
         0, 255, 0, 0,
+        255, 0, 0, 0,
+        3, 0, 0, 0,
     }, encoded);
 }
