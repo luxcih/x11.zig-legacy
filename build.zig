@@ -33,6 +33,8 @@ pub fn build(b: *std.Build) void {
         "redraw",
         "demo",
         "list_properties",
+        "intern_atom",
+        "get_atom_name",
     };
 
     const check_examples = b.step(
