@@ -91,14 +91,22 @@ pub fn main(init: std.process.Init) !void {
                 );
             }
 
+            std.debug.print("finished printing pixmap formats\n", .{});
+
+            if (setup_info.screens.len == 0)
+                return error.NoScreens;
+
             const screen = setup_info.screens[0].screen;
+            std.debug.print("selected root screen\n", .{});
 
             var ids = x11.XidAllocator.init(
                 setup_info.success.resource_id_base,
                 setup_info.success.resource_id_mask,
             );
 
+            std.debug.print("allocating window ID...\n", .{});
             const window_id = try ids.next();
+            std.debug.print("allocated window ID 0x{x}\n", .{window_id});
 
             const create = x11.Window.Create{
                 .depth = 0, // CopyFromParent
@@ -112,24 +120,30 @@ pub fn main(init: std.process.Init) !void {
             };
 
             var create_buffer: [x11.Window.Create.size + 4]u8 = undefined;
+            std.debug.print("encoding CreateWindow...\n", .{});
             const create_bytes = try create.encode(
                 &create_buffer,
                 setup.byte_order,
             );
             std.debug.print("CreateWindow bytes: {any}\n", .{create_bytes});
+            std.debug.print("sending CreateWindow...\n", .{});
             try connection.writeAll(init.io, create_bytes);
+            std.debug.print("sent CreateWindow\n", .{});
 
             const map = x11.Window.Map{
                 .window_id = window_id,
             };
 
             var map_buffer: [x11.Window.Map.size]u8 = undefined;
+            std.debug.print("encoding MapWindow...\n", .{});
             const map_bytes = try map.encode(
                 &map_buffer,
                 setup.byte_order,
             );
             std.debug.print("MapWindow bytes: {any}\n", .{map_bytes});
+            std.debug.print("sending MapWindow...\n", .{});
             try connection.writeAll(init.io, map_bytes);
+            std.debug.print("sent MapWindow\n", .{});
 
             std.debug.print(
                 "Created and mapped window 0x{x}\n",
