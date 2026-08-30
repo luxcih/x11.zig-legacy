@@ -254,6 +254,63 @@ pub const Window = struct {
         }
     };
 
+    pub const GetGeometry = struct {
+        pub const EncodeError = error{
+            BufferTooSmall,
+        };
+
+        pub const ParseError = error{
+            InvalidLength,
+            InvalidResponse,
+        };
+
+        pub const opcode = 14;
+        pub const size: usize = 8;
+        pub const reply_size: usize = 32;
+
+        drawable: u32,
+
+        pub const Reply = struct {
+            depth: u8,
+            root: u32,
+            x: i16,
+            y: i16,
+            width: u16,
+            height: u16,
+            border_width: u16,
+
+            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+                if (bytes.len != reply_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+
+                return .{
+                    .depth = bytes[1],
+                    .root = Wire.readU32(bytes[8..12], byte_order),
+                    .x = Wire.readI16(bytes[12..14], byte_order),
+                    .y = Wire.readI16(bytes[14..16], byte_order),
+                    .width = Wire.readU16(bytes[16..18], byte_order),
+                    .height = Wire.readU16(bytes[18..20], byte_order),
+                    .border_width = Wire.readU16(bytes[20..22], byte_order),
+                };
+            }
+        };
+
+        pub fn encode(
+            self: GetGeometry,
+            buffer: []u8,
+            byte_order: ByteOrder,
+        ) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.drawable, byte_order);
+
+            return buffer[0..size];
+        }
+    };
+
     pub const Map = struct {
         pub const EncodeError = error{
             BufferTooSmall,
