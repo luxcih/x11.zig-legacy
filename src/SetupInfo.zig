@@ -10,11 +10,22 @@ pub const SetupInfo = struct {
     pub const ParsedDepth = struct {
         depth: Depth,
         visuals: []VisualType,
+
+        pub fn deinit(self: ParsedDepth, allocator: std.mem.Allocator) void {
+            allocator.free(self.visuals);
+        }
     };
 
     pub const ParsedScreen = struct {
         screen: Screen,
         depths: []ParsedDepth,
+
+        pub fn deinit(self: ParsedScreen, allocator: std.mem.Allocator) void {
+            for (self.depths) |depth| {
+                depth.deinit(allocator);
+            }
+            allocator.free(self.depths);
+        }
     };
 
     success: SetupSuccess,
@@ -41,8 +52,8 @@ pub const SetupInfo = struct {
         );
         var parsed_screens: usize = 0;
         errdefer {
-            for (screens[0..parsed_screens]) |parsed_screen| {
-                deinitScreen(parsed_screen, allocator);
+            for (screens[0..parsed_screens]) |screen| {
+                screen.deinit(allocator);
             }
             allocator.free(screens);
         }
@@ -69,8 +80,8 @@ pub const SetupInfo = struct {
     }
 
     pub fn deinit(self: *SetupInfo, allocator: std.mem.Allocator) void {
-        for (self.screens) |parsed_screen| {
-            deinitScreen(parsed_screen, allocator);
+        for (self.screens) |screen| {
+            screen.deinit(allocator);
         }
 
         allocator.free(self.screens);
@@ -124,8 +135,8 @@ pub const SetupInfo = struct {
         );
         var parsed_depths: usize = 0;
         errdefer {
-            for (depths[0..parsed_depths]) |parsed_depth| {
-                allocator.free(parsed_depth.visuals);
+            for (depths[0..parsed_depths]) |depth| {
+                depth.deinit(allocator);
             }
             allocator.free(depths);
         }
@@ -194,13 +205,4 @@ pub const SetupInfo = struct {
         return visuals;
     }
 
-    fn deinitScreen(
-        parsed_screen: ParsedScreen,
-        allocator: std.mem.Allocator,
-    ) void {
-        for (parsed_screen.depths) |parsed_depth| {
-            allocator.free(parsed_depth.visuals);
-        }
-        allocator.free(parsed_screen.depths);
-    }
 };
