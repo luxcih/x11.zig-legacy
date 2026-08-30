@@ -55,12 +55,12 @@ pub const Connection = struct {
     /// Replies may contain additional request-specific data after this header.
     pub fn readResponseHeader(
         self: *Connection,
-        reader: anytype,
+        response_reader: anytype,
     ) ![Response.size]u8 {
         _ = self;
 
         var bytes: [Response.size]u8 = undefined;
-        try reader.interface.readSliceAll(&bytes);
+        try response_reader.interface.readSliceAll(&bytes);
         return bytes;
     }
 
