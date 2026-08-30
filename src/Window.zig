@@ -1066,6 +1066,110 @@ test "encode little-endian map window request" {
     };
 
 
+
+pub const TranslateCoordinates = struct {
+    pub const EncodeError = error{BufferTooSmall};
+    pub const ParseError = error{InvalidLength, InvalidResponse};
+
+    pub const opcode = 40;
+    pub const size: usize = 16;
+    pub const reply_size: usize = 32;
+
+    src_window: u32,
+    dst_window: u32,
+    src_x: i16,
+    src_y: i16,
+
+    pub const Reply = struct {
+        same_screen: bool,
+        child: u32,
+        dst_x: i16,
+        dst_y: i16,
+
+        pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+            if (bytes.len != reply_size) return error.InvalidLength;
+            if (bytes[0] != 1) return error.InvalidResponse;
+
+            return .{
+                .same_screen = bytes[1] != 0,
+                .child = Wire.readU32(bytes[8..12], byte_order),
+                .dst_x = Wire.readI16(bytes[12..14], byte_order),
+                .dst_y = Wire.readI16(bytes[14..16], byte_order),
+            };
+        }
+    };
+
+    pub fn encode(
+        self: TranslateCoordinates,
+        buffer: []u8,
+        byte_order: ByteOrder,
+    ) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
+
+        buffer[0] = opcode;
+        buffer[1] = 0;
+        Wire.writeU16(buffer[2..4], size / 4, byte_order);
+        Wire.writeU32(buffer[4..8], self.src_window, byte_order);
+        Wire.writeU32(buffer[8..12], self.dst_window, byte_order);
+        Wire.writeI16(buffer[12..14], self.src_x, byte_order);
+        Wire.writeI16(buffer[14..16], self.src_y, byte_order);
+
+        return buffer[0..size];
+    }
+};
+
+test "encode and parse TranslateCoordinates" {
+    const request = Window.TranslateCoordinates{
+        .src_window = 0x01020304,
+        .dst_window = 0x05060708,
+        .src_x = -10,
+        .src_y = 20,
+    };
+
+    var request_buffer: [Window.TranslateCoordinates.size]u8 = undefined;
+    const encoded = try request.encode(&request_buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{
+        40, 0, 4, 0,
+        4, 3, 2, 1,
+        8, 7, 6, 5,
+        246, 255,
+        20, 0,
+    }, encoded);
+
+    var reply: [Window.TranslateCoordinates.reply_size]u8 =
+        [_]u8{0} ** Window.TranslateCoordinates.reply_size;
+    reply[0] = 1;
+    reply[1] = 1;
+    Wire.writeU32(reply[8..12], 0x11121314, .little);
+    Wire.writeI16(reply[12..14], 100, .little);
+    Wire.writeI16(reply[14..16], -50, .little);
+
+    const parsed = try Window.TranslateCoordinates.Reply.parse(&reply, .little);
+    try std.testing.expect(parsed.same_screen);
+    try std.testing.expectEqual(@as(u32, 0x11121314), parsed.child);
+    try std.testing.expectEqual(@as(i16, 100), parsed.dst_x);
+    try std.testing.expectEqual(@as(i16, -50), parsed.dst_y);
+}
+
+test "TranslateCoordinates big-endian" {
+    const request = Window.TranslateCoordinates{
+        .src_window = 0x01020304,
+        .dst_window = 0x05060708,
+        .src_x = -10,
+        .src_y = 20,
+    };
+
+    var buffer: [Window.TranslateCoordinates.size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .big);
+    try std.testing.expectEqualSlices(u8, &.{
+        40, 0, 0, 4,
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        255, 246,
+        0, 20,
+    }, encoded);
+}
+
 test "encode Window lifecycle cluster requests" {
     {
         const request = Window.DestroySubwindows{ .window_id = 0x01020304 };
