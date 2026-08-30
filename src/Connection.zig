@@ -38,14 +38,12 @@ pub const Connection = struct {
         try writer.interface.flush();
     }
 
-    pub fn readExact(
+    pub fn reader(
         self: *Connection,
         io: std.Io,
         buffer: []u8,
-    ) !void {
-        var read_buffer: [4096]u8 = undefined;
-        var reader = self.stream.reader(io, &read_buffer);
-        try reader.interface.readSliceAll(buffer);
+    ) std.Io.net.Stream.Reader {
+        return self.stream.reader(io, buffer);
     }
 
     pub fn close(self: *Connection, io: std.Io) void {
