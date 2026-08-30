@@ -2,12 +2,12 @@ const std = @import("std");
 const x11 = @import("x11");
 
 pub fn main() !void {
-    const line = x11.Draw.Line{
+    const line = x11.Draw.PolyLine{
         .drawable = 1,
         .gc = 2,
         .points = &.{ .{ .x = 10, .y = 10 }, .{ .x = 200, .y = 100 } },
     };
-    var line_buffer: [x11.Draw.Line.base_size + 2 * x11.Draw.Line.point_size]u8 = undefined;
+    var line_buffer: [x11.Draw.PolyLine.base_size + 2 * x11.Draw.PolyLine.point_size]u8 = undefined;
     const line_bytes = try line.encode(&line_buffer, .little);
 
     const text = x11.Draw.ImageText8{
