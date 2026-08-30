@@ -118,6 +118,8 @@ pub fn main(init: std.process.Init) !void {
             const select_input = x11.Window.SelectInput{
                 .window_id = window_id,
                 .event_mask = .{
+                    .key_press = true,
+                    .key_release = true,
                     .exposure = true,
                     .structure_notify = true,
                 },
@@ -173,6 +175,14 @@ pub fn main(init: std.process.Init) !void {
                 const event = try x11.Event.parse(&message, setup.byte_order);
 
                 switch (event) {
+                    .key_press => |key| std.debug.print(
+                        "KeyPress: keycode {}\n",
+                        .{key.detail},
+                    ),
+                    .key_release => |key| std.debug.print(
+                        "KeyRelease: keycode {}\n",
+                        .{key.detail},
+                    ),
                     .expose => |expose| std.debug.print(
                         "Expose {}x{} at ({}, {})\n",
                         .{ expose.width, expose.height, expose.x, expose.y },
