@@ -84,40 +84,47 @@ pub fn main(init: std.process.Init) !void {
                 );
             }
 
-            for (setup_info.screens, 0..) |parsed_screen, screen_index| {
-                const screen = parsed_screen.screen;
+            const screen = setup_info.screens[0].screen;
 
-                std.debug.print(
-                    "Screen {}: {}x{} pixels, depth {}\n",
-                    .{
-                        screen_index,
-                        screen.width_pixels,
-                        screen.height_pixels,
-                        screen.root_depth,
-                    },
-                );
+            var ids = x11.XidAllocator.init(
+                setup_info.success.resource_id_base,
+                setup_info.success.resource_id_mask,
+            );
 
-                for (parsed_screen.depths) |parsed_depth| {
-                    std.debug.print(
-                        "  Depth {} ({} visuals):\n",
-                        .{
-                            parsed_depth.depth.depth,
-                            parsed_depth.visuals.len,
-                        },
-                    );
+            const window_id = try ids.next();
 
-                    for (parsed_depth.visuals) |visual| {
-                        std.debug.print(
-                            "    visual 0x{x}: {s}, {} RGB bits\n",
-                            .{
-                                visual.visual_id,
-                                @tagName(visual.class),
-                                visual.bits_per_rgb_value,
-                            },
-                        );
-                    }
-                }
-            }
+            const create = x11.Window.Create{
+                .depth = screen.root_depth,
+                .window_id = window_id,
+                .parent = screen.root,
+                .x = 100,
+                .y = 100,
+                .width = 640,
+                .height = 480,
+            };
+
+            var create_buffer: [x11.Window.Create.size]u8 = undefined;
+            const create_bytes = try create.encode(
+                &create_buffer,
+                setup.byte_order,
+            );
+            try connection.writeAll(init.io, create_bytes);
+
+            const map = x11.Window.Map{
+                .window_id = window_id,
+            };
+
+            var map_buffer: [x11.Window.Map.size]u8 = undefined;
+            const map_bytes = try map.encode(
+                &map_buffer,
+                setup.byte_order,
+            );
+            try connection.writeAll(init.io, map_bytes);
+
+            std.debug.print(
+                "Created and mapped window 0x{x}\n",
+                .{window_id},
+            );
         },
         .failed => |failed| {
             std.debug.print(
