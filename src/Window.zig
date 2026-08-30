@@ -2,7 +2,7 @@ const std = @import("std");
 const Wire = @import("Wire.zig");
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const Window = struct {
+const Window = @This();
     pub const Create = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -513,7 +513,6 @@ pub const Window = struct {
             return buffer[0..size];
         }
     };
-};
 
 test "encode little-endian create window request" {
     const request = Window.Create{
