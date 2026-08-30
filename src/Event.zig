@@ -3,6 +3,9 @@ const std = @import("std");
 pub const Event = union(enum) {
     key_press: Key,
     key_release: Key,
+    button_press: Button,
+    button_release: Button,
+    motion_notify: Motion,
     expose: Expose,
     destroy_notify: DestroyNotify,
     unmap_notify: UnmapNotify,
@@ -12,6 +15,34 @@ pub const Event = union(enum) {
 
     pub const ParseError = error{
         InvalidLength,
+    };
+
+    pub const Button = struct {
+        detail: u8,
+        time: u32,
+        root: u32,
+        event: u32,
+        child: u32,
+        root_x: i16,
+        root_y: i16,
+        event_x: i16,
+        event_y: i16,
+        state: u16,
+        same_screen: bool,
+    };
+
+    pub const Motion = struct {
+        detail: u8,
+        time: u32,
+        root: u32,
+        event: u32,
+        child: u32,
+        root_x: i16,
+        root_y: i16,
+        event_x: i16,
+        event_y: i16,
+        state: u16,
+        same_screen: bool,
     };
 
     pub const Key = struct {
@@ -80,6 +111,9 @@ pub const Event = union(enum) {
         return switch (response_type) {
             2 => .{ .key_press = parseKey(bytes, byte_order) },
             3 => .{ .key_release = parseKey(bytes, byte_order) },
+            4 => .{ .button_press = parseButton(bytes, byte_order) },
+            5 => .{ .button_release = parseButton(bytes, byte_order) },
+            6 => .{ .motion_notify = parseMotion(bytes, byte_order) },
             12 => .{ .expose = .{
                 .window = readU32(bytes[4..8], byte_order),
                 .x = @bitCast(readU16(bytes[8..10], byte_order)),
@@ -117,6 +151,38 @@ pub const Event = union(enum) {
                 .response_type = response_type,
                 .raw = bytes[0..32].*,
             } },
+        };
+    }
+
+    fn parseButton(bytes: []const u8, byte_order: @import("Setup.zig").Setup.ByteOrder) Button {
+        return .{
+            .detail = bytes[1],
+            .time = readU32(bytes[4..8], byte_order),
+            .root = readU32(bytes[8..12], byte_order),
+            .event = readU32(bytes[12..16], byte_order),
+            .child = readU32(bytes[16..20], byte_order),
+            .root_x = @bitCast(readU16(bytes[20..22], byte_order)),
+            .root_y = @bitCast(readU16(bytes[22..24], byte_order)),
+            .event_x = @bitCast(readU16(bytes[24..26], byte_order)),
+            .event_y = @bitCast(readU16(bytes[26..28], byte_order)),
+            .state = readU16(bytes[28..30], byte_order),
+            .same_screen = bytes[30] != 0,
+        };
+    }
+
+    fn parseMotion(bytes: []const u8, byte_order: @import("Setup.zig").Setup.ByteOrder) Motion {
+        return .{
+            .detail = bytes[1],
+            .time = readU32(bytes[4..8], byte_order),
+            .root = readU32(bytes[8..12], byte_order),
+            .event = readU32(bytes[12..16], byte_order),
+            .child = readU32(bytes[16..20], byte_order),
+            .root_x = @bitCast(readU16(bytes[20..22], byte_order)),
+            .root_y = @bitCast(readU16(bytes[22..24], byte_order)),
+            .event_x = @bitCast(readU16(bytes[24..26], byte_order)),
+            .event_y = @bitCast(readU16(bytes[26..28], byte_order)),
+            .state = readU16(bytes[28..30], byte_order),
+            .same_screen = bytes[30] != 0,
         };
     }
 
