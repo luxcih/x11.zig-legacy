@@ -10,6 +10,7 @@ pub const Connection = struct {
         };
     }
 
+    /// Connects to a local X server through its Unix-domain socket.
     pub fn connectLocal(
         io: std.Io,
         display: Display,
@@ -28,6 +29,7 @@ pub const Connection = struct {
         return init(stream);
     }
 
+    /// Writes an entire X11 protocol message and flushes it to the server.
     pub fn writeAll(
         self: *Connection,
         io: std.Io,
@@ -38,6 +40,7 @@ pub const Connection = struct {
         try writer.interface.flush();
     }
 
+    /// Returns a buffered reader for incoming X11 protocol messages.
     pub fn reader(
         self: *Connection,
         io: std.Io,
@@ -46,6 +49,7 @@ pub const Connection = struct {
         return self.stream.reader(io, buffer);
     }
 
+    /// Closes the underlying connection.
     pub fn close(self: *Connection, io: std.Io) void {
         self.stream.socket.close(io);
     }
