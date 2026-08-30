@@ -74,3 +74,14 @@ test "parse little-endian true color visual" {
     try std.testing.expectEqual(@as(u32, 0x0000ff00), visual.green_mask);
     try std.testing.expectEqual(@as(u32, 0x000000ff), visual.blue_mask);
 }
+
+test "parse big-endian true color visual" {
+    const visual = try VisualType.parse(&.{
+        0x87,0x65,0x43,0x21, 4,8, 0x01,0x00,
+        0x00,0xff,0x00,0x00, 0x00,0x00,0xff,0x00,
+        0x00,0x00,0x00,0xff, 0,0,0,0,
+    }, .big);
+    try std.testing.expectEqual(@as(u32, 0x87654321), visual.visual_id);
+    try std.testing.expectEqual(@as(u16, 256), visual.colormap_entries);
+    try std.testing.expectEqual(@as(u32, 0x00ff0000), visual.red_mask);
+}
