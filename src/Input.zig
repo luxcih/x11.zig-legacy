@@ -269,6 +269,87 @@ test "WarpPointer rejects a small buffer" {
 }
 
 
+    pub const GrabPointer = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{InvalidLength, InvalidResponse};
+        pub const opcode = 26;
+        pub const size: usize = 24;
+        pub const reply_size: usize = 32;
+
+        pub const Status = enum(u8) { success = 0, already_grabbed = 1, invalid_time = 2, not_viewable = 3, frozen = 4 };
+
+        owner_events: bool,
+        grab_window: u32,
+        event_mask: u16,
+        pointer_mode: u8 = 1,
+        keyboard_mode: u8 = 1,
+        confine_to: u32 = 0,
+        cursor: u32 = 0,
+        time: u32 = 0,
+
+        pub const Reply = struct {
+            status: Status,
+            pub fn parse(bytes: []const u8) ParseError!Reply {
+                if (bytes.len != reply_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+                return .{ .status = switch (bytes[1]) {
+                    0 => .success, 1 => .already_grabbed, 2 => .invalid_time,
+                    3 => .not_viewable, 4 => .frozen, else => return error.InvalidResponse,
+                }};
+            }
+        };
+
+        pub fn encode(self: GrabPointer, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = if (self.owner_events) 1 else 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
+            Wire.writeU16(buffer[8..10], self.event_mask, byte_order);
+            buffer[10] = self.pointer_mode;
+            buffer[11] = self.keyboard_mode;
+            Wire.writeU32(buffer[12..16], self.confine_to, byte_order);
+            Wire.writeU32(buffer[16..20], self.cursor, byte_order);
+            Wire.writeU32(buffer[20..24], self.time, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const UngrabPointer = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 27;
+        pub const size: usize = 8;
+        time: u32 = 0,
+        pub fn encode(self: UngrabPointer, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode; buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.time, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+test "encode GrabPointer and UngrabPointer" {
+    const grab = Input.GrabPointer{ .owner_events = true, .grab_window = 0x01020304, .event_mask = 0x1234 };
+    var buffer: [Input.GrabPointer.size]u8 = undefined;
+    const encoded = try grab.encode(&buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{ 26, 1, 6, 0, 4, 3, 2, 1, 0x34, 0x12, 1, 1, 0,0,0,0, 0,0,0,0, 0,0,0,0 }, encoded);
+
+    const ungrab = Input.UngrabPointer{};
+    var ungrab_buffer: [Input.UngrabPointer.size]u8 = undefined;
+    const ungrab_encoded = try ungrab.encode(&ungrab_buffer, .big);
+    try std.testing.expectEqualSlices(u8, &.{ 27, 0, 0, 2, 0, 0, 0, 0 }, ungrab_encoded);
+}
+
+test "parse GrabPointer reply" {
+    var reply: [Input.GrabPointer.reply_size]u8 = [_]u8{0} ** Input.GrabPointer.reply_size;
+    reply[0] = 1;
+    reply[1] = 0;
+    const parsed = try Input.GrabPointer.Reply.parse(&reply);
+    try std.testing.expectEqual(Input.GrabPointer.Status.success, parsed.status);
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
