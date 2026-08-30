@@ -115,7 +115,7 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, create_bytes);
 
-            const select_input = x11.Window.SelectInput{
+            const change_attributes = x11.Window.ChangeAttributes{
                 .window_id = window_id,
                 .event_mask = .{
                     .key_press = true,
@@ -128,12 +128,12 @@ pub fn main(init: std.process.Init) !void {
                 },
             };
 
-            var select_input_buffer: [x11.Window.SelectInput.size]u8 = undefined;
-            const select_input_bytes = try select_input.encode(
-                &select_input_buffer,
+            var change_attributes_buffer: [x11.Window.ChangeAttributes.size]u8 = undefined;
+            const change_attributes_bytes = try change_attributes.encode(
+                &change_attributes_buffer,
                 setup.byte_order,
             );
-            try connection.writeAll(init.io, select_input_bytes);
+            try connection.writeAll(init.io, change_attributes_bytes);
 
             const map = x11.Window.Map{
                 .window_id = window_id,
