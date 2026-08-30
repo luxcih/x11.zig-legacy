@@ -1,5 +1,6 @@
 const std = @import("std");
 const Setup = @import("Setup.zig").Setup;
+const Wire = @import("Wire.zig");
 
 pub const Screen = struct {
     pub const ParseError = error{
@@ -32,42 +33,22 @@ pub const Screen = struct {
         if (bytes.len < size) return error.BufferTooShort;
 
         return .{
-            .root = readU32(bytes[0..4], byte_order),
-            .default_colormap = readU32(bytes[4..8], byte_order),
-            .white_pixel = readU32(bytes[8..12], byte_order),
-            .black_pixel = readU32(bytes[12..16], byte_order),
-            .current_input_masks = readU32(bytes[16..20], byte_order),
-            .width_pixels = readU16(bytes[20..22], byte_order),
-            .height_pixels = readU16(bytes[22..24], byte_order),
-            .width_millimeters = readU16(bytes[24..26], byte_order),
-            .height_millimeters = readU16(bytes[26..28], byte_order),
-            .min_installed_maps = readU16(bytes[28..30], byte_order),
-            .max_installed_maps = readU16(bytes[30..32], byte_order),
-            .root_visual = readU32(bytes[32..36], byte_order),
+            .root = Wire.readU32(bytes[0..4], byte_order),
+            .default_colormap = Wire.readU32(bytes[4..8], byte_order),
+            .white_pixel = Wire.readU32(bytes[8..12], byte_order),
+            .black_pixel = Wire.readU32(bytes[12..16], byte_order),
+            .current_input_masks = Wire.readU32(bytes[16..20], byte_order),
+            .width_pixels = Wire.readU16(bytes[20..22], byte_order),
+            .height_pixels = Wire.readU16(bytes[22..24], byte_order),
+            .width_millimeters = Wire.readU16(bytes[24..26], byte_order),
+            .height_millimeters = Wire.readU16(bytes[26..28], byte_order),
+            .min_installed_maps = Wire.readU16(bytes[28..30], byte_order),
+            .max_installed_maps = Wire.readU16(bytes[30..32], byte_order),
+            .root_visual = Wire.readU32(bytes[32..36], byte_order),
             .backing_stores = bytes[36],
             .save_unders = bytes[37] != 0,
             .root_depth = bytes[38],
             .depth_count = bytes[39],
-        };
-    }
-
-    fn readU16(bytes: []const u8, byte_order: Setup.ByteOrder) u16 {
-        return switch (byte_order) {
-            .little => @as(u16, bytes[0]) | (@as(u16, bytes[1]) << 8),
-            .big => (@as(u16, bytes[0]) << 8) | @as(u16, bytes[1]),
-        };
-    }
-
-    fn readU32(bytes: []const u8, byte_order: Setup.ByteOrder) u32 {
-        return switch (byte_order) {
-            .little => @as(u32, bytes[0]) |
-                (@as(u32, bytes[1]) << 8) |
-                (@as(u32, bytes[2]) << 16) |
-                (@as(u32, bytes[3]) << 24),
-            .big => (@as(u32, bytes[0]) << 24) |
-                (@as(u32, bytes[1]) << 16) |
-                (@as(u32, bytes[2]) << 8) |
-                @as(u32, bytes[3]),
         };
     }
 };
