@@ -1,6 +1,9 @@
 const std = @import("std");
 
-/// The category of a 32-byte message received from an X11 server.
+/// A fixed-size X11 server response header.
+pub const size: usize = 32;
+
+/// The category of a message received from an X11 server.
 pub const Type = enum {
     protocol_error,
     reply,
@@ -23,4 +26,31 @@ test "classify X11 response types" {
 
     // The high bit marks a synthetic event.
     try std.testing.expectEqual(Type.event, Type.classify(0x82));
+}
+
+
+/// Classifies a complete 32-byte X11 response header.
+///
+/// Replies may carry additional data after this header; the request-specific
+/// reply parser remains responsible for interpreting that data.
+pub fn classify(bytes: []const u8) error{InvalidLength}!Type {
+    if (bytes.len != size) return error.InvalidLength;
+    return Type.classify(bytes[0]);
+}
+
+test "classify a complete X11 response header" {
+    var bytes: [size]u8 = [_]u8{0} ** size;
+
+    bytes[0] = 0;
+    try std.testing.expectEqual(Type.protocol_error, try classify(&bytes));
+
+    bytes[0] = 1;
+    try std.testing.expectEqual(Type.reply, try classify(&bytes));
+
+    bytes[0] = 12;
+    try std.testing.expectEqual(Type.event, try classify(&bytes));
+}
+
+test "reject incorrectly sized response header" {
+    try std.testing.expectError(error.InvalidLength, classify(&.{ 1 }));
 }
