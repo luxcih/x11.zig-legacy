@@ -101,7 +101,6 @@ pub fn main(init: std.process.Init) !void {
                 .y = 100,
                 .width = 640,
                 .height = 480,
-                .visual = screen.root_visual,
                 .background_pixel = screen.white_pixel,
             };
 
@@ -127,6 +126,13 @@ pub fn main(init: std.process.Init) !void {
                 "Created and mapped window 0x{x}\n",
                 .{window_id},
             );
+
+            // Keep the X11 client connection alive and process incoming
+            // protocol messages so the server keeps this client's window.
+            var message: [32]u8 = undefined;
+            while (true) {
+                try reader.interface.readSliceAll(&message);
+            }
         },
         .failed => |failed| {
             std.debug.print(
