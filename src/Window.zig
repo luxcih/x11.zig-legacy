@@ -682,6 +682,77 @@ pub const DeleteProperty = struct {
 };
 
 
+pub const ListProperties = struct {
+    pub const EncodeError = error{BufferTooSmall};
+    pub const ParseError = error{
+        InvalidLength,
+        InvalidResponse,
+        InvalidAtomsLength,
+        OutOfMemory,
+    };
+
+    pub const opcode = 21;
+    pub const request_size = 8;
+    pub const reply_size = 32;
+
+    window_id: u32,
+
+    pub fn encode(
+        self: ListProperties,
+        buffer: []u8,
+        byte_order: ByteOrder,
+    ) EncodeError![]const u8 {
+        if (buffer.len < request_size)
+            return error.BufferTooSmall;
+
+        buffer[0] = opcode;
+        buffer[1] = 0;
+        Wire.writeU16(buffer[2..4], request_size / 4, byte_order);
+        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+
+        return buffer[0..request_size];
+    }
+
+    pub const Reply = struct {
+        atoms: []u32,
+
+        pub fn parse(
+            allocator: std.mem.Allocator,
+            header: []const u8,
+            atoms_bytes: []const u8,
+            byte_order: ByteOrder,
+        ) ParseError!Reply {
+            if (header.len != reply_size)
+                return error.InvalidLength;
+            if (header[0] != 1)
+                return error.InvalidResponse;
+
+            const count = Wire.readU16(header[8..10], byte_order);
+            const byte_count = @as(usize, count) * @sizeOf(u32);
+            if (atoms_bytes.len != byte_count)
+                return error.InvalidAtomsLength;
+
+            const atoms = try allocator.alloc(u32, count);
+            errdefer allocator.free(atoms);
+
+            for (atoms, 0..) |*atom, i| {
+                const offset = i * @sizeOf(u32);
+                atom.* = Wire.readU32(
+                    atoms_bytes[offset .. offset + 4],
+                    byte_order,
+                );
+            }
+
+            return .{ .atoms = atoms };
+        }
+
+        pub fn deinit(self: *Reply, allocator: std.mem.Allocator) void {
+            allocator.free(self.atoms);
+        }
+    };
+};
+
+
 test "encode little-endian create window request" {
     const request = Window.Create{
         .depth = 24,
@@ -992,4 +1063,45 @@ test "encode little-endian DeleteProperty" {
         4, 3, 2, 1,
         20, 19, 18, 17,
     }, encoded);
+}
+
+
+test "encode little-endian ListProperties" {
+    const request = Window.ListProperties{
+        .window_id = 0x01020304,
+    };
+
+    var buffer: [Window.ListProperties.request_size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        21, 0, 2, 0,
+        4, 3, 2, 1,
+    }, encoded);
+}
+
+test "parse ListProperties reply" {
+    var header: [Window.ListProperties.reply_size]u8 =
+        [_]u8{0} ** Window.ListProperties.reply_size;
+    header[0] = 1;
+    Wire.writeU16(header[8..10], 3, .little);
+
+    var atoms_bytes: [12]u8 = undefined;
+    Wire.writeU32(atoms_bytes[0..4], 1, .little);
+    Wire.writeU32(atoms_bytes[4..8], 31, .little);
+    Wire.writeU32(atoms_bytes[8..12], 0x01020304, .little);
+
+    var reply = try Window.ListProperties.Reply.parse(
+        std.testing.allocator,
+        &header,
+        &atoms_bytes,
+        .little,
+    );
+    defer reply.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 1, 31, 0x01020304 },
+        reply.atoms,
+    );
 }
