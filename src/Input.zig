@@ -418,6 +418,64 @@ test "encode GrabKeyboard and UngrabKeyboard" {
 }
 
 
+    pub const AllowEvents = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 35;
+        pub const size: usize = 8;
+        pub const Mode = enum(u8) {
+            async_pointer = 0, sync_pointer = 1, replay_pointer = 2,
+            async_keyboard = 3, sync_keyboard = 4, replay_keyboard = 5,
+            async_both = 6, sync_both = 7,
+        };
+        mode: Mode,
+        time: u32 = 0,
+        pub fn encode(self: AllowEvents, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode; buffer[1] = @intFromEnum(self.mode);
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.time, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const GrabServer = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 36;
+        pub const size: usize = 4;
+        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode; buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const UngrabServer = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 37;
+        pub const size: usize = 4;
+        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode; buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+test "encode AllowEvents and server grabs" {
+    const allow = Input.AllowEvents{ .mode = .sync_both, .time = 0x01020304 };
+    var buffer: [Input.AllowEvents.size]u8 = undefined;
+    const encoded = try allow.encode(&buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{ 35,7,2,0,4,3,2,1 }, encoded);
+
+    var grab: [Input.GrabServer.size]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &.{ 36,0,0,1 }, try Input.GrabServer.encode(&grab, .big));
+
+    var ungrab: [Input.UngrabServer.size]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &.{ 37,0,1,0 }, try Input.UngrabServer.encode(&ungrab, .little));
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
