@@ -101,3 +101,21 @@ test "parse little-endian setup success header" {
     try std.testing.expectEqual(@as(usize, 36), success.pixmapFormatsOffset());
     try std.testing.expectEqual(@as(usize, 16), success.pixmapFormatsLength());
 }
+
+test "parse big-endian setup success header" {
+    const body = [_]u8{
+        0x12, 0x34, 0x56, 0x78,
+        0x20, 0x00, 0x00, 0x10,
+        0x00, 0x00, 0x00, 0xff,
+        0x00, 0x00, 0x00, 0x40,
+        0, 3,
+        0x10, 0x00,
+        1, 2, 0, 1, 32, 0, 8, 255,
+        0, 0, 0, 0,
+        'X', 'o', 'r',
+    };
+    const success = try SetupSuccess.parse(&body, .big);
+    try std.testing.expectEqual(@as(u32, 0x12345678), success.release_number);
+    try std.testing.expectEqual(@as(u16, 0x1000), success.maximum_request_length);
+    try std.testing.expectEqualStrings("Xor", success.vendor);
+}
