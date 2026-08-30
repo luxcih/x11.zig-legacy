@@ -350,6 +350,74 @@ test "parse GrabPointer reply" {
 }
 
 
+    pub const GrabKeyboard = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{InvalidLength, InvalidResponse};
+        pub const opcode = 31;
+        pub const size: usize = 16;
+        pub const reply_size: usize = 32;
+
+        pub const Status = enum(u8) { success = 0, already_grabbed = 1, invalid_time = 2, not_viewable = 3, frozen = 4 };
+
+        owner_events: bool,
+        grab_window: u32,
+        time: u32 = 0,
+        pointer_mode: u8 = 1,
+        keyboard_mode: u8 = 1,
+
+        pub const Reply = struct {
+            status: Status,
+            pub fn parse(bytes: []const u8) ParseError!Reply {
+                if (bytes.len != reply_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+                return .{ .status = switch (bytes[1]) {
+                    0 => .success, 1 => .already_grabbed, 2 => .invalid_time,
+                    3 => .not_viewable, 4 => .frozen, else => return error.InvalidResponse,
+                }};
+            }
+        };
+
+        pub fn encode(self: GrabKeyboard, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = if (self.owner_events) 1 else 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
+            Wire.writeU32(buffer[8..12], self.time, byte_order);
+            buffer[12] = self.pointer_mode;
+            buffer[13] = self.keyboard_mode;
+            buffer[14] = 0; buffer[15] = 0;
+            return buffer[0..size];
+        }
+    };
+
+    pub const UngrabKeyboard = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 32;
+        pub const size: usize = 8;
+        time: u32 = 0,
+        pub fn encode(self: UngrabKeyboard, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode; buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.time, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+test "encode GrabKeyboard and UngrabKeyboard" {
+    const grab = Input.GrabKeyboard{ .owner_events = true, .grab_window = 0x01020304, .time = 0x05060708, .pointer_mode = 0, .keyboard_mode = 1 };
+    var buffer: [Input.GrabKeyboard.size]u8 = undefined;
+    const encoded = try grab.encode(&buffer, .big);
+    try std.testing.expectEqualSlices(u8, &.{ 31,1,0,4,1,2,3,4,5,6,7,8,0,1,0,0 }, encoded);
+
+    const ungrab = Input.UngrabKeyboard{ .time = 0x01020304 };
+    var ungrab_buffer: [Input.UngrabKeyboard.size]u8 = undefined;
+    const ungrab_encoded = try ungrab.encode(&ungrab_buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{ 32,0,2,0,4,3,2,1 }, ungrab_encoded);
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
