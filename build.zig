@@ -23,6 +23,7 @@ pub fn build(b: *std.Build) void {
         "setup",
         "window",
         "events",
+        "get_geometry",
         "gc",
         "draw",
         "redraw",
