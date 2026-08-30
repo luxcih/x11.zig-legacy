@@ -1,12 +1,12 @@
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 const std = @import("std");
 const SetupSuccess = @import("SetupSuccess.zig").SetupSuccess;
-const PixmapFormat = @import("PixmapFormat.zig").PixmapFormat;
-const Screen = @import("Screen.zig").Screen;
-const Depth = @import("Depth.zig").Depth;
-const VisualType = @import("VisualType.zig").VisualType;
+const PixmapFormat = @import("PixmapFormat.zig");
+const Screen = @import("Screen.zig");
+const Depth = @import("Depth.zig");
+const VisualType = @import("VisualType.zig");
 
-pub const SetupInfo = struct {
+const SetupInfo = @This();
     pub const ParsedDepth = struct {
         depth: Depth,
         visuals: []VisualType,
@@ -205,4 +205,3 @@ pub const SetupInfo = struct {
         return visuals;
     }
 
-};
