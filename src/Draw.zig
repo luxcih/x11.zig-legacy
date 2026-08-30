@@ -411,3 +411,75 @@ test "encode little-endian PolyFillArc request" {
         0, 90,
     }, encoded);
 }
+
+
+pub const ImageText8 = struct {
+    pub const EncodeError = error{
+        BufferTooSmall,
+        TextTooLong,
+    };
+
+    pub const opcode = 76;
+    pub const base_size: usize = 16;
+    pub const max_text_length: usize = 255;
+
+    drawable: u32,
+    gc: u32,
+    x: i16,
+    y: i16,
+    text: []const u8,
+
+    pub fn encodedLength(self: ImageText8) EncodeError!usize {
+        if (self.text.len > max_text_length)
+            return error.TextTooLong;
+
+        const unpadded = base_size + self.text.len;
+        return std.mem.alignForward(usize, unpadded, 4);
+    }
+
+    pub fn encode(
+        self: ImageText8,
+        buffer: []u8,
+        byte_order: Setup.ByteOrder,
+    ) EncodeError![]const u8 {
+        const length = try self.encodedLength();
+        if (buffer.len < length)
+            return error.BufferTooSmall;
+
+        buffer[0] = opcode;
+        buffer[1] = @intCast(self.text.len);
+        writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        writeU32(buffer[4..8], self.drawable, byte_order);
+        writeU32(buffer[8..12], self.gc, byte_order);
+        writeU16(buffer[12..14], @bitCast(self.x), byte_order);
+        writeU16(buffer[14..16], @bitCast(self.y), byte_order);
+
+        @memcpy(buffer[16 .. 16 + self.text.len], self.text);
+        @memset(buffer[16 + self.text.len .. length], 0);
+
+        return buffer[0..length];
+    }
+};
+
+test "encode little-endian ImageText8 request" {
+    const request = ImageText8{
+        .drawable = 0x01020304,
+        .gc = 0x05060708,
+        .x = 10,
+        .y = 20,
+        .text = "Hi",
+    };
+
+    var buffer: [20]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        76, 2,
+        5, 0,
+        4, 3, 2, 1,
+        8, 7, 6, 5,
+        10, 0,
+        20, 0,
+        'H', 'i', 0, 0,
+    }, encoded);
+}
