@@ -2,7 +2,7 @@ const std = @import("std");
 const Wire = @import("Wire.zig");
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const GC = struct {
+const GC = @This();
     pub const Create = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -137,7 +137,6 @@ pub const GC = struct {
         }
     };
 
-};
 
 test "encode little-endian CreateGC with foreground" {
     const request = GC.Create{
