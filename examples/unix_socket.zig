@@ -204,6 +204,17 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, fill_bytes);
 
+            const green_gc = x11.GC.Change{
+                .gc_id = gc_id,
+                .foreground = 0x00ff00,
+            };
+
+            var green_gc_buffer: [16]u8 = undefined;
+            const green_gc_bytes = try green_gc.encode(
+                &green_gc_buffer,
+                setup.byte_order,
+            );
+
             const change_gc = x11.GC.Change{
                 .gc_id = gc_id,
                 .foreground = 0xff0000,
@@ -360,10 +371,22 @@ pub fn main(init: std.process.Init) !void {
                         "MotionNotify at ({}, {})\n",
                         .{ motion.event_x, motion.event_y },
                     ),
-                    .expose => |expose| std.debug.print(
-                        "Expose {}x{} at ({}, {})\n",
-                        .{ expose.width, expose.height, expose.x, expose.y },
-                    ),
+                    .expose => |expose| {
+                        std.debug.print(
+                            "Expose {}x{} at ({}, {}); redrawing\n",
+                            .{ expose.width, expose.height, expose.x, expose.y },
+                        );
+
+                        try connection.writeAll(init.io, green_gc_bytes);
+                        try connection.writeAll(init.io, fill_bytes);
+
+                        try connection.writeAll(init.io, change_gc_bytes);
+                        try connection.writeAll(init.io, line_bytes);
+                        try connection.writeAll(init.io, outline_bytes);
+                        try connection.writeAll(init.io, arc_bytes);
+                        try connection.writeAll(init.io, filled_arc_bytes);
+                        try connection.writeAll(init.io, text_bytes);
+                    },
                     .map_notify => std.debug.print("MapNotify event\n", .{}),
                     .configure_notify => |configure_notify| std.debug.print(
                         "ConfigureNotify {}x{} at ({}, {})\n",
