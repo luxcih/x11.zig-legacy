@@ -476,6 +476,74 @@ test "encode AllowEvents and server grabs" {
 }
 
 
+    pub const GetPointerMapping = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{InvalidLength, InvalidResponse};
+        pub const opcode = 117;
+        pub const size: usize = 4;
+        pub const reply_size: usize = 32;
+
+        pub const Reply = struct {
+            map: []const u8,
+            pub fn parse(bytes: []const u8) ParseError!Reply {
+                if (bytes.len < reply_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+                const n: usize = bytes[1];
+                if (bytes.len < reply_size + n) return error.InvalidLength;
+                return .{ .map = bytes[reply_size .. reply_size + n] };
+            }
+        };
+
+        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode; buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const SetPointerMapping = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{InvalidLength, InvalidResponse};
+        pub const opcode = 116;
+
+        map: []const u8,
+
+        pub const Reply = struct {
+            status: u8,
+            pub fn parse(bytes: []const u8) ParseError!Reply {
+                if (bytes.len != 32) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+                return .{ .status = bytes[1] };
+            }
+        };
+
+        pub fn encodedSize(self: SetPointerMapping) usize {
+            return 4 + ((self.map.len + 3) / 4) * 4;
+        }
+
+        pub fn encode(self: SetPointerMapping, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            const size = self.encodedSize();
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = @intCast(self.map.len);
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            @memcpy(buffer[4 .. 4 + self.map.len], self.map);
+            @memset(buffer[4 + self.map.len .. size], 0);
+            return buffer[0..size];
+        }
+    };
+
+test "encode pointer mapping requests" {
+    var get: [Input.GetPointerMapping.size]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &.{ 117,0,1,0 }, try Input.GetPointerMapping.encode(&get, .little));
+
+    const set = Input.SetPointerMapping{ .map = &.{ 1, 3, 2 } };
+    var buffer: [8]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &.{ 116,3,2,0,1,3,2,0 }, try set.encode(&buffer, .little));
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
