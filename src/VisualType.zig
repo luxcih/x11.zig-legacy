@@ -82,7 +82,7 @@ test "parse little-endian true color visual" {
     }, .little);
 
     try std.testing.expectEqual(@as(u32, 0x87654321), visual.visual_id);
-    try std.testing.expectEqual(Class.true_color, visual.class);
+    try std.testing.expectEqual(VisualType.Class.true_color, visual.class);
     try std.testing.expectEqual(@as(u8, 8), visual.bits_per_rgb_value);
     try std.testing.expectEqual(@as(u16, 256), visual.colormap_entries);
     try std.testing.expectEqual(@as(u32, 0x00ff0000), visual.red_mask);
