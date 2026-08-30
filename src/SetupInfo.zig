@@ -1,5 +1,5 @@
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 const std = @import("std");
-const Setup = @import("Setup.zig").Setup;
 const SetupSuccess = @import("SetupSuccess.zig").SetupSuccess;
 const PixmapFormat = @import("PixmapFormat.zig").PixmapFormat;
 const Screen = @import("Screen.zig").Screen;
@@ -35,7 +35,7 @@ pub const SetupInfo = struct {
     pub fn parse(
         allocator: std.mem.Allocator,
         body: []const u8,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) !SetupInfo {
         const success = try SetupSuccess.parse(body, byte_order);
 
@@ -119,7 +119,7 @@ pub const SetupInfo = struct {
         allocator: std.mem.Allocator,
         body: []const u8,
         offset: usize,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) !struct { screen: ParsedScreen, next_offset: usize } {
         if (offset + Screen.size > body.len)
             return error.BodyTooShort;
@@ -186,7 +186,7 @@ pub const SetupInfo = struct {
         body: []const u8,
         depth: Depth,
         offset: usize,
-        byte_order: Setup.ByteOrder,
+        byte_order: ByteOrder,
     ) ![]VisualType {
         const visuals = try allocator.alloc(
             VisualType,
