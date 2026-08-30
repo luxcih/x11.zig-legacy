@@ -60,8 +60,7 @@ pub const Connection = struct {
         _ = self;
 
         var bytes: [Response.size]u8 = undefined;
-        var mutable_reader = response_reader;
-        try mutable_reader.interface.readSliceAll(&bytes);
+        try response_reader.interface.readSliceAll(&bytes);
         return bytes;
     }
 
