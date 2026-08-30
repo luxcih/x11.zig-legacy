@@ -1,6 +1,7 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const std = @import("std");
+const Endian = std.builtin.Endian;
 
 pub const SetupResponse = union(enum) {
     failed: Failed,
@@ -30,22 +31,22 @@ pub const SetupResponse = union(enum) {
 
     pub fn parsePrefix(
         prefix: [8]u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) ParseError!SetupResponse {
         return switch (prefix[0]) {
             0 => .{ .failed = .{
                 .reason_length = prefix[1],
-                .major_version = Wire.readU16(prefix[2..4], byte_order),
-                .minor_version = Wire.readU16(prefix[4..6], byte_order),
-                .additional_length = Wire.readU16(prefix[6..8], byte_order),
+                .major_version = Wire.readU16(prefix[2..4], endian),
+                .minor_version = Wire.readU16(prefix[4..6], endian),
+                .additional_length = Wire.readU16(prefix[6..8], endian),
             } },
             1 => .{ .success = .{
-                .major_version = Wire.readU16(prefix[2..4], byte_order),
-                .minor_version = Wire.readU16(prefix[4..6], byte_order),
-                .additional_length = Wire.readU16(prefix[6..8], byte_order),
+                .major_version = Wire.readU16(prefix[2..4], endian),
+                .minor_version = Wire.readU16(prefix[4..6], endian),
+                .additional_length = Wire.readU16(prefix[6..8], endian),
             } },
             2 => .{ .authenticate = .{
-                .additional_length = Wire.readU16(prefix[6..8], byte_order),
+                .additional_length = Wire.readU16(prefix[6..8], endian),
             } },
             else => error.InvalidStatus,
         };
