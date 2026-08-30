@@ -108,6 +108,34 @@ pub const GC = struct {
         }
     };
 
+
+    pub const Free = struct {
+        pub const EncodeError = error{
+            BufferTooSmall,
+        };
+
+        pub const opcode = 60;
+        pub const size: usize = 8;
+
+        gc_id: u32,
+
+        pub fn encode(
+            self: Free,
+            buffer: []u8,
+            byte_order: Setup.ByteOrder,
+        ) EncodeError![]const u8 {
+            if (buffer.len < size)
+                return error.BufferTooSmall;
+
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            writeU32(buffer[4..8], self.gc_id, byte_order);
+
+            return buffer[0..size];
+        }
+    };
+
     fn writeU16(bytes: []u8, value: u16, byte_order: Setup.ByteOrder) void {
         switch (byte_order) {
             .little => std.mem.writeInt(u16, bytes[0..2], value, .little),
@@ -162,5 +190,21 @@ test "encode little-endian ChangeGC values" {
         0, 255, 0, 0,
         255, 0, 0, 0,
         3, 0, 0, 0,
+    }, encoded);
+}
+
+
+test "encode little-endian FreeGC request" {
+    const request = GC.Free{
+        .gc_id = 0x05060708,
+    };
+
+    var buffer: [GC.Free.size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        60, 0,
+        2, 0,
+        8, 7, 6, 5,
     }, encoded);
 }
