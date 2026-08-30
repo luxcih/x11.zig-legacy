@@ -80,7 +80,7 @@ pub const Event = union(enum) {
         raw: [32]u8,
     };
 
-    pub fn parse(bytes: []const u8, byte_order: @import("Setup.zig").ByteOrder) ParseError!Event {
+    pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Event {
         if (bytes.len < 32)
             return error.InvalidLength;
 
@@ -134,7 +134,7 @@ pub const Event = union(enum) {
 
     fn parseInput(
         bytes: []const u8,
-        byte_order: @import("Setup.zig").ByteOrder,
+        byte_order: ByteOrder,
     ) Input {
         return .{
             .detail = bytes[1],
