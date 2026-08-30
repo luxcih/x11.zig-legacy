@@ -25,4 +25,5 @@ pub const GC = @import("GC.zig").GC;
 pub const Draw = @import("Draw.zig");
 
 pub const Event = @import("Event.zig").Event;
+pub const Error = @import("Error.zig").Error;
 pub const Input = @import("Input.zig").Input;
