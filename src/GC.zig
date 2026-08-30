@@ -139,6 +139,59 @@ const GC = @This();
     };
 
 
+test "encode big-endian GC requests" {
+    {
+        const request = GC.Create{
+            .drawable = 0x01020304,
+            .gc_id = 0x05060708,
+            .foreground = 0x11223344,
+        };
+        var buffer: [20]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+
+        try std.testing.expectEqualSlices(u8, &.{
+            55, 0, 0, 5,
+            5, 6, 7, 8,
+            1, 2, 3, 4,
+            0, 0, 0, 4,
+            17, 34, 51, 68,
+        }, encoded);
+    }
+
+    {
+        const request = GC.Change{
+            .gc_id = 0x01020304,
+            .foreground = 0x11121314,
+            .background = 0x21222324,
+            .line_width = 0x31323334,
+        };
+        var buffer: [24]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+
+        try std.testing.expectEqualSlices(u8, &.{
+            56, 0, 0, 6,
+            1, 2, 3, 4,
+            0, 0, 0, 28,
+            17, 18, 19, 20,
+            33, 34, 35, 36,
+            49, 50, 51, 52,
+        }, encoded);
+    }
+
+    {
+        const request = GC.Free{
+            .gc_id = 0x01020304,
+        };
+        var buffer: [GC.Free.size]u8 = undefined;
+        const encoded = try request.encode(&buffer, .big);
+
+        try std.testing.expectEqualSlices(u8, &.{
+            60, 0, 0, 2,
+            1, 2, 3, 4,
+        }, encoded);
+    }
+}
+
 test "encode little-endian CreateGC with foreground" {
     const request = GC.Create{
         .drawable = 0x01020304,
