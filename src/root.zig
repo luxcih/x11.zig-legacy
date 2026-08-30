@@ -6,10 +6,10 @@
 
 pub const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const Display = @import("Display.zig").Display;
+pub const Display = @import("Display.zig");
 pub const Connection = @import("Connection.zig").Connection;
 
-pub const Setup = @import("Setup.zig").Setup;
+pub const Setup = @import("Setup.zig");
 pub const SetupResponse = @import("SetupResponse.zig").SetupResponse;
 pub const SetupInfo = @import("SetupInfo.zig").SetupInfo;
 
@@ -20,7 +20,7 @@ pub const VisualType = @import("VisualType.zig").VisualType;
 
 pub const XidAllocator = @import("XidAllocator.zig").XidAllocator;
 
-pub const Window = @import("Window.zig").Window;
+pub const Window = @import("Window.zig");
 pub const GC = @import("GC.zig").GC;
 pub const Draw = @import("Draw.zig");
 
