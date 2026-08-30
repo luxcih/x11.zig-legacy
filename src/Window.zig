@@ -8,7 +8,7 @@ pub const Window = struct {
         };
 
         pub const opcode = 1;
-        pub const size = 32;
+        pub const size: usize = 32;
 
         depth: u8,
         window_id: u32,
@@ -29,7 +29,7 @@ pub const Window = struct {
         };
 
         pub fn encodedLength(self: Create) usize {
-            return size + if (self.background_pixel != null) 4 else 0;
+            return size + if (self.background_pixel != null) @as(usize, 4) else 0;
         }
 
         pub fn encode(
@@ -42,7 +42,7 @@ pub const Window = struct {
 
             buffer[0] = opcode;
             buffer[1] = self.depth;
-            Window.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+            writeU16(buffer[2..4], @intCast(length / 4), byte_order);
             writeU32(buffer[4..8], self.window_id, byte_order);
             writeU32(buffer[8..12], self.parent, byte_order);
             writeI16(buffer[12..14], self.x, byte_order);
@@ -52,9 +52,18 @@ pub const Window = struct {
             writeU16(buffer[20..22], self.border_width, byte_order);
             writeU16(buffer[22..24], @intFromEnum(self.class), byte_order);
             writeU32(buffer[24..28], self.visual, byte_order);
-            writeU32(buffer[28..32], self.value_mask, byte_order);
+            var offset: usize = size;
+            var value_mask: u32 = 0;
 
-            return buffer[0..size];
+            if (self.background_pixel) |pixel| {
+                value_mask |= 1 << 1;
+                writeU32(buffer[offset .. offset + 4], pixel, byte_order);
+                offset += 4;
+            }
+
+            writeU32(buffer[28..32], value_mask, byte_order);
+
+            return buffer[0..offset];
         }
 
         fn writeU16(buffer: []u8, value: u16, byte_order: Setup.ByteOrder) void {
