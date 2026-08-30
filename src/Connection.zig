@@ -1,5 +1,6 @@
 const std = @import("std");
 const Display = @import("Display.zig").Display;
+const Response = @import("Response.zig");
 
 pub const Connection = struct {
     stream: std.Io.net.Stream,
@@ -47,6 +48,20 @@ pub const Connection = struct {
         buffer: []u8,
     ) std.Io.net.Stream.Reader {
         return self.stream.reader(io, buffer);
+    }
+
+    /// Reads one complete fixed-size X11 server response header.
+    ///
+    /// Replies may contain additional request-specific data after this header.
+    pub fn readResponseHeader(
+        self: *Connection,
+        reader: anytype,
+    ) ![Response.size]u8 {
+        _ = self;
+
+        var bytes: [Response.size]u8 = undefined;
+        try reader.interface.readSliceAll(&bytes);
+        return bytes;
     }
 
     /// Closes the underlying connection.
