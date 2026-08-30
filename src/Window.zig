@@ -188,6 +188,59 @@ pub const Window = struct {
         }
     };
 
+    pub const QueryPointer = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{ InvalidLength, InvalidResponse };
+
+        pub const opcode = 38;
+        pub const size: usize = 8;
+        pub const reply_size: usize = 32;
+
+        window_id: u32,
+
+        pub const Reply = struct {
+            same_screen: bool,
+            root: u32,
+            child: u32,
+            root_x: i16,
+            root_y: i16,
+            win_x: i16,
+            win_y: i16,
+            mask: u16,
+
+            pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+                if (bytes.len != reply_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+
+                return .{
+                    .same_screen = bytes[1] != 0,
+                    .root = Wire.readU32(bytes[8..12], byte_order),
+                    .child = Wire.readU32(bytes[12..16], byte_order),
+                    .root_x = Wire.readI16(bytes[16..18], byte_order),
+                    .root_y = Wire.readI16(bytes[18..20], byte_order),
+                    .win_x = Wire.readI16(bytes[20..22], byte_order),
+                    .win_y = Wire.readI16(bytes[22..24], byte_order),
+                    .mask = Wire.readU16(bytes[24..26], byte_order),
+                };
+            }
+        };
+
+        pub fn encode(
+            self: QueryPointer,
+            buffer: []u8,
+            byte_order: ByteOrder,
+        ) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+
+            return buffer[0..size];
+        }
+    };
+
     pub const ChangeAttributes = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -652,4 +705,30 @@ test "encode and parse QueryTree" {
     defer std.testing.allocator.free(children);
 
     try std.testing.expectEqualSlices(u32, &.{ 3, 4 }, children);
+}
+
+
+test "encode and parse QueryPointer" {
+    const request = Window.QueryPointer{ .window_id = 0x01020304 };
+    var request_buffer: [Window.QueryPointer.size]u8 = undefined;
+    const encoded = try request.encode(&request_buffer, .little);
+    try std.testing.expectEqualSlices(u8, &.{ 38, 0, 2, 0, 4, 3, 2, 1 }, encoded);
+
+    var reply: [Window.QueryPointer.reply_size]u8 = [_]u8{0} ** Window.QueryPointer.reply_size;
+    reply[0] = 1;
+    reply[1] = 1;
+    Wire.writeU32(reply[8..12], 0x11121314, .little);
+    Wire.writeU32(reply[12..16], 0x21222324, .little);
+    Wire.writeI16(reply[16..18], 100, .little);
+    Wire.writeI16(reply[18..20], -50, .little);
+    Wire.writeI16(reply[20..22], 25, .little);
+    Wire.writeI16(reply[22..24], 30, .little);
+    Wire.writeU16(reply[24..26], 0x0005, .little);
+
+    const parsed = try Window.QueryPointer.Reply.parse(&reply, .little);
+    try std.testing.expect(parsed.same_screen);
+    try std.testing.expectEqual(@as(u32, 0x11121314), parsed.root);
+    try std.testing.expectEqual(@as(i16, -50), parsed.root_y);
+    try std.testing.expectEqual(@as(i16, 25), parsed.win_x);
+    try std.testing.expectEqual(@as(u16, 0x0005), parsed.mask);
 }
