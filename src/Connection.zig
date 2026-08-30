@@ -104,3 +104,53 @@ pub const Connection = struct {
         self.stream.socket.close(io);
     }
 };
+
+
+test "Connection.readResponse classifies a protocol error" {
+    var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
+    bytes[1] = 3;
+
+    var stream = std.Io.fixedBufferStream(&bytes);
+    var connection = Connection.init(undefined);
+
+    const incoming = try connection.readResponse(&stream.reader(), .little);
+    switch (incoming) {
+        .protocol_error => |protocol_error| {
+            try std.testing.expectEqual(@as(u8, 3), protocol_error.code);
+        },
+        else => return error.UnexpectedResponse,
+    }
+}
+
+test "Connection.readResponse returns replies as raw headers" {
+    var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
+    bytes[0] = 1;
+
+    var stream = std.Io.fixedBufferStream(&bytes);
+    var connection = Connection.init(undefined);
+
+    const incoming = try connection.readResponse(&stream.reader(), .little);
+    switch (incoming) {
+        .reply => |reply| {
+            try std.testing.expectEqual(@as(u8, 1), reply[0]);
+        },
+        else => return error.UnexpectedResponse,
+    }
+}
+
+test "Connection.readResponse parses events" {
+    var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
+    bytes[0] = 12;
+
+    var stream = std.Io.fixedBufferStream(&bytes);
+    var connection = Connection.init(undefined);
+
+    const incoming = try connection.readResponse(&stream.reader(), .little);
+    switch (incoming) {
+        .event => |event| switch (event) {
+            .expose => {},
+            else => return error.UnexpectedEvent,
+        },
+        else => return error.UnexpectedResponse,
+    }
+}
