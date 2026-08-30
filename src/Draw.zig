@@ -54,10 +54,6 @@ pub const Fill = struct {
     }
 };
 
-}
-
-}
-
 test "encode little-endian PolyFillRectangle request" {
     const request = Fill{
         .drawable = 0x01020304,
