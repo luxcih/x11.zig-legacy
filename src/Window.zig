@@ -101,13 +101,13 @@ pub const Window = struct {
         }
     };
 
-    pub const SelectInput = struct {
+    pub const ChangeAttributes = struct {
         pub const EncodeError = error{
             BufferTooSmall,
         };
 
         pub const opcode = 2;
-        pub const size: usize = 12;
+        pub const event_mask_bit: u32 = 1 << 11;
 
         pub const EventMask = packed struct(u32) {
             key_press: bool = false,
@@ -141,8 +141,10 @@ pub const Window = struct {
         window_id: u32,
         event_mask: EventMask,
 
+        pub const size: usize = 16;
+
         pub fn encode(
-            self: SelectInput,
+            self: ChangeAttributes,
             buffer: []u8,
             byte_order: Setup.ByteOrder,
         ) EncodeError![]const u8 {
@@ -153,7 +155,8 @@ pub const Window = struct {
             buffer[1] = 0;
             Create.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
             Create.writeU32(buffer[4..8], self.window_id, byte_order);
-            Create.writeU32(buffer[8..12], @bitCast(self.event_mask), byte_order);
+            Create.writeU32(buffer[8..12], event_mask_bit, byte_order);
+            Create.writeU32(buffer[12..16], @bitCast(self.event_mask), byte_order);
 
             return buffer[0..size];
         }
@@ -412,8 +415,8 @@ test "encode little-endian configure window request" {
 }
 
 
-test "encode little-endian select input request" {
-    const request = Window.SelectInput{
+test "encode little-endian change attributes request" {
+    const request = Window.ChangeAttributes{
         .window_id = 0x01020304,
         .event_mask = .{
             .exposure = true,
@@ -421,7 +424,7 @@ test "encode little-endian select input request" {
         },
     };
 
-    var buffer: [Window.SelectInput.size]u8 = undefined;
+    var buffer: [Window.ChangeAttributes.size]u8 = undefined;
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
