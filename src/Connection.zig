@@ -178,10 +178,13 @@ test "Connection.readResponse parses events" {
 }
 
 
-test "Connection request sequence increments and wraps" {
-    var connection = Connection.init(undefined);
-
+test "Connection request sequence starts at zero" {
+    const connection = Connection.init(undefined);
     try std.testing.expectEqual(@as(u16, 0), connection.lastSequence());
+}
+
+test "Connection request sequence wraps" {
+    var connection = Connection.init(undefined);
 
     connection.sequence = std.math.maxInt(u16);
     connection.sequence +%= 1;
