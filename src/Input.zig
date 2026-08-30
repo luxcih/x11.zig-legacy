@@ -659,6 +659,72 @@ test "encode passive button grabs" {
 }
 
 
+    pub const GrabKey = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 33;
+        pub const size: usize = 16;
+
+        owner_events: bool,
+        grab_window: u32,
+        modifiers: u16,
+        key: u8,
+        pointer_mode: u8 = 1,
+        keyboard_mode: u8 = 1,
+
+        pub fn encode(self: GrabKey, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = if (self.owner_events) 1 else 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
+            Wire.writeU16(buffer[8..10], self.modifiers, byte_order);
+            buffer[10] = self.key;
+            buffer[11] = self.pointer_mode;
+            buffer[12] = self.keyboard_mode;
+            buffer[13] = 0; buffer[14] = 0; buffer[15] = 0;
+            return buffer[0..size];
+        }
+    };
+
+    pub const UngrabKey = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 34;
+        pub const size: usize = 12;
+
+        key: u8,
+        grab_window: u32,
+        modifiers: u16,
+
+        pub fn encode(self: UngrabKey, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = self.key;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.grab_window, byte_order);
+            Wire.writeU16(buffer[8..10], self.modifiers, byte_order);
+            buffer[10] = 0; buffer[11] = 0;
+            return buffer[0..size];
+        }
+    };
+
+test "encode passive key grabs" {
+    const grab = Input.GrabKey{
+        .owner_events = true,
+        .grab_window = 0x01020304,
+        .modifiers = 0x1234,
+        .key = 38,
+    };
+    var buffer: [Input.GrabKey.size]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &.{
+        33,1,4,0,4,3,2,1,0x34,0x12,38,1,1,0,0,0,
+    }, try grab.encode(&buffer, .little));
+
+    const ungrab = Input.UngrabKey{ .key = 38, .grab_window = 0x01020304, .modifiers = 0x1234 };
+    var ungrab_buffer: [Input.UngrabKey.size]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &.{ 34,38,0,3,1,2,3,4,0x12,0x34,0,0 }, try ungrab.encode(&ungrab_buffer, .big));
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
