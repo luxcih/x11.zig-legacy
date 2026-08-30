@@ -3,7 +3,6 @@ const Display = @import("Display.zig");
 const Response = @import("Response.zig");
 const Event = @import("Event.zig").Event;
 const ProtocolError = @import("Error.zig").Error;
-const std = @import("std");
 const Endian = std.builtin.Endian;
 
 const Connection = @This();
