@@ -768,6 +768,71 @@ test "encode GetMotionEvents" {
 }
 
 
+    pub const GetModifierMapping = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const ParseError = error{InvalidLength, InvalidResponse};
+        pub const opcode = 119;
+        pub const size: usize = 4;
+        pub const reply_size: usize = 32;
+
+        pub const Reply = struct {
+            keys_per_modifier: u8,
+            map: []const u8,
+
+            pub fn parse(bytes: []const u8) ParseError!Reply {
+                if (bytes.len < reply_size) return error.InvalidLength;
+                if (bytes[0] != 1) return error.InvalidResponse;
+                const keys_per_modifier = bytes[1];
+                const map_len: usize = @as(usize, keys_per_modifier) * 8;
+                if (bytes.len < reply_size + map_len) return error.InvalidLength;
+                return .{
+                    .keys_per_modifier = keys_per_modifier,
+                    .map = bytes[reply_size .. reply_size + map_len],
+                };
+            }
+        };
+
+        pub fn encode(buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode; buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            return buffer[0..size];
+        }
+    };
+
+    pub const SetModifierMapping = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 118;
+
+        keys_per_modifier: u8,
+        map: []const u8,
+
+        pub fn encodedSize(self: SetModifierMapping) usize {
+            return 4 + ((self.map.len + 3) / 4) * 4;
+        }
+
+        pub fn encode(self: SetModifierMapping, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            const size = self.encodedSize();
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = self.keys_per_modifier;
+            Wire.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            @memcpy(buffer[4 .. 4 + self.map.len], self.map);
+            @memset(buffer[4 + self.map.len .. size], 0);
+            return buffer[0..size];
+        }
+    };
+
+test "encode modifier mapping requests" {
+    var get: [Input.GetModifierMapping.size]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &.{ 119,0,0,1 }, try Input.GetModifierMapping.encode(&get, .big));
+
+    const set = Input.SetModifierMapping{ .keys_per_modifier = 1, .map = &.{ 10,11,12,13,14,15,16,17 } };
+    var buffer: [12]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &.{ 118,1,3,0,10,11,12,13,14,15,16,17 }, try set.encode(&buffer, .little));
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
