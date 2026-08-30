@@ -21,5 +21,7 @@ pub fn main(init: std.process.Init) !void {
     );
     defer connection.close(init.io);
 
-    std.debug.print("Connected to display {}.\n", .{display.number});
+    try connection.sendSetup(init.io, .{});
+
+    std.debug.print("Sent setup request to display {}.\n", .{display.number});
 }
