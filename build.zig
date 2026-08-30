@@ -35,6 +35,7 @@ pub fn build(b: *std.Build) void {
         "list_properties",
         "intern_atom",
         "get_atom_name",
+        "inspect_properties",
     };
 
     const check_examples = b.step(
