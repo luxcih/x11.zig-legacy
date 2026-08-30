@@ -60,6 +60,56 @@ pub const SetupResponse = union(enum) {
 
 };
 
+test "parse big-endian setup response prefixes" {
+    {
+        const response = try SetupResponse.parsePrefix(
+            .{ 1, 0, 0, 11, 0, 2, 0, 5 },
+            .big,
+        );
+
+        switch (response) {
+            .success => |success| {
+                try std.testing.expectEqual(@as(u16, 11), success.major_version);
+                try std.testing.expectEqual(@as(u16, 2), success.minor_version);
+                try std.testing.expectEqual(@as(u16, 5), success.additional_length);
+                try std.testing.expectEqual(@as(usize, 20), response.additionalBytes());
+            },
+            else => return error.TestUnexpectedResult,
+        }
+    }
+
+    {
+        const response = try SetupResponse.parsePrefix(
+            .{ 0, 4, 0, 11, 0, 0, 0, 1 },
+            .big,
+        );
+
+        switch (response) {
+            .failed => |failed| {
+                try std.testing.expectEqual(@as(u8, 4), failed.reason_length);
+                try std.testing.expectEqual(@as(u16, 11), failed.major_version);
+                try std.testing.expectEqual(@as(u16, 1), failed.additional_length);
+            },
+            else => return error.TestUnexpectedResult,
+        }
+    }
+
+    {
+        const response = try SetupResponse.parsePrefix(
+            .{ 2, 0, 0, 0, 0, 0, 0, 2 },
+            .big,
+        );
+
+        switch (response) {
+            .authenticate => |authenticate| {
+                try std.testing.expectEqual(@as(u16, 2), authenticate.additional_length);
+                try std.testing.expectEqual(@as(usize, 8), response.additionalBytes());
+            },
+            else => return error.TestUnexpectedResult,
+        }
+    }
+}
+
 test "parse successful setup response prefix" {
     const response = try SetupResponse.parsePrefix(
         .{ 1, 0, 11, 0, 0, 0, 5, 0 },
