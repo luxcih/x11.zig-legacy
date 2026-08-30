@@ -210,7 +210,7 @@ pub fn main(init: std.process.Init) !void {
                 .line_width = 6,
             };
 
-            var change_gc_buffer: [x11.GC.Change.size]u8 = undefined;
+            var change_gc_buffer: [24]u8 = undefined;
             const change_gc_bytes = try change_gc.encode(
                 &change_gc_buffer,
                 setup.byte_order,
