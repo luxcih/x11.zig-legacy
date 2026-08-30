@@ -1,3 +1,6 @@
+//! Demonstrates encoding drawing requests.
+//! For actual rendering in an X11 window, see demo.zig.
+
 const std = @import("std");
 const x11 = @import("x11");
 
@@ -21,7 +24,7 @@ pub fn main() !void {
     const text_bytes = try text.encode(&text_buffer, .little);
 
     std.debug.print(
-        "PolyLine: {} bytes\nImageText8: {} bytes\n",
+        "Encoded drawing requests:\n  PolyLine: {} bytes\n  ImageText8: {} bytes\n",
         .{ line_bytes.len, text_bytes.len },
     );
 }
