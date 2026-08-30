@@ -115,6 +115,21 @@ pub fn main(init: std.process.Init) !void {
             );
             try connection.writeAll(init.io, create_bytes);
 
+            const select_input = x11.Window.SelectInput{
+                .window_id = window_id,
+                .event_mask = .{
+                    .exposure = true,
+                    .structure_notify = true,
+                },
+            };
+
+            var select_input_buffer: [x11.Window.SelectInput.size]u8 = undefined;
+            const select_input_bytes = try select_input.encode(
+                &select_input_buffer,
+                setup.byte_order,
+            );
+            try connection.writeAll(init.io, select_input_bytes);
+
             const map = x11.Window.Map{
                 .window_id = window_id,
             };
@@ -155,7 +170,9 @@ pub fn main(init: std.process.Init) !void {
             while (true) {
                 try reader.interface.readSliceAll(&message);
 
-                switch (message[0]) {
+                const response_type = message[0] & 0x7f;
+
+                switch (response_type) {
                     0 => std.debug.print(
                         "X11 error: code {}, request {}, minor opcode {}, resource 0x{x}\n",
                         .{
@@ -168,9 +185,14 @@ pub fn main(init: std.process.Init) !void {
                                 (@as(u32, message[7]) << 24)),
                         },
                     ),
+                    12 => std.debug.print("Expose event\n", .{}),
+                    17 => std.debug.print("DestroyNotify event\n", .{}),
+                    18 => std.debug.print("UnmapNotify event\n", .{}),
+                    19 => std.debug.print("MapNotify event\n", .{}),
+                    22 => std.debug.print("ConfigureNotify event\n", .{}),
                     else => std.debug.print(
                         "X11 message type {}\n",
-                        .{message[0]},
+                        .{response_type},
                     ),
                 }
             }
