@@ -1,5 +1,6 @@
 const std = @import("std");
 const Setup = @import("Setup.zig").Setup;
+const Wire = @import("Wire.zig");
 
 pub const Depth = struct {
     pub const ParseError = error{
@@ -19,7 +20,7 @@ pub const Depth = struct {
 
         return .{
             .depth = bytes[0],
-            .visual_count = readU16(bytes[2..4], byte_order),
+            .visual_count = Wire.readU16(bytes[2..4], byte_order),
         };
     }
 
@@ -34,15 +35,6 @@ pub const Depth = struct {
 
     pub fn totalLength(self: Depth) usize {
         return self.visualsOffset() + self.visualsLength();
-    }
-
-    fn readU16(bytes: []const u8, byte_order: Setup.ByteOrder) u16 {
-        return switch (byte_order) {
-            .little => @as(u16, bytes[0]) |
-                (@as(u16, bytes[1]) << 8),
-            .big => (@as(u16, bytes[0]) << 8) |
-                @as(u16, bytes[1]),
-        };
     }
 };
 
