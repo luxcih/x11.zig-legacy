@@ -26,7 +26,7 @@ pub fn build(b: *std.Build) void {
         "gc",
         "draw",
         "redraw",
-        "unix_socket",
+        "demo",
     };
 
     const check_examples = b.step(
