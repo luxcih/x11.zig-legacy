@@ -170,3 +170,73 @@ test "encode little-endian PolyLine request" {
         40, 0,
     }, encoded);
 }
+
+
+pub const OutlineRectangle = struct {
+    pub const EncodeError = error{
+        BufferTooSmall,
+    };
+
+    pub const opcode = 67;
+    pub const base_size: usize = 12;
+    pub const rectangle_size: usize = 8;
+
+    drawable: u32,
+    gc: u32,
+    rectangles: []const Rectangle,
+
+    pub fn encodedLength(self: OutlineRectangle) usize {
+        return base_size + self.rectangles.len * rectangle_size;
+    }
+
+    pub fn encode(
+        self: OutlineRectangle,
+        buffer: []u8,
+        byte_order: Setup.ByteOrder,
+    ) EncodeError![]const u8 {
+        const length = self.encodedLength();
+        if (buffer.len < length)
+            return error.BufferTooSmall;
+
+        buffer[0] = opcode;
+        buffer[1] = 0;
+        writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        writeU32(buffer[4..8], self.drawable, byte_order);
+        writeU32(buffer[8..12], self.gc, byte_order);
+
+        var offset: usize = base_size;
+        for (self.rectangles) |rectangle| {
+            writeU16(buffer[offset .. offset + 2], @bitCast(rectangle.x), byte_order);
+            writeU16(buffer[offset + 2 .. offset + 4], @bitCast(rectangle.y), byte_order);
+            writeU16(buffer[offset + 4 .. offset + 6], rectangle.width, byte_order);
+            writeU16(buffer[offset + 6 .. offset + 8], rectangle.height, byte_order);
+            offset += rectangle_size;
+        }
+
+        return buffer[0..offset];
+    }
+};
+
+test "encode little-endian PolyRectangle request" {
+    const request = OutlineRectangle{
+        .drawable = 0x01020304,
+        .gc = 0x05060708,
+        .rectangles = &.{
+            .{ .x = 10, .y = -20, .width = 640, .height = 480 },
+        },
+    };
+
+    var buffer: [20]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        67, 0,
+        5, 0,
+        4, 3, 2, 1,
+        8, 7, 6, 5,
+        10, 0,
+        236, 255,
+        128, 2,
+        224, 1,
+    }, encoded);
+}
