@@ -21,7 +21,8 @@ pub fn main(init: std.process.Init) !void {
     );
     defer connection.close(init.io);
 
-    try connection.sendSetup(init.io, .{});
+    var setup_buffer: [12]u8 = undefined;
+    try connection.sendSetup(init.io, .{}, &setup_buffer);
 
     std.debug.print("Sent setup request to display {}.\n", .{display.number});
 }
