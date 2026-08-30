@@ -1,11 +1,11 @@
 const std = @import("std");
-const Display = @import("Display.zig").Display;
+const Display = @import("Display.zig");
 const Response = @import("Response.zig");
 const Event = @import("Event.zig").Event;
 const ProtocolError = @import("Error.zig").Error;
 const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
-pub const Connection = struct {
+const Connection = @This();
     stream: std.Io.net.Stream,
 
     pub fn init(stream: std.Io.net.Stream) Connection {
@@ -104,7 +104,6 @@ pub const Connection = struct {
     pub fn close(self: *Connection, io: std.Io) void {
         self.stream.socket.close(io);
     }
-};
 
 
 test "Connection.readResponse classifies a protocol error" {
