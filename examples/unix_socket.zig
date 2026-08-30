@@ -28,5 +28,11 @@ pub fn main(init: std.process.Init) !void {
 
     try connection.writeAll(init.io, request);
 
-    std.debug.print("Sent setup request to display {}.\n", .{display.number});
+    var read_buffer: [4096]u8 = undefined;
+    var reader = connection.reader(init.io, &read_buffer);
+
+    var prefix: [8]u8 = undefined;
+    try reader.interface.readSliceAll(&prefix);
+
+    std.debug.print("Setup response status: {}\n", .{prefix[0]});
 }
