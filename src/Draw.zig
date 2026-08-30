@@ -9,7 +9,7 @@ pub const Rectangle = struct {
     height: u16,
 };
 
-pub const Fill = struct {
+pub const PolyFillRectangle = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
@@ -22,12 +22,12 @@ pub const Fill = struct {
     gc: u32,
     rectangles: []const Rectangle,
 
-    pub fn encodedLength(self: Fill) usize {
+    pub fn encodedLength(self: PolyFillRectangle) usize {
         return base_size + self.rectangles.len * rectangle_size;
     }
 
     pub fn encode(
-        self: Fill,
+        self: PolyFillRectangle,
         buffer: []u8,
         byte_order: Setup.ByteOrder,
     ) EncodeError![]const u8 {
@@ -55,7 +55,7 @@ pub const Fill = struct {
 };
 
 test "encode little-endian PolyFillRectangle request" {
-    const request = Fill{
+    const request = PolyFillRectangle{
         .drawable = 0x01020304,
         .gc = 0x05060708,
         .rectangles = &.{
@@ -84,7 +84,7 @@ pub const Point = struct {
     y: i16,
 };
 
-pub const Line = struct {
+pub const PolyLine = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
@@ -103,12 +103,12 @@ pub const Line = struct {
     points: []const Point,
     coordinate_mode: CoordinateMode = .origin,
 
-    pub fn encodedLength(self: Line) usize {
+    pub fn encodedLength(self: PolyLine) usize {
         return base_size + self.points.len * point_size;
     }
 
     pub fn encode(
-        self: Line,
+        self: PolyLine,
         buffer: []u8,
         byte_order: Setup.ByteOrder,
     ) EncodeError![]const u8 {
@@ -134,7 +134,7 @@ pub const Line = struct {
 };
 
 test "encode little-endian PolyLine request" {
-    const request = Line{
+    const request = PolyLine{
         .drawable = 0x01020304,
         .gc = 0x05060708,
         .points = &.{
@@ -159,7 +159,7 @@ test "encode little-endian PolyLine request" {
 }
 
 
-pub const OutlineRectangle = struct {
+pub const PolyRectangle = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
@@ -172,12 +172,12 @@ pub const OutlineRectangle = struct {
     gc: u32,
     rectangles: []const Rectangle,
 
-    pub fn encodedLength(self: OutlineRectangle) usize {
+    pub fn encodedLength(self: PolyRectangle) usize {
         return base_size + self.rectangles.len * rectangle_size;
     }
 
     pub fn encode(
-        self: OutlineRectangle,
+        self: PolyRectangle,
         buffer: []u8,
         byte_order: Setup.ByteOrder,
     ) EncodeError![]const u8 {
@@ -205,7 +205,7 @@ pub const OutlineRectangle = struct {
 };
 
 test "encode little-endian PolyRectangle request" {
-    const request = OutlineRectangle{
+    const request = PolyRectangle{
         .drawable = 0x01020304,
         .gc = 0x05060708,
         .rectangles = &.{
@@ -238,7 +238,7 @@ pub const Arc = struct {
     angle2: i16,
 };
 
-pub const OutlineArc = struct {
+pub const PolyArc = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
@@ -251,12 +251,12 @@ pub const OutlineArc = struct {
     gc: u32,
     arcs: []const Arc,
 
-    pub fn encodedLength(self: OutlineArc) usize {
+    pub fn encodedLength(self: PolyArc) usize {
         return base_size + self.arcs.len * arc_size;
     }
 
     pub fn encode(
-        self: OutlineArc,
+        self: PolyArc,
         buffer: []u8,
         byte_order: Setup.ByteOrder,
     ) EncodeError![]const u8 {
@@ -286,7 +286,7 @@ pub const OutlineArc = struct {
 };
 
 test "encode little-endian PolyArc request" {
-    const request = OutlineArc{
+    const request = PolyArc{
         .drawable = 0x01020304,
         .gc = 0x05060708,
         .arcs = &.{
@@ -319,7 +319,7 @@ test "encode little-endian PolyArc request" {
 }
 
 
-pub const FillArc = struct {
+pub const PolyFillArc = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
@@ -332,12 +332,12 @@ pub const FillArc = struct {
     gc: u32,
     arcs: []const Arc,
 
-    pub fn encodedLength(self: FillArc) usize {
+    pub fn encodedLength(self: PolyFillRectangleArc) usize {
         return base_size + self.arcs.len * arc_size;
     }
 
     pub fn encode(
-        self: FillArc,
+        self: PolyFillRectangleArc,
         buffer: []u8,
         byte_order: Setup.ByteOrder,
     ) EncodeError![]const u8 {
@@ -367,7 +367,7 @@ pub const FillArc = struct {
 };
 
 test "encode little-endian PolyFillArc request" {
-    const request = FillArc{
+    const request = PolyFillArc{
         .drawable = 0x01020304,
         .gc = 0x05060708,
         .arcs = &.{
