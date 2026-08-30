@@ -584,6 +584,76 @@ pub const GetProperty = struct {
 };
 
 
+pub const ChangeProperty = struct {
+    pub const EncodeError = error{
+        BufferTooSmall,
+        InvalidFormat,
+        InvalidDataLength,
+    };
+
+    pub const opcode = 18;
+    pub const header_size = 24;
+
+    pub const Mode = enum(u8) {
+        replace = 0,
+        prepend = 1,
+        append = 2,
+    };
+
+    window_id: u32,
+    mode: Mode = .replace,
+    property: u32,
+    type: u32,
+    format: u8,
+    data: []const u8,
+
+    pub fn encodedLength(self: ChangeProperty) EncodeError!usize {
+        const item_size: usize = switch (self.format) {
+            8 => 1,
+            16 => 2,
+            32 => 4,
+            else => return error.InvalidFormat,
+        };
+
+        if (self.data.len % item_size != 0)
+            return error.InvalidDataLength;
+
+        return header_size + std.mem.alignForward(usize, self.data.len, 4);
+    }
+
+    pub fn encode(
+        self: ChangeProperty,
+        buffer: []u8,
+        byte_order: ByteOrder,
+    ) EncodeError![]const u8 {
+        const length = try self.encodedLength();
+        if (buffer.len < length)
+            return error.BufferTooSmall;
+
+        const item_size: usize = switch (self.format) {
+            8 => 1,
+            16 => 2,
+            32 => 4,
+            else => unreachable,
+        };
+        const item_count = self.data.len / item_size;
+
+        @memset(buffer[0..length], 0);
+        buffer[0] = opcode;
+        buffer[1] = @intFromEnum(self.mode);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
+        Wire.writeU32(buffer[4..8], self.window_id, byte_order);
+        Wire.writeU32(buffer[8..12], self.property, byte_order);
+        Wire.writeU32(buffer[12..16], self.type, byte_order);
+        buffer[16] = self.format;
+        Wire.writeU32(buffer[20..24], @intCast(item_count), byte_order);
+        @memcpy(buffer[24 .. 24 + self.data.len], self.data);
+
+        return buffer[0..length];
+    }
+};
+
+
 test "encode little-endian create window request" {
     const request = Window.Create{
         .depth = 24,
@@ -841,4 +911,40 @@ test "parse GetProperty reply prefix" {
     try std.testing.expectEqual(@as(u32, 4), reply.bytes_after);
     try std.testing.expectEqual(@as(u32, 12), reply.value_length);
     try std.testing.expectEqual(@as(usize, 12), reply.valueByteLength());
+}
+
+
+test "encode little-endian ChangeProperty format 8" {
+    const request = Window.ChangeProperty{
+        .window_id = 0x01020304,
+        .property = 0x11121314,
+        .type = 31,
+        .format = 8,
+        .data = "hello",
+    };
+
+    var buffer: [32]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        18, 0, 8, 0,
+        4, 3, 2, 1,
+        20, 19, 18, 17,
+        31, 0, 0, 0,
+        8, 0, 0, 0,
+        5, 0, 0, 0,
+        'h', 'e', 'l', 'l', 'o', 0, 0, 0,
+    }, encoded);
+}
+
+test "ChangeProperty rejects invalid format" {
+    const request = Window.ChangeProperty{
+        .window_id = 1,
+        .property = 2,
+        .type = 3,
+        .format = 12,
+        .data = &.{},
+    };
+
+    try std.testing.expectError(error.InvalidFormat, request.encodedLength());
 }
