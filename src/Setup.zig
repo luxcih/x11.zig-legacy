@@ -1,12 +1,8 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
+const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const Setup = struct {
-    pub const ByteOrder = enum {
-        little,
-        big,
-    };
-
     pub const EncodeError = error{
         BufferTooSmall,
         AuthorizationTooLong,
