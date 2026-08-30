@@ -47,6 +47,44 @@ const Input = @This();
     };
 
 
+test "encode and parse GetInputFocus big-endian" {
+    const std = @import("std");
+
+    var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
+    const encoded = try Input.GetInputFocus.encode(&request_buffer, .big);
+    try std.testing.expectEqualSlices(u8, &.{ 43, 0, 0, 1 }, encoded);
+
+    var reply: [Input.GetInputFocus.reply_size]u8 = [_]u8{0} ** Input.GetInputFocus.reply_size;
+    reply[0] = 1;
+    reply[1] = 2;
+    Wire.writeU32(reply[8..12], 0x01020304, .big);
+
+    const parsed = try Input.GetInputFocus.Reply.parse(&reply, .big);
+    try std.testing.expectEqual(Input.GetInputFocus.RevertTo.parent, parsed.revert_to);
+    try std.testing.expectEqual(@as(u32, 0x01020304), parsed.focus);
+}
+
+test "reject invalid GetInputFocus replies" {
+    const std = @import("std");
+
+    var reply: [Input.GetInputFocus.reply_size]u8 = [_]u8{0} ** Input.GetInputFocus.reply_size;
+    reply[0] = 1;
+    reply[1] = 3;
+
+    try std.testing.expectError(
+        error.InvalidResponse,
+        Input.GetInputFocus.Reply.parse(&reply, .little),
+    );
+
+    reply[0] = 0;
+    reply[1] = 0;
+
+    try std.testing.expectError(
+        error.InvalidResponse,
+        Input.GetInputFocus.Reply.parse(&reply, .little),
+    );
+}
+
 test "encode and parse GetInputFocus" {
     const std = @import("std");
 
