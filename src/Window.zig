@@ -101,6 +101,64 @@ pub const Window = struct {
         }
     };
 
+    pub const SelectInput = struct {
+        pub const EncodeError = error{
+            BufferTooSmall,
+        };
+
+        pub const opcode = 2;
+        pub const size: usize = 12;
+
+        pub const EventMask = packed struct(u32) {
+            key_press: bool = false,
+            key_release: bool = false,
+            button_press: bool = false,
+            button_release: bool = false,
+            enter_window: bool = false,
+            leave_window: bool = false,
+            pointer_motion: bool = false,
+            pointer_motion_hint: bool = false,
+            button_1_motion: bool = false,
+            button_2_motion: bool = false,
+            button_3_motion: bool = false,
+            button_4_motion: bool = false,
+            button_5_motion: bool = false,
+            button_motion: bool = false,
+            keymap_state: bool = false,
+            exposure: bool = false,
+            visibility_change: bool = false,
+            structure_notify: bool = false,
+            resize_redirect: bool = false,
+            substructure_notify: bool = false,
+            substructure_redirect: bool = false,
+            focus_change: bool = false,
+            property_change: bool = false,
+            colormap_change: bool = false,
+            owner_grab_button: bool = false,
+            _reserved: u7 = 0,
+        };
+
+        window_id: u32,
+        event_mask: EventMask,
+
+        pub fn encode(
+            self: SelectInput,
+            buffer: []u8,
+            byte_order: Setup.ByteOrder,
+        ) EncodeError![]const u8 {
+            if (buffer.len < size)
+                return error.BufferTooSmall;
+
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Create.writeU16(buffer[2..4], @intCast(size / 4), byte_order);
+            Create.writeU32(buffer[4..8], self.window_id, byte_order);
+            Create.writeU32(buffer[8..12], @bitCast(self.event_mask), byte_order);
+
+            return buffer[0..size];
+        }
+    };
+
     pub const Unmap = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -350,5 +408,26 @@ test "encode little-endian configure window request" {
         206, 255, 255, 255,
         32, 3, 0, 0,
         88, 2, 0, 0,
+    }, encoded);
+}
+
+
+test "encode little-endian select input request" {
+    const request = Window.SelectInput{
+        .window_id = 0x01020304,
+        .event_mask = .{
+            .exposure = true,
+            .structure_notify = true,
+        },
+    };
+
+    var buffer: [Window.SelectInput.size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        2, 0,
+        3, 0,
+        4, 3, 2, 1,
+        0, 128, 10, 0,
     }, encoded);
 }
