@@ -169,6 +169,43 @@ pub fn main(init: std.process.Init) !void {
 
             std.debug.print("Configured window to 800x600 at (200, 150)\n", .{});
 
+            const gc_id = try ids.next();
+
+            const create_gc = x11.GC.Create{
+                .drawable = window_id,
+                .gc_id = gc_id,
+                .foreground = 0x00ff00,
+            };
+
+            var gc_buffer: [20]u8 = undefined;
+            const gc_bytes = try create_gc.encode(
+                &gc_buffer,
+                setup.byte_order,
+            );
+            try connection.writeAll(init.io, gc_bytes);
+
+            const fill = x11.Draw.Fill{
+                .drawable = window_id,
+                .gc = gc_id,
+                .rectangles = &.{
+                    .{
+                        .x = 100,
+                        .y = 100,
+                        .width = 300,
+                        .height = 200,
+                    },
+                },
+            };
+
+            var fill_buffer: [x11.Draw.Fill.base_size + x11.Draw.Fill.rectangle_size]u8 = undefined;
+            const fill_bytes = try fill.encode(
+                &fill_buffer,
+                setup.byte_order,
+            );
+            try connection.writeAll(init.io, fill_bytes);
+
+            std.debug.print("Drew rectangle\n", .{});
+
             // Keep the X11 client connection alive and process incoming
             // protocol messages so the server keeps this client's window.
             var message: [32]u8 = undefined;
