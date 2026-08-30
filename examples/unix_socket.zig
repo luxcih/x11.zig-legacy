@@ -94,14 +94,15 @@ pub fn main(init: std.process.Init) !void {
             const window_id = try ids.next();
 
             const create = x11.Window.Create{
-                .depth = screen.root_depth,
+                .depth = 0, // CopyFromParent
                 .window_id = window_id,
                 .parent = screen.root,
                 .x = 100,
                 .y = 100,
                 .width = 640,
                 .height = 480,
-                .background_pixel = 0xffffffff,
+                .visual = screen.root_visual,
+                .background_pixel = screen.white_pixel,
             };
 
             var create_buffer: [x11.Window.Create.size + 4]u8 = undefined;
