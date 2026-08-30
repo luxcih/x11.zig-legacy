@@ -1,9 +1,12 @@
+//! Demonstrates encoding basic window-management requests.
+//! For a real X11 window lifecycle, see demo.zig.
+
 const std = @import("std");
 const x11 = @import("x11");
 
 pub fn main() !void {
     const create = x11.Window.Create{
-        .depth = 0,
+        .depth = 0, // CopyFromParent
         .window_id = 1,
         .parent = 2,
         .x = 100,
@@ -21,7 +24,7 @@ pub fn main() !void {
     const map_bytes = try map.encode(&map_buffer, .little);
 
     std.debug.print(
-        "CreateWindow: {} bytes\nMapWindow: {} bytes\n",
+        "Encoded window requests:\n  CreateWindow: {} bytes\n  MapWindow: {} bytes\n",
         .{ create_bytes.len, map_bytes.len },
     );
 }
