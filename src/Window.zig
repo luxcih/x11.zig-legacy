@@ -90,6 +90,7 @@ pub const Window = struct {
             }
         }
     };
+
     pub const Map = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -142,4 +143,20 @@ test "encode little-endian create window request" {
     try std.testing.expectEqualSlices(u8, &.{ 4, 3, 2, 1 }, encoded[4..8]);
     try std.testing.expectEqualSlices(u8, &.{ 10, 0 }, encoded[12..14]);
     try std.testing.expectEqualSlices(u8, &.{ 236, 255 }, encoded[14..16]);
+}
+
+
+test "encode little-endian map window request" {
+    const request = Window.Map{
+        .window_id = 0x01020304,
+    };
+
+    var buffer: [Window.Map.size]u8 = undefined;
+    const encoded = try request.encode(&buffer, .little);
+
+    try std.testing.expectEqualSlices(u8, &.{
+        8, 0,
+        2, 0,
+        4, 3, 2, 1,
+    }, encoded);
 }
