@@ -92,6 +92,21 @@ pub fn main(init: std.process.Init) !void {
                     },
                 );
             }
+
+            const screen_offset = setup_success.screensOffset();
+            const screen = try x11.Screen.parse(
+                additional[screen_offset .. screen_offset + x11.Screen.size],
+                setup.byte_order,
+            );
+
+            std.debug.print(
+                "Root screen: {}x{} pixels, depth {}\n",
+                .{
+                    screen.width_pixels,
+                    screen.height_pixels,
+                    screen.root_depth,
+                },
+            );
         },
         .failed => |failed| {
             std.debug.print(
