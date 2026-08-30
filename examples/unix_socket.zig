@@ -63,14 +63,35 @@ pub fn main(init: std.process.Init) !void {
                 },
             );
             std.debug.print(
-                "Vendor: {s}\nRelease: {}\nScreens: {}\nPixmap formats: {}\n",
+                "Vendor: {s}\nRelease: {}\nScreens: {}\nPixmap formats:\n",
                 .{
                     setup_success.vendor,
                     setup_success.release_number,
                     setup_success.screen_count,
-                    setup_success.pixmap_format_count,
                 },
             );
+
+            const formats_offset = setup_success.pixmapFormatsOffset();
+            const formats_length = setup_success.pixmapFormatsLength();
+            const formats = additional[
+                formats_offset .. formats_offset + formats_length
+            ];
+
+            for (0..setup_success.pixmap_format_count) |index| {
+                const offset = index * x11.PixmapFormat.size;
+                const format = try x11.PixmapFormat.parse(
+                    formats[offset .. offset + x11.PixmapFormat.size],
+                );
+
+                std.debug.print(
+                    "  depth {}: {} bits per pixel, {} scanline pad\n",
+                    .{
+                        format.depth,
+                        format.bits_per_pixel,
+                        format.scanline_pad,
+                    },
+                );
+            }
         },
         .failed => |failed| {
             std.debug.print(
