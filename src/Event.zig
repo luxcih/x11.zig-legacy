@@ -91,36 +91,36 @@ pub const Event = union(enum) {
             5 => .{ .button_release = parseInput(bytes, byte_order) },
             6 => .{ .motion_notify = parseInput(bytes, byte_order) },
             12 => .{ .expose = .{
-                .window = readU32(bytes[4..8], byte_order),
-                .x = @bitCast(readU16(bytes[8..10], byte_order)),
-                .y = @bitCast(readU16(bytes[10..12], byte_order)),
-                .width = readU16(bytes[12..14], byte_order),
-                .height = readU16(bytes[14..16], byte_order),
-                .count = readU16(bytes[16..18], byte_order),
+                .window = Wire.readU32(bytes[4..8], byte_order),
+                .x = @bitCast(Wire.readU16(bytes[8..10], byte_order)),
+                .y = @bitCast(Wire.readU16(bytes[10..12], byte_order)),
+                .width = Wire.readU16(bytes[12..14], byte_order),
+                .height = Wire.readU16(bytes[14..16], byte_order),
+                .count = Wire.readU16(bytes[16..18], byte_order),
             } },
             17 => .{ .destroy_notify = .{
-                .event = readU32(bytes[4..8], byte_order),
-                .window = readU32(bytes[8..12], byte_order),
+                .event = Wire.readU32(bytes[4..8], byte_order),
+                .window = Wire.readU32(bytes[8..12], byte_order),
             } },
             18 => .{ .unmap_notify = .{
-                .event = readU32(bytes[4..8], byte_order),
-                .window = readU32(bytes[8..12], byte_order),
+                .event = Wire.readU32(bytes[4..8], byte_order),
+                .window = Wire.readU32(bytes[8..12], byte_order),
                 .from_configure = bytes[12] != 0,
             } },
             19 => .{ .map_notify = .{
-                .event = readU32(bytes[4..8], byte_order),
-                .window = readU32(bytes[8..12], byte_order),
+                .event = Wire.readU32(bytes[4..8], byte_order),
+                .window = Wire.readU32(bytes[8..12], byte_order),
                 .override_redirect = bytes[12] != 0,
             } },
             22 => .{ .configure_notify = .{
-                .event = readU32(bytes[4..8], byte_order),
-                .window = readU32(bytes[8..12], byte_order),
-                .above_sibling = readU32(bytes[12..16], byte_order),
-                .x = @bitCast(readU16(bytes[16..18], byte_order)),
-                .y = @bitCast(readU16(bytes[18..20], byte_order)),
-                .width = readU16(bytes[20..22], byte_order),
-                .height = readU16(bytes[22..24], byte_order),
-                .border_width = readU16(bytes[24..26], byte_order),
+                .event = Wire.readU32(bytes[4..8], byte_order),
+                .window = Wire.readU32(bytes[8..12], byte_order),
+                .above_sibling = Wire.readU32(bytes[12..16], byte_order),
+                .x = @bitCast(Wire.readU16(bytes[16..18], byte_order)),
+                .y = @bitCast(Wire.readU16(bytes[18..20], byte_order)),
+                .width = Wire.readU16(bytes[20..22], byte_order),
+                .height = Wire.readU16(bytes[22..24], byte_order),
+                .border_width = Wire.readU16(bytes[24..26], byte_order),
                 .override_redirect = bytes[26] != 0,
             } },
             else => .{ .unknown = .{
@@ -136,33 +136,20 @@ pub const Event = union(enum) {
     ) Input {
         return .{
             .detail = bytes[1],
-            .time = readU32(bytes[4..8], byte_order),
-            .root = readU32(bytes[8..12], byte_order),
-            .event = readU32(bytes[12..16], byte_order),
-            .child = readU32(bytes[16..20], byte_order),
-            .root_x = @bitCast(readU16(bytes[20..22], byte_order)),
-            .root_y = @bitCast(readU16(bytes[22..24], byte_order)),
-            .event_x = @bitCast(readU16(bytes[24..26], byte_order)),
-            .event_y = @bitCast(readU16(bytes[26..28], byte_order)),
-            .state = readU16(bytes[28..30], byte_order),
+            .time = Wire.readU32(bytes[4..8], byte_order),
+            .root = Wire.readU32(bytes[8..12], byte_order),
+            .event = Wire.readU32(bytes[12..16], byte_order),
+            .child = Wire.readU32(bytes[16..20], byte_order),
+            .root_x = @bitCast(Wire.readU16(bytes[20..22], byte_order)),
+            .root_y = @bitCast(Wire.readU16(bytes[22..24], byte_order)),
+            .event_x = @bitCast(Wire.readU16(bytes[24..26], byte_order)),
+            .event_y = @bitCast(Wire.readU16(bytes[26..28], byte_order)),
+            .state = Wire.readU16(bytes[28..30], byte_order),
             .same_screen = bytes[30] != 0,
         };
     }
 
-    fn readU16(bytes: []const u8, byte_order: @import("Setup.zig").Setup.ByteOrder) u16 {
-        return switch (byte_order) {
-            .little => std.mem.readInt(u16, bytes[0..2], .little),
-            .big => std.mem.readInt(u16, bytes[0..2], .big),
-        };
-    }
-
-    fn readU32(bytes: []const u8, byte_order: @import("Setup.zig").Setup.ByteOrder) u32 {
-        return switch (byte_order) {
-            .little => std.mem.readInt(u32, bytes[0..4], .little),
-            .big => std.mem.readInt(u32, bytes[0..4], .big),
-        };
-    }
-};
+    };
 
 test "parse little-endian expose event" {
     const event = try Event.parse(&.{
