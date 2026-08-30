@@ -317,6 +317,16 @@ pub fn main(init: std.process.Init) !void {
                             "KeyPress: keycode {}; exiting\n",
                             .{key.detail},
                         );
+                        const free_gc = x11.GC.Free{
+                            .gc_id = gc_id,
+                        };
+                        var free_gc_buffer: [x11.GC.Free.size]u8 = undefined;
+                        const free_gc_bytes = try free_gc.encode(
+                            &free_gc_buffer,
+                            setup.byte_order,
+                        );
+                        try connection.writeAll(init.io, free_gc_bytes);
+
                         break;
                     },
                     .key_release => |key| std.debug.print(
