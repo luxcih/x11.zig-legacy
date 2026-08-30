@@ -544,6 +544,46 @@ test "encode pointer mapping requests" {
 }
 
 
+    pub const ChangeActivePointerGrab = struct {
+        pub const EncodeError = error{BufferTooSmall};
+        pub const opcode = 30;
+        pub const size: usize = 16;
+
+        cursor: u32 = 0,
+        time: u32 = 0,
+        event_mask: u16,
+
+        pub fn encode(self: ChangeActivePointerGrab, buffer: []u8, byte_order: ByteOrder) EncodeError![]const u8 {
+            if (buffer.len < size) return error.BufferTooSmall;
+            buffer[0] = opcode;
+            buffer[1] = 0;
+            Wire.writeU16(buffer[2..4], size / 4, byte_order);
+            Wire.writeU32(buffer[4..8], self.cursor, byte_order);
+            Wire.writeU32(buffer[8..12], self.time, byte_order);
+            Wire.writeU16(buffer[12..14], self.event_mask, byte_order);
+            buffer[14] = 0;
+            buffer[15] = 0;
+            return buffer[0..size];
+        }
+    };
+
+test "encode ChangeActivePointerGrab" {
+    const request = Input.ChangeActivePointerGrab{
+        .cursor = 0x01020304,
+        .time = 0x05060708,
+        .event_mask = 0x1234,
+    };
+    var buffer: [Input.ChangeActivePointerGrab.size]u8 = undefined;
+
+    try std.testing.expectEqualSlices(u8, &.{
+        30, 0, 4, 0,
+        4, 3, 2, 1,
+        8, 7, 6, 5,
+        0x34, 0x12, 0, 0,
+    }, try request.encode(&buffer, .little));
+}
+
+
 test "encode and parse GetInputFocus big-endian" {
 
     var request_buffer: [Input.GetInputFocus.size]u8 = undefined;
