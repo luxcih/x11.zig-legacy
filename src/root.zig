@@ -7,7 +7,7 @@
 pub const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 
 pub const Display = @import("Display.zig");
-pub const Connection = @import("Connection.zig").Connection;
+pub const Connection = @import("Connection.zig");
 
 pub const Setup = @import("Setup.zig");
 pub const SetupResponse = @import("SetupResponse.zig").SetupResponse;
@@ -27,4 +27,4 @@ pub const Draw = @import("Draw.zig");
 pub const Event = @import("Event.zig").Event;
 pub const Error = @import("Error.zig").Error;
 pub const Response = @import("Response.zig");
-pub const Input = @import("Input.zig").Input;
+pub const Input = @import("Input.zig");
