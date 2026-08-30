@@ -1,4 +1,5 @@
 const std = @import("std");
+const Wire = @import("Wire.zig");
 
 pub const Setup = struct {
     pub const ByteOrder = enum {
@@ -66,7 +67,7 @@ pub const Setup = struct {
         return padded_end;
     }
 
-    };
+};
 
 test "encode little-endian setup without authorization" {
     const setup = Setup{};
