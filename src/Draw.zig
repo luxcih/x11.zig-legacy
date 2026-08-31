@@ -11,14 +11,16 @@ const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
 
-/// A rectangle geometry record used by rectangle drawing requests.\npub const Rectangle = struct {
+/// A rectangle geometry record used by rectangle drawing requests.
+pub const Rectangle = struct {
     x: i16,
     y: i16,
     width: u16,
     height: u16,
 };
 
-/// Fills one or more rectangles using the supplied graphics context.\npub const PolyFillRectangle = struct {
+/// Fills one or more rectangles using the supplied graphics context.
+pub const PolyFillRectangle = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
@@ -201,7 +203,8 @@ pub const Point = struct {
     y: i16,
 };
 
-/// Draws connected line segments from a list of points.\npub const PolyLine = struct {
+/// Draws connected line segments from a list of points.
+pub const PolyLine = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
@@ -276,7 +279,8 @@ test "encode little-endian PolyLine request" {
 }
 
 
-/// Draws the outlines of one or more rectangles.\npub const PolyRectangle = struct {
+/// Draws the outlines of one or more rectangles.
+pub const PolyRectangle = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
@@ -355,7 +359,8 @@ pub const Arc = struct {
     angle2: i16,
 };
 
-/// Draws one or more arc outlines.\npub const PolyArc = struct {
+/// Draws one or more arc outlines.
+pub const PolyArc = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
@@ -436,7 +441,8 @@ test "encode little-endian PolyArc request" {
 }
 
 
-/// Fills one or more arc shapes.\npub const PolyFillArc = struct {
+/// Fills one or more arc shapes.
+pub const PolyFillArc = struct {
     pub const EncodeError = error{
         BufferTooSmall,
     };
