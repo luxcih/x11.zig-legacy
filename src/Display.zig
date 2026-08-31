@@ -47,24 +47,20 @@ pub fn parse(value: []const u8) ParseError!Display {
         .double_colon => 2,
     };
 
-    const number_and_screen = value[number_start..];
-    if (number_and_screen.len == 0) return error.InvalidDisplay;
+    if (number_start == value.len) return error.InvalidDisplay;
 
-    const dot = std.mem.findScalar(u8, number_and_screen, '.');
+    const dot = std.mem.findScalar(u8, value[number_start..], '.');
+    const number_end = if (dot) |index| number_start + index else value.len;
 
-    const number_slice = if (dot) |index|
-        number_and_screen[0..index]
-    else
-        number_and_screen;
-
+    const number_slice = value[number_start..number_end];
     if (number_slice.len == 0) return error.InvalidDisplay;
 
     const number = std.fmt.parseInt(u32, number_slice, 10) catch {
         return error.InvalidDisplay;
     };
 
-    const screen = if (dot) |index| blk: {
-        const screen_slice = number_and_screen[index + 1 ..];
+    const screen = if (dot != null) blk: {
+        const screen_slice = value[number_end + 1 ..];
 
         if (screen_slice.len == 0) return error.InvalidDisplay;
 
