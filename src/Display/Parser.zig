@@ -60,7 +60,7 @@ fn parseHost(self: *Parser) Display.ParseError![]const u8 {
 
     const end = self.index + colon;
     const host = self.value[self.index..end];
-
+    if (std.mem.indexOfScalar(u8, host, '/') != null) return error.InvalidDisplay;
 
     self.index = end;
     return host;
