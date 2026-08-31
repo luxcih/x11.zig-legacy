@@ -44,7 +44,6 @@ test "parse local display with screen" {
     try std.testing.expectEqualStrings("", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
     try std.testing.expectEqual(@as(u32, 0), display.display_number);
-    try std.testing.expectEqual(@as(u32, 0), display.display_number);
     try std.testing.expectEqual(@as(u32, 1), display.screen_number);
 }
 
