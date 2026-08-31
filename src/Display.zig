@@ -13,21 +13,19 @@ separator: Separator,
 display_number: u32,
 screen_number: u32 = 0,
 
-pub const Separator = Parser.Separator;
-pub const ParseError = Parser.Error;
+pub const Separator = enum {
+    colon,
+    double_colon,
+};
+
+pub const ParseError = error{
+    InvalidDisplay,
+};
 
 /// Parses an X11 display name.
 pub fn parse(value: []const u8) ParseError!Display {
     var parser = Parser.init(value);
-    const result = try parser.parse();
-
-    return .{
-        .protocol = result.protocol,
-        .host = result.host,
-        .separator = result.separator,
-        .display_number = result.display_number,
-        .screen_number = result.screen_number,
-    };
+    return parser.parse();
 }
 
 test "parse local display" {
@@ -45,6 +43,7 @@ test "parse local display with screen" {
 
     try std.testing.expectEqualStrings("", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
+    try std.testing.expectEqual(@as(u32, 0), display.display_number);
     try std.testing.expectEqual(@as(u32, 0), display.display_number);
     try std.testing.expectEqual(@as(u32, 1), display.screen_number);
 }
