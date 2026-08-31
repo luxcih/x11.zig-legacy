@@ -8,9 +8,6 @@ const XidAllocator = @import("XidAllocator.zig");
 
 const Client = @This();
 
-pub const ConnectOptions = Handshake.Options;
-pub const Authorization = Handshake.Authorization;
-
 io: std.Io,
 allocator: std.mem.Allocator,
 connection: Connection,
@@ -24,22 +21,13 @@ endian: std.builtin.Endian,
 server: Server,
 xids: XidAllocator,
 
-/// Connects to an X server using the default connection options.
+/// Connects to an X server and completes the initial X11 handshake.
 pub fn connect(
     io: std.Io,
     allocator: std.mem.Allocator,
     display_name: []const u8,
 ) !*Client {
-    return connectWithOptions(io, allocator, display_name, .{});
-}
-
-/// Connects to an X server and completes the initial X11 setup handshake.
-pub fn connectWithOptions(
-    io: std.Io,
-    allocator: std.mem.Allocator,
-    display_name: []const u8,
-    options: ConnectOptions,
-) !*Client {
+{
     const self = try allocator.create(Client);
     errdefer allocator.destroy(self);
 
@@ -55,11 +43,11 @@ pub fn connectWithOptions(
         allocator,
         &self.reader,
         &self.writer,
-        options,
+        .little,
     );
     errdefer result.server.deinit(allocator);
 
-    self.endian = options.endian;
+    self.endian = .little;
     self.server = result.server;
     self.xids = XidAllocator.init(
         result.resource_id_base,
