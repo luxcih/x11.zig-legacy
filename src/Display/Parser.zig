@@ -1,0 +1,120 @@
+//! Internal parser for X11 display names.
+//!
+//! The parser owns the display-name grammar and constructs a Display.
+
+const std = @import("std");
+const Display = @import("../Display.zig");
+
+const Parser = @This();
+
+value: []const u8,
+index: usize = 0,
+
+pub fn init(value: []const u8) Parser {
+    return .{ .value = value };
+}
+
+pub fn parse(self: *Parser) Display.ParseError!Display {
+    if (self.value.len == 0) return error.InvalidDisplay;
+
+    const protocol = try self.parseProtocol();
+    const host = try self.parseHost();
+
+    if (protocol != null and host.len == 0) return error.InvalidDisplay;
+
+    const separator = try self.parseSeparator();
+    const display_number = try self.parseNumber();
+    const screen_number = try self.parseScreen();
+
+    if (self.index != self.value.len) return error.InvalidDisplay;
+
+    return .{
+        .protocol = protocol,
+        .host = host,
+        .separator = separator,
+        .display_number = display_number,
+        .screen_number = screen_number,
+    };
+}
+
+fn parseProtocol(self: *Parser) Display.ParseError!?[]const u8 {
+    const value = self.remaining();
+    const colon = std.mem.findScalar(u8, value, ':') orelse {
+        return error.InvalidDisplay;
+    };
+    const slash = std.mem.findScalar(u8, value[0..colon], '/') orelse return null;
+
+    if (slash == 0) return error.InvalidDisplay;
+
+    const start = self.index;
+    const end = start + slash;
+    self.index = end + 1;
+
+    return self.value[start..end];
+}
+
+fn parseHost(self: *Parser) Display.ParseError![]const u8 {
+    const colon = std.mem.findScalar(u8, self.remaining(), ':') orelse {
+        return error.InvalidDisplay;
+    };
+
+    const end = self.index + colon;
+    const host = self.value[self.index..end];
+    if (std.mem.indexOfScalar(u8, host, '/') != null) return error.InvalidDisplay;
+
+    self.index = end;
+    return host;
+}
+
+fn parseSeparator(self: *Parser) Display.ParseError!Display.Separator {
+    if (self.index >= self.value.len or self.value[self.index] != ':') {
+        return error.InvalidDisplay;
+    }
+
+    self.index += 1;
+
+    if (self.index < self.value.len and self.value[self.index] == ':') {
+        self.index += 1;
+        return .double_colon;
+    }
+
+    return .colon;
+}
+
+fn parseNumber(self: *Parser) Display.ParseError!u32 {
+    const start = self.index;
+
+    while (self.index < self.value.len and self.value[self.index] != '.') {
+        self.index += 1;
+    }
+
+    const number = self.value[start..self.index];
+    if (number.len == 0) return error.InvalidDisplay;
+
+    return parseInteger(number);
+}
+
+fn parseScreen(self: *Parser) Display.ParseError!u32 {
+    if (self.index == self.value.len) return 0;
+
+    if (self.value[self.index] != '.') return error.InvalidDisplay;
+
+    self.index += 1;
+
+    const screen = self.remaining();
+    if (screen.len == 0) return error.InvalidDisplay;
+
+    self.index = self.value.len;
+
+    return parseInteger(screen);
+}
+
+fn remaining(self: *const Parser) []const u8 {
+    return self.value[self.index..];
+}
+
+fn parseInteger(value: []const u8) Display.ParseError!u32 {
+    return std.fmt.parseInt(u32, value, 10) catch {
+        return error.InvalidDisplay;
+    };
+}

@@ -1,17 +1,17 @@
-//! Parsing of X11 display names such as `:0` and `hostname:1.0`.
+//! X11 display names such as `:0` and `hostname:1.0`.
 //!
 //! A display name identifies the X server a client intends to connect to.
-//! This type parses the protocol, host, display number, and optional screen.
 
 const std = @import("std");
+const Parser = @import("Display/Parser.zig");
 
 const Display = @This();
 
 protocol: ?[]const u8,
 host: []const u8,
 separator: Separator,
-number: u32,
-screen: u32 = 0,
+display_number: u32,
+screen_number: u32 = 0,
 
 pub const Separator = enum {
     colon,
@@ -24,79 +24,8 @@ pub const ParseError = error{
 
 /// Parses an X11 display name.
 pub fn parse(value: []const u8) ParseError!Display {
-    if (value.len == 0) return error.InvalidDisplay;
-
-    const protocol, const address = parseProtocol(value);
-    const host, const separator, const number_and_screen = try parseAddress(address);
-
-    const number, const screen = try parseNumberAndScreen(number_and_screen);
-
-    return .{
-        .protocol = protocol,
-        .host = host,
-        .separator = separator,
-        .number = number,
-        .screen = screen,
-    };
-}
-
-fn parseProtocol(value: []const u8) struct { ?[]const u8, []const u8 } {
-    const slash = std.mem.findScalar(u8, value, '/') orelse {
-        return .{ null, value };
-    };
-
-    return .{ value[0..slash], value[slash + 1 ..] };
-}
-
-fn parseAddress(value: []const u8) ParseError!struct { []const u8, Separator, []const u8 } {
-    const colon = std.mem.findScalar(u8, value, ':') orelse {
-        return error.InvalidDisplay;
-    };
-
-    const separator: Separator = if (colon + 1 < value.len and value[colon + 1] == ':') .double_colon else .colon;
-
-    const separator_len: usize = switch (separator) {
-        .colon => 1,
-        .double_colon => 2,
-    };
-
-    const host = value[0..colon];
-    const number_and_screen = value[colon + separator_len ..];
-
-    if (number_and_screen.len == 0) return error.InvalidDisplay;
-
-    return .{ host, separator, number_and_screen };
-}
-
-fn parseNumberAndScreen(value: []const u8) ParseError!struct { u32, u32 } {
-    if (std.mem.findScalar(u8, value, '.')) |dot| {
-        const number = value[0..dot];
-        const screen = value[dot + 1 ..];
-
-        if (number.len == 0 or screen.len == 0) {
-            return error.InvalidDisplay;
-        }
-
-        if (std.mem.findScalar(u8, screen, '.') != null) {
-            return error.InvalidDisplay;
-        }
-
-        return .{
-            try parseNumber(number),
-            try parseNumber(screen),
-        };
-    }
-
-    return .{
-        try parseNumber(value),
-        0,
-    };
-}
-
-fn parseNumber(value: []const u8) ParseError!u32 {
-    return std.fmt.parseInt(u32, value, 10) catch {
-        return error.InvalidDisplay;
-    };
+    var parser = Parser.init(value);
+    return parser.parse();
 }
 
 test "parse local display" {
@@ -105,8 +34,8 @@ test "parse local display" {
     try std.testing.expect(display.protocol == null);
     try std.testing.expectEqualStrings("", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 0), display.number);
-    try std.testing.expectEqual(@as(u32, 0), display.screen);
+    try std.testing.expectEqual(@as(u32, 0), display.display_number);
+    try std.testing.expectEqual(@as(u32, 0), display.screen_number);
 }
 
 test "parse local display with screen" {
@@ -114,8 +43,8 @@ test "parse local display with screen" {
 
     try std.testing.expectEqualStrings("", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 0), display.number);
-    try std.testing.expectEqual(@as(u32, 1), display.screen);
+    try std.testing.expectEqual(@as(u32, 0), display.display_number);
+    try std.testing.expectEqual(@as(u32, 1), display.screen_number);
 }
 
 test "parse hostname" {
@@ -124,8 +53,8 @@ test "parse hostname" {
     try std.testing.expect(display.protocol == null);
     try std.testing.expectEqualStrings("example.org", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 12), display.number);
-    try std.testing.expectEqual(@as(u32, 3), display.screen);
+    try std.testing.expectEqual(@as(u32, 12), display.display_number);
+    try std.testing.expectEqual(@as(u32, 3), display.screen_number);
 }
 
 test "parse protocol" {
@@ -134,7 +63,7 @@ test "parse protocol" {
     try std.testing.expectEqualStrings("tcp", display.protocol.?);
     try std.testing.expectEqualStrings("example.org", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 1), display.number);
+    try std.testing.expectEqual(@as(u32, 1), display.display_number);
 }
 
 test "parse double colon" {
@@ -142,8 +71,8 @@ test "parse double colon" {
 
     try std.testing.expectEqualStrings("machine", display.host);
     try std.testing.expectEqual(Display.Separator.double_colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 0), display.number);
-    try std.testing.expectEqual(@as(u32, 1), display.screen);
+    try std.testing.expectEqual(@as(u32, 0), display.display_number);
+    try std.testing.expectEqual(@as(u32, 1), display.screen_number);
 }
 
 test "reject malformed displays" {
@@ -151,6 +80,11 @@ test "reject malformed displays" {
         "",
         ":",
         ":abc",
+        "/host:0",
+        "tcp/:0",
+        "host:0/",
+        "foo/bar:0",
+        "tcp/foo/bar:0",
         "host:",
         "host:0.",
         "host:.0",

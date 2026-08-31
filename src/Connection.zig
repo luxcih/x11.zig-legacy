@@ -30,7 +30,7 @@ pub fn connectLocal(
     const path = try std.fmt.bufPrint(
         &path_buffer,
         "{s}/X{}",
-        .{ socket_dir, display.number },
+        .{ socket_dir, display.display_number },
     );
 
     const address = try std.Io.net.UnixAddress.init(path);

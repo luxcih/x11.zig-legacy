@@ -15,7 +15,7 @@ pub fn main() !void {
         display.protocol orelse "(none)",
         display.host,
         @tagName(display.separator),
-        display.number,
-        display.screen,
+        display.display_number,
+        display.screen_number,
     });
 }
