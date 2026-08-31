@@ -3,7 +3,7 @@
 //! A display name identifies the X server a client intends to connect to.
 
 const std = @import("std");
-const Parse = @import("Display/Parse.zig");
+const Parser = @import("Display/Parser.zig");
 
 const Display = @This();
 
@@ -13,12 +13,12 @@ separator: Separator,
 number: u32,
 screen: u32 = 0,
 
-pub const Separator = Parse.Separator;
-pub const ParseError = Parse.Error;
+pub const Separator = Parser.Separator;
+pub const ParseError = Parser.Error;
 
 /// Parses an X11 display name.
 pub fn parse(value: []const u8) ParseError!Display {
-    const result = try Parse.parse(value);
+    const result = try Parser.init(value).parse();
 
     return .{
         .protocol = result.protocol,
