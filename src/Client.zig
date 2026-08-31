@@ -89,5 +89,11 @@ pub fn nextXid(self: *Client) XidAllocator.Error!u32 {
 pub fn deinit(self: *Client) void {
     self.setup.deinit(self.allocator);
     self.connection.close(self.io);
-    self.allocator.destroy(self);
+}
+
+/// Releases the client and its owned resources.
+pub fn destroy(self: *Client) void {
+    const allocator = self.allocator;
+    self.deinit();
+    allocator.destroy(self);
 }
