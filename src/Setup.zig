@@ -10,6 +10,7 @@ const Endian = std.builtin.Endian;
 
 const Setup = @This();
 pub const EncodeError = error{
+    BufferTooSmall,
     AuthorizationTooLong,
 };
 
@@ -19,52 +20,61 @@ minor_version: u16 = 0,
 authorization_name: []const u8 = "",
 authorization_data: []const u8 = "",
 
+pub fn encodedLength(self: Setup) usize {
+    return 12 +
+        paddedLength(self.authorization_name.len) +
+        paddedLength(self.authorization_data.len);
+}
+
 /// Encodes the setup handshake, including required 4-byte padding for authorization fields.
-pub fn encode(self: Setup, writer: *std.Io.Writer) EncodeError!void {
+pub fn encode(self: Setup, buffer: []u8) EncodeError![]const u8 {
     if (self.authorization_name.len > std.math.maxInt(u16) or
         self.authorization_data.len > std.math.maxInt(u16))
     {
         return error.AuthorizationTooLong;
     }
 
-    var header: [12]u8 = undefined;
-    header[0] = switch (self.byte_order) {
+    const length = self.encodedLength();
+    if (buffer.len < length) return error.BufferTooSmall;
+
+    buffer[0] = switch (self.byte_order) {
         .little => 'l',
         .big => 'B',
     };
-    header[1] = 0;
-    Wire.writeU16(header[2..4], self.major_version, self.byte_order);
-    Wire.writeU16(header[4..6], self.minor_version, self.byte_order);
-    Wire.writeU16(header[6..8], @intCast(self.authorization_name.len), self.byte_order);
-    Wire.writeU16(header[8..10], @intCast(self.authorization_data.len), self.byte_order);
-    header[10] = 0;
-    header[11] = 0;
+    buffer[1] = 0;
 
-    try writer.writeAll(&header);
-    try writePadded(writer, self.authorization_name);
-    try writePadded(writer, self.authorization_data);
+    Wire.writeU16(buffer[2..4], self.major_version, self.byte_order);
+    Wire.writeU16(buffer[4..6], self.minor_version, self.byte_order);
+    Wire.writeU16(buffer[6..8], @intCast(self.authorization_name.len), self.byte_order);
+    Wire.writeU16(buffer[8..10], @intCast(self.authorization_data.len), self.byte_order);
+    buffer[10] = 0;
+    buffer[11] = 0;
+
+    var offset: usize = 12;
+    offset = writePadded(buffer, offset, self.authorization_name);
+    _ = writePadded(buffer, offset, self.authorization_data);
+
+    return buffer[0..length];
 }
 
 fn paddedLength(length: usize) usize {
     return (length + 3) & ~@as(usize, 3);
 }
 
-fn writePadded(writer: *std.Io.Writer, value: []const u8) !void {
-    try writer.writeAll(value);
+fn writePadded(buffer: []u8, offset: usize, value: []const u8) usize {
+    @memcpy(buffer[offset .. offset + value.len], value);
 
-    const padding = paddedLength(value.len) - value.len;
-    if (padding > 0) {
-        var zeros: [3]u8 = .{ 0, 0, 0 };
-        try writer.writeAll(zeros[0..padding]);
-    }
+    const padded_end = offset + paddedLength(value.len);
+    @memset(buffer[offset + value.len .. padded_end], 0);
+
+    return padded_end;
 }
 
 test "encode little-endian setup without authorization" {
     const setup = Setup{};
 
     var buffer: [12]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buffer);
-    try setup.encode(&writer);
+    const encoded = try setup.encode(&buffer);
 
     try std.testing.expectEqualSlices(u8, &.{
         'l', 0,
@@ -73,7 +83,7 @@ test "encode little-endian setup without authorization" {
         0,   0,
         0,   0,
         0,   0,
-    }, buffer[0..writer.end]);
+    }, encoded);
 }
 
 test "encode setup authorization with padding" {
@@ -83,10 +93,8 @@ test "encode setup authorization with padding" {
     };
 
     var buffer: [24]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buffer);
-    try setup.encode(&writer);
+    const encoded = try setup.encode(&buffer);
 
-    const encoded = buffer[0..writer.end];
     try std.testing.expectEqual(@as(usize, 24), encoded.len);
     try std.testing.expectEqualSlices(u8, "MIT", encoded[12..15]);
     try std.testing.expectEqual(@as(u8, 0), encoded[15]);
@@ -102,8 +110,7 @@ test "encode big-endian setup" {
     };
 
     var buffer: [12]u8 = undefined;
-    var writer: std.Io.Writer = .fixed(&buffer);
-    try setup.encode(&writer);
+    const encoded = try setup.encode(&buffer);
 
     try std.testing.expectEqualSlices(u8, &.{
         'B', 0,
@@ -112,6 +119,5 @@ test "encode big-endian setup" {
         0,   0,
         0,   0,
         0,   0,
-    }, buffer[0..writer.end]);
+    }, encoded);
 }
-
