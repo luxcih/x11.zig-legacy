@@ -19,18 +19,15 @@ pub fn perform(client: *Client) !Result {
 
     const prefix = try client.recv(ResponsePrefix);
 
-    const additional_bytes = @as(usize, prefix.additional_length) * 4;
-
-    const body = try client.allocator.alloc(u8, additional_bytes);
-    defer client.allocator.free(body);
-    try client.read(body);
-
     return switch (prefix.status) {
         .failed => error.SetupFailed,
-        .success => .{
-            .server = try Server.parse(client.allocator, body, client.endian),
-            .resource_id_base = Wire.readU32(body[4..8], client.endian),
-            .resource_id_mask = Wire.readU32(body[8..12], client.endian),
+        .success => blk: {
+            const setup = try Server.receive(client);
+            break :blk .{
+                .server = setup.server,
+                .resource_id_base = setup.resource_id_base,
+                .resource_id_mask = setup.resource_id_mask,
+            };
         },
         .authenticate => error.AuthenticationRequired,
     };
