@@ -44,21 +44,31 @@ fn parseProtocol(value: []const u8) ?[]const u8 {
 }
 
 fn parseHost(value: []const u8) ParseError![]const u8 {
-    const address = try addressPart(value);
-    const colon = std.mem.findScalar(u8, address, ':') orelse {
+    const start = if (std.mem.findScalar(u8, value, '/')) |slash|
+        slash + 1
+    else
+        0;
+
+    const colon = std.mem.findScalar(u8, value[start..], ':') orelse {
         return error.InvalidDisplay;
     };
 
-    return address[0..colon];
+    return value[start .. start + colon];
 }
 
 fn parseSeparator(value: []const u8) ParseError!Separator {
-    const address = try addressPart(value);
-    const colon = std.mem.findScalar(u8, address, ':') orelse {
+    const start = if (std.mem.findScalar(u8, value, '/')) |slash|
+        slash + 1
+    else
+        0;
+
+    const colon = std.mem.findScalar(u8, value[start..], ':') orelse {
         return error.InvalidDisplay;
     };
 
-    if (colon + 1 < address.len and address[colon + 1] == ':') {
+    const index = start + colon;
+
+    if (index + 1 < value.len and value[index + 1] == ':') {
         return .double_colon;
     }
 
@@ -66,8 +76,21 @@ fn parseSeparator(value: []const u8) ParseError!Separator {
 }
 
 fn parseNumber(value: []const u8) ParseError!u32 {
-    const number_and_screen = try numberAndScreen(value);
+    const start = if (std.mem.findScalar(u8, value, '/')) |slash|
+        slash + 1
+    else
+        0;
 
+    const colon = std.mem.findScalar(u8, value[start..], ':') orelse {
+        return error.InvalidDisplay;
+    };
+
+    var number_start = start + colon + 1;
+    if (number_start < value.len and value[number_start] == ':') {
+        number_start += 1;
+    }
+
+    const number_and_screen = value[number_start..];
     const number = if (std.mem.findScalar(u8, number_and_screen, '.')) |dot|
         number_and_screen[0..dot]
     else
@@ -77,36 +100,27 @@ fn parseNumber(value: []const u8) ParseError!u32 {
 }
 
 fn parseScreen(value: []const u8) ParseError!u32 {
-    const number_and_screen = try numberAndScreen(value);
+    const start = if (std.mem.findScalar(u8, value, '/')) |slash|
+        slash + 1
+    else
+        0;
+
+    const colon = std.mem.findScalar(u8, value[start..], ':') orelse {
+        return error.InvalidDisplay;
+    };
+
+    var number_start = start + colon + 1;
+    if (number_start < value.len and value[number_start] == ':') {
+        number_start += 1;
+    }
+
+    const number_and_screen = value[number_start..];
 
     const dot = std.mem.findScalar(u8, number_and_screen, '.') orelse {
         return 0;
     };
 
     return parseInteger(number_and_screen[dot + 1 ..]);
-}
-
-fn addressPart(value: []const u8) ParseError![]const u8 {
-    if (std.mem.findScalar(u8, value, '/')) |slash| {
-        return value[slash + 1 ..];
-    }
-
-    return value;
-}
-
-fn numberAndScreen(value: []const u8) ParseError![]const u8 {
-    const address = try addressPart(value);
-    const colon = std.mem.findScalar(u8, address, ':') orelse {
-        return error.InvalidDisplay;
-    };
-
-    const separator_len: usize =
-        if (colon + 1 < address.len and address[colon + 1] == ':') 2 else 1;
-
-    const result = address[colon + separator_len ..];
-    if (result.len == 0) return error.InvalidDisplay;
-
-    return result;
 }
 
 fn parseInteger(value: []const u8) ParseError!u32 {
