@@ -1,8 +1,27 @@
+//! X11 window resources and core window-management requests.
+//!
+//! X11 windows form a server-side hierarchy rooted at each screen's root window.
+//! This namespace mirrors the protocol operations used to create, map, inspect,
+//! configure, reparent, and destroy nodes in that hierarchy.
+//!
+//! The individual request types expose X11 semantics while handling protocol
+//! details such as request lengths, value masks, padding, and byte order.
+//!
+//! Major concepts include lifecycle and hierarchy, visibility, attributes and
+//! event selection, geometry and stacking, properties, and pointer queries.
+//!
+//! A window is a protocol resource identified by an XID; callers normally obtain
+//! new XIDs from `XidAllocator` after completing connection setup.
+//!
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
 
 const Window = @This();
+
+/// Creates a new server-side window as a child of an existing parent window.
+/// Optional attributes are encoded as an X11 value mask followed by values in
+/// increasing mask-bit order.
     pub const Create = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -70,6 +89,7 @@ const Window = @This();
     };
 
 
+    /// Queries server-maintained attributes and event masks for a window.
     pub const GetWindowAttributes = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{ InvalidLength, InvalidResponse };
@@ -131,6 +151,7 @@ const Window = @This();
         }
     };
 
+    /// Queries a window's position in the X11 window tree and its direct children.
     pub const QueryTree = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = std.mem.Allocator.Error || error{ InvalidLength, InvalidResponse, InvalidChildrenLength };
@@ -241,6 +262,8 @@ const Window = @This();
         }
     };
 
+    /// Changes selected window attributes. This implementation currently exposes
+    /// event selection through `EventMask`.
     pub const ChangeAttributes = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -356,6 +379,8 @@ const Window = @This();
         }
     };
 
+    /// Changes selected geometry fields using the X11 ConfigureWindow value mask.
+    /// Only non-null fields are transmitted in increasing mask-bit order.
     pub const Configure = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -426,6 +451,7 @@ const Window = @This();
         }
     };
 
+    /// Queries the geometry of a drawable relative to its parent.
     pub const GetGeometry = struct {
         pub const EncodeError = error{
             BufferTooSmall,
@@ -483,6 +509,7 @@ const Window = @This();
         }
     };
 
+    /// Makes a window eligible to become visible on the screen.
     pub const Map = struct {
         pub const EncodeError = error{
             BufferTooSmall,
