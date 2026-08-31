@@ -18,7 +18,8 @@ pub const ParseError = Parser.Error;
 
 /// Parses an X11 display name.
 pub fn parse(value: []const u8) ParseError!Display {
-    const result = try Parser.init(value).parse();
+    var parser = Parser.init(value);
+    const result = try parser.parse();
 
     return .{
         .protocol = result.protocol,
@@ -81,6 +82,9 @@ test "reject malformed displays" {
         "",
         ":",
         ":abc",
+        "/host:0",
+        "tcp/:0",
+        "host:0/",
         "host:",
         "host:0.",
         "host:.0",
