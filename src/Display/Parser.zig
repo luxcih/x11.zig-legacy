@@ -42,7 +42,7 @@ fn parseProtocol(self: *Parser) Display.ParseError!?[]const u8 {
     const colon = std.mem.findScalar(u8, value, ':') orelse {
         return error.InvalidDisplay;
     };
-    const slash = std.mem.findScalar(u8, value[0..colon]) orelse return null;
+    const slash = std.mem.findScalar(u8, value[0..colon], '/') orelse return null;
 
     if (slash == 0) return error.InvalidDisplay;
 
