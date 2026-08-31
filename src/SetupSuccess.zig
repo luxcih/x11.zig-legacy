@@ -82,19 +82,11 @@ test "parse little-endian setup success header" {
         0x10, 0x00, 0x00, 0x20,
         0xff, 0x00, 0x00, 0x00,
         0x40, 0x00, 0x00, 0x00,
-        3, 0,
-        0x00, 0x10,
-        1,
-        2,
-        0,
-        1,
-        32,
-        0,
-        32,
-        8,
-        255,
-        0, 0, 0,
-        'X', 'o', 'r',
+        3,    0,    0x00, 0x10,
+        1,    2,    0,    1,
+        32,   0,    32,   8,
+        255,  0,    0,    0,
+        'X',  'o',  'r',
     };
 
     const success = try SetupSuccess.parse(&body, .little);
@@ -115,11 +107,11 @@ test "parse big-endian setup success header" {
         0x20, 0x00, 0x00, 0x10,
         0x00, 0x00, 0x00, 0xff,
         0x00, 0x00, 0x00, 0x40,
-        0, 3,
-        0x10, 0x00,
-        1, 2, 0, 1, 32, 0, 8, 255,
-        0, 0, 0, 0,
-        'X', 'o', 'r',
+        0,    3,    0x10, 0x00,
+        1,    2,    0,    1,
+        32,   0,    8,    255,
+        0,    0,    0,    0,
+        'X',  'o',  'r',
     };
     const success = try SetupSuccess.parse(&body, .big);
     try std.testing.expectEqual(@as(u32, 0x12345678), success.release_number);

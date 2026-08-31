@@ -7,59 +7,59 @@
 const std = @import("std");
 
 const XidAllocator = @This();
-    pub const Error = error{
-        Exhausted,
+pub const Error = error{
+    Exhausted,
+};
+
+base: u32,
+mask: u32,
+next_index: u64 = 0,
+
+pub fn init(base: u32, mask: u32) XidAllocator {
+    return .{
+        .base = base,
+        .mask = mask,
     };
+}
 
-    base: u32,
-    mask: u32,
-    next_index: u64 = 0,
+/// Allocates the next resource ID permitted by the server-provided mask.
+pub fn next(self: *XidAllocator) Error!u32 {
+    const capacity = @as(u64, 1) << @popCount(self.mask);
+    if (self.next_index >= capacity)
+        return error.Exhausted;
 
-    pub fn init(base: u32, mask: u32) XidAllocator {
-        return .{
-            .base = base,
-            .mask = mask,
-        };
-    }
+    const id = self.base | applyMask(self.mask, self.next_index);
+    self.next_index += 1;
 
-    /// Allocates the next resource ID permitted by the server-provided mask.
-    pub fn next(self: *XidAllocator) Error!u32 {
-        const capacity = @as(u64, 1) << @popCount(self.mask);
-        if (self.next_index >= capacity)
-            return error.Exhausted;
+    return id;
+}
 
-        const id = self.base | applyMask(self.mask, self.next_index);
-        self.next_index += 1;
+// Maps consecutive client allocation bits onto the positions permitted by
+// the server's resource-ID mask. The mask may be sparse, so simple addition
+// would produce invalid XIDs.
+fn applyMask(mask: u32, index: u64) u32 {
+    var result: u32 = 0;
+    var source_bit: u6 = 0;
+    var destination_bit: u5 = 0;
 
-        return id;
-    }
+    while (true) {
+        const destination_mask = @as(u32, 1) << destination_bit;
 
-    // Maps consecutive client allocation bits onto the positions permitted by
-    // the server's resource-ID mask. The mask may be sparse, so simple addition
-    // would produce invalid XIDs.
-    fn applyMask(mask: u32, index: u64) u32 {
-        var result: u32 = 0;
-        var source_bit: u6 = 0;
-        var destination_bit: u5 = 0;
+        if (mask & destination_mask != 0) {
+            if (index & (@as(u64, 1) << source_bit) != 0)
+                result |= destination_mask;
 
-        while (true) {
-            const destination_mask = @as(u32, 1) << destination_bit;
-
-            if (mask & destination_mask != 0) {
-                if (index & (@as(u64, 1) << source_bit) != 0)
-                    result |= destination_mask;
-
-                source_bit += 1;
-            }
-
-            if (destination_bit == 31)
-                break;
-
-            destination_bit += 1;
+            source_bit += 1;
         }
 
-        return result;
+        if (destination_bit == 31)
+            break;
+
+        destination_bit += 1;
     }
+
+    return result;
+}
 
 test "allocate contiguous XIDs" {
     var allocator = XidAllocator.init(0x20000000, 0x00000003);

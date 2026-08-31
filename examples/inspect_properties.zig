@@ -52,7 +52,7 @@ pub fn main(init: std.process.Init) !void {
 
     for (reply.atoms) |atom| {
         const name = getAtomName(&session, init.io, atom) catch continue;
-        defer std.heap.page_allocator.free(name.ptr[0 .. std.mem.alignForward(usize, name.len, 4)]);
+        defer std.heap.page_allocator.free(name.ptr[0..std.mem.alignForward(usize, name.len, 4)]);
         std.debug.print("0x{x}: {s}\n", .{ atom, name });
     }
 }

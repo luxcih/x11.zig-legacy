@@ -6,99 +6,98 @@
 const std = @import("std");
 
 const Display = @This();
-    protocol: ?[]const u8,
-    host: []const u8,
-    separator: Separator,
-    number: u32,
-    screen: u32 = 0,
 
-    pub const Separator = enum {
-        colon,
-        double_colon,
+protocol: ?[]const u8,
+host: []const u8,
+separator: Separator,
+number: u32,
+screen: u32 = 0,
+
+pub const Separator = enum {
+    colon,
+    double_colon,
+};
+
+pub const ParseError = error{
+    InvalidDisplay,
+};
+
+/// Parses an X11 display name.
+pub fn parse(value: []const u8) ParseError!Display {
+    if (value.len == 0) return error.InvalidDisplay;
+
+    const protocol, const address = parseProtocol(value);
+    const host, const separator, const number_and_screen = try parseAddress(address);
+
+    const number, const screen = try parseNumberAndScreen(number_and_screen);
+
+    return .{
+        .protocol = protocol,
+        .host = host,
+        .separator = separator,
+        .number = number,
+        .screen = screen,
+    };
+}
+
+fn parseProtocol(value: []const u8) struct { ?[]const u8, []const u8 } {
+    const slash = std.mem.findScalar(u8, value, '/') orelse {
+        return .{ null, value };
     };
 
-    pub const ParseError = error{
-        InvalidDisplay,
+    return .{ value[0..slash], value[slash + 1 ..] };
+}
+
+fn parseAddress(value: []const u8) ParseError!struct { []const u8, Separator, []const u8 } {
+    const colon = std.mem.findScalar(u8, value, ':') orelse {
+        return error.InvalidDisplay;
     };
 
-    /// Parses an X11 display name.
-    pub fn parse(value: []const u8) ParseError!Display {
-        if (value.len == 0) return error.InvalidDisplay;
+    const separator: Separator = if (colon + 1 < value.len and value[colon + 1] == ':') .double_colon else .colon;
 
-        const protocol, const address = parseProtocol(value);
-        const host, const separator, const number_and_screen = try parseAddress(address);
+    const separator_len: usize = switch (separator) {
+        .colon => 1,
+        .double_colon => 2,
+    };
 
-        const number, const screen = try parseNumberAndScreen(number_and_screen);
+    const host = value[0..colon];
+    const number_and_screen = value[colon + separator_len ..];
 
-        return .{
-            .protocol = protocol,
-            .host = host,
-            .separator = separator,
-            .number = number,
-            .screen = screen,
-        };
-    }
+    if (number_and_screen.len == 0) return error.InvalidDisplay;
 
-    fn parseProtocol(value: []const u8) struct { ?[]const u8, []const u8 } {
-        const slash = std.mem.findScalar(u8, value, '/') orelse {
-            return .{ null, value };
-        };
+    return .{ host, separator, number_and_screen };
+}
 
-        return .{ value[0..slash], value[slash + 1 ..] };
-    }
+fn parseNumberAndScreen(value: []const u8) ParseError!struct { u32, u32 } {
+    if (std.mem.findScalar(u8, value, '.')) |dot| {
+        const number = value[0..dot];
+        const screen = value[dot + 1 ..];
 
-    fn parseAddress(value: []const u8) ParseError!struct { []const u8, Separator, []const u8 } {
-        const colon = std.mem.findScalar(u8, value, ':') orelse {
+        if (number.len == 0 or screen.len == 0) {
             return error.InvalidDisplay;
-        };
+        }
 
-        const separator: Separator = if (
-            colon + 1 < value.len and value[colon + 1] == ':'
-        ) .double_colon else .colon;
-
-        const separator_len: usize = switch (separator) {
-            .colon => 1,
-            .double_colon => 2,
-        };
-
-        const host = value[0..colon];
-        const number_and_screen = value[colon + separator_len ..];
-
-        if (number_and_screen.len == 0) return error.InvalidDisplay;
-
-        return .{ host, separator, number_and_screen };
-    }
-
-    fn parseNumberAndScreen(value: []const u8) ParseError!struct { u32, u32 } {
-        if (std.mem.findScalar(u8, value, '.')) |dot| {
-            const number = value[0..dot];
-            const screen = value[dot + 1 ..];
-
-            if (number.len == 0 or screen.len == 0) {
-                return error.InvalidDisplay;
-            }
-
-            if (std.mem.findScalar(u8, screen, '.') != null) {
-                return error.InvalidDisplay;
-            }
-
-            return .{
-                try parseNumber(number),
-                try parseNumber(screen),
-            };
+        if (std.mem.findScalar(u8, screen, '.') != null) {
+            return error.InvalidDisplay;
         }
 
         return .{
-            try parseNumber(value),
-            0,
+            try parseNumber(number),
+            try parseNumber(screen),
         };
     }
 
-    fn parseNumber(value: []const u8) ParseError!u32 {
-        return std.fmt.parseInt(u32, value, 10) catch {
-            return error.InvalidDisplay;
-        };
-    }
+    return .{
+        try parseNumber(value),
+        0,
+    };
+}
+
+fn parseNumber(value: []const u8) ParseError!u32 {
+    return std.fmt.parseInt(u32, value, 10) catch {
+        return error.InvalidDisplay;
+    };
+}
 
 test "parse local display" {
     const display = try Display.parse(":0");

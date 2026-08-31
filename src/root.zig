@@ -4,9 +4,6 @@
 //! connection and setup, resource allocation, windows, events, graphics,
 //! and drawing.
 
-pub const std = @import("std");
-const Endian = std.builtin.Endian;
-
 pub const Display = @import("Display.zig");
 pub const Connection = @import("Connection.zig");
 

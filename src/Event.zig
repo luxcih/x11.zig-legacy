@@ -156,24 +156,19 @@ pub const Event = union(enum) {
             .same_screen = bytes[30] != 0,
         };
     }
-
 };
 
 test "parse big-endian input and configure events" {
     {
         const event = try Event.parse(&.{
-            0x82, 38, 0, 0,
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16,
-            0, 10,
-            255, 236,
-            0, 30,
-            0, 40,
-            0, 1,
-            1,
-            0,
+            0x82, 38, 0,   0,
+            1,    2,  3,   4,
+            5,    6,  7,   8,
+            9,    10, 11,  12,
+            13,   14, 15,  16,
+            0,    10, 255, 236,
+            0,    30, 0,   40,
+            0,    1,  1,   0,
         }, .big);
 
         switch (event) {
@@ -189,17 +184,14 @@ test "parse big-endian input and configure events" {
 
     {
         const event = try Event.parse(&.{
-            22, 0, 0, 0,
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            0, 10,
-            255, 236,
-            2, 128,
-            1, 224,
-            0, 5,
-            1,
-            0, 0, 0, 0, 0,
+            22, 0,   0,   0,
+            1,  2,   3,   4,
+            5,  6,   7,   8,
+            9,  10,  11,  12,
+            0,  10,  255, 236,
+            2,  128, 1,   224,
+            0,  5,   1,   0,
+            0,  0,   0,   0,
         }, .big);
 
         switch (event) {
@@ -219,10 +211,13 @@ test "parse big-endian input and configure events" {
 test "parse unknown event preserving raw bytes" {
     const event = try Event.parse(&.{
         99, 7, 0, 0,
-        1, 2, 3, 4,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,
+        1,  2, 3, 4,
+        0,  0, 0, 0,
+        0,  0, 0, 0,
+        0,  0, 0, 0,
+        0,  0, 0, 0,
+        0,  0, 0, 0,
+        0,  0, 0, 0,
     }, .little);
 
     switch (event) {
@@ -236,14 +231,14 @@ test "parse unknown event preserving raw bytes" {
 
 test "parse little-endian expose event" {
     const event = try Event.parse(&.{
-        12, 0, 0, 0,
-        4, 3, 2, 1,
-        10, 0,
-        20, 0,
-        128, 2,
-        224, 1,
-        0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        12,  0, 0,   0,
+        4,   3, 2,   1,
+        10,  0, 20,  0,
+        128, 2, 224, 1,
+        0,   0, 0,   0,
+        0,   0, 0,   0,
+        0,   0, 0,   0,
+        0,   0, 0,   0,
     }, .little);
 
     switch (event) {
@@ -258,21 +253,16 @@ test "parse little-endian expose event" {
     }
 }
 
-
 test "parse little-endian key press event" {
     const event = try Event.parse(&.{
-        2, 38, 0, 0,
-        4, 3, 2, 1,
-        8, 7, 6, 5,
+        2,  38, 0,  0,
+        4,  3,  2,  1,
+        8,  7,  6,  5,
         12, 11, 10, 9,
         16, 15, 14, 13,
-        10, 0,
-        20, 0,
-        30, 0,
-        40, 0,
-        1, 0,
-        1,
-        0,
+        10, 0,  20, 0,
+        30, 0,  40, 0,
+        1,  0,  1,  0,
     }, .little);
 
     switch (event) {

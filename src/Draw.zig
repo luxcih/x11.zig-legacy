@@ -70,16 +70,16 @@ test "encode big-endian drawing requests" {
         const request = PolyLine{
             .drawable = 0x01020304,
             .gc = 0x05060708,
-            .points = &.{ .{ .x = 10, .y = -20 } },
+            .points = &.{.{ .x = 10, .y = -20 }},
             .coordinate_mode = .previous,
         };
         var buffer: [16]u8 = undefined;
         const encoded = try request.encode(&buffer, .big);
         try std.testing.expectEqualSlices(u8, &.{
-            65, 1, 0, 4,
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            0, 10, 255, 236,
+            65, 1,  0,   4,
+            1,  2,  3,   4,
+            5,  6,  7,   8,
+            0,  10, 255, 236,
         }, encoded);
     }
 
@@ -87,15 +87,16 @@ test "encode big-endian drawing requests" {
         const request = PolyRectangle{
             .drawable = 0x01020304,
             .gc = 0x05060708,
-            .rectangles = &.{ .{ .x = 10, .y = -20, .width = 640, .height = 480 } },
+            .rectangles = &.{.{ .x = 10, .y = -20, .width = 640, .height = 480 }},
         };
         var buffer: [20]u8 = undefined;
         const encoded = try request.encode(&buffer, .big);
         try std.testing.expectEqualSlices(u8, &.{
-            67, 0, 0, 5,
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            0, 10, 255, 236, 2, 128, 1, 224,
+            67, 0,   0,   5,
+            1,  2,   3,   4,
+            5,  6,   7,   8,
+            0,  10,  255, 236,
+            2,  128, 1,   224,
         }, encoded);
     }
 
@@ -103,18 +104,24 @@ test "encode big-endian drawing requests" {
         const request = PolyArc{
             .drawable = 0x01020304,
             .gc = 0x05060708,
-            .arcs = &.{ .{
-                .x = 10, .y = -20, .width = 100, .height = 200,
-                .angle1 = -64, .angle2 = 360 * 64,
-            } },
+            .arcs = &.{.{
+                .x = 10,
+                .y = -20,
+                .width = 100,
+                .height = 200,
+                .angle1 = -64,
+                .angle2 = 360 * 64,
+            }},
         };
         var buffer: [24]u8 = undefined;
         const encoded = try request.encode(&buffer, .big);
         try std.testing.expectEqualSlices(u8, &.{
-            68, 0, 0, 6,
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            0, 10, 255, 236, 0, 100, 0, 200, 255, 192, 90, 0,
+            68,  0,   0,   6,
+            1,   2,   3,   4,
+            5,   6,   7,   8,
+            0,   10,  255, 236,
+            0,   100, 0,   200,
+            255, 192, 90,  0,
         }, encoded);
     }
 
@@ -122,15 +129,16 @@ test "encode big-endian drawing requests" {
         const request = PolyFillRectangle{
             .drawable = 0x01020304,
             .gc = 0x05060708,
-            .rectangles = &.{ .{ .x = 10, .y = -20, .width = 640, .height = 480 } },
+            .rectangles = &.{.{ .x = 10, .y = -20, .width = 640, .height = 480 }},
         };
         var buffer: [20]u8 = undefined;
         const encoded = try request.encode(&buffer, .big);
         try std.testing.expectEqualSlices(u8, &.{
-            70, 0, 0, 5,
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            0, 10, 255, 236, 2, 128, 1, 224,
+            70, 0,   0,   5,
+            1,  2,   3,   4,
+            5,  6,   7,   8,
+            0,  10,  255, 236,
+            2,  128, 1,   224,
         }, encoded);
     }
 
@@ -138,18 +146,24 @@ test "encode big-endian drawing requests" {
         const request = PolyFillArc{
             .drawable = 0x01020304,
             .gc = 0x05060708,
-            .arcs = &.{ .{
-                .x = 10, .y = -20, .width = 100, .height = 200,
-                .angle1 = 0, .angle2 = 360 * 64,
-            } },
+            .arcs = &.{.{
+                .x = 10,
+                .y = -20,
+                .width = 100,
+                .height = 200,
+                .angle1 = 0,
+                .angle2 = 360 * 64,
+            }},
         };
         var buffer: [24]u8 = undefined;
         const encoded = try request.encode(&buffer, .big);
         try std.testing.expectEqualSlices(u8, &.{
-            71, 0, 0, 6,
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            0, 10, 255, 236, 0, 100, 0, 200, 0, 0, 90, 0,
+            71, 0,   0,   6,
+            1,  2,   3,   4,
+            5,  6,   7,   8,
+            0,  10,  255, 236,
+            0,  100, 0,   200,
+            0,  0,   90,  0,
         }, encoded);
     }
 
@@ -164,9 +178,9 @@ test "encode big-endian drawing requests" {
         var buffer: [20]u8 = undefined;
         const encoded = try request.encode(&buffer, .big);
         try std.testing.expectEqualSlices(u8, &.{
-            76, 2, 0, 5,
-            1, 2, 3, 4,
-            5, 6, 7, 8,
+            76,  2,   0, 5,
+            1,   2,   3, 4,
+            5,   6,   7, 8,
             255, 246, 0, 20,
             'H', 'i', 0, 0,
         }, encoded);
@@ -186,17 +200,18 @@ test "encode little-endian PolyFillRectangle request" {
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
-        70, 0,
-        5, 0,
-        4, 3, 2, 1,
-        8, 7, 6, 5,
-        10, 0,
+        70,  0,
+        5,   0,
+        4,   3,
+        2,   1,
+        8,   7,
+        6,   5,
+        10,  0,
         236, 255,
         128, 2,
         224, 1,
     }, encoded);
 }
-
 
 pub const Point = struct {
     x: i16,
@@ -267,17 +282,18 @@ test "encode little-endian PolyLine request" {
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
-        65, 0,
-        5, 0,
-        4, 3, 2, 1,
-        8, 7, 6, 5,
-        10, 0,
+        65,  0,
+        5,   0,
+        4,   3,
+        2,   1,
+        8,   7,
+        6,   5,
+        10,  0,
         236, 255,
-        30, 0,
-        40, 0,
+        30,  0,
+        40,  0,
     }, encoded);
 }
-
 
 /// Draws the outlines of one or more rectangles.
 pub const PolyRectangle = struct {
@@ -338,17 +354,18 @@ test "encode little-endian PolyRectangle request" {
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
-        67, 0,
-        5, 0,
-        4, 3, 2, 1,
-        8, 7, 6, 5,
-        10, 0,
+        67,  0,
+        5,   0,
+        4,   3,
+        2,   1,
+        8,   7,
+        6,   5,
+        10,  0,
         236, 255,
         128, 2,
         224, 1,
     }, encoded);
 }
-
 
 pub const Arc = struct {
     x: i16,
@@ -427,19 +444,20 @@ test "encode little-endian PolyArc request" {
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
-        68, 0,
-        6, 0,
-        4, 3, 2, 1,
-        8, 7, 6, 5,
-        10, 0,
+        68,  0,
+        6,   0,
+        4,   3,
+        2,   1,
+        8,   7,
+        6,   5,
+        10,  0,
         236, 255,
         100, 0,
         200, 0,
-        0, 0,
-        0, 90,
+        0,   0,
+        0,   90,
     }, encoded);
 }
-
 
 /// Fills one or more arc shapes.
 pub const PolyFillArc = struct {
@@ -509,19 +527,20 @@ test "encode little-endian PolyFillArc request" {
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
-        71, 0,
-        6, 0,
-        4, 3, 2, 1,
-        8, 7, 6, 5,
-        10, 0,
+        71,  0,
+        6,   0,
+        4,   3,
+        2,   1,
+        8,   7,
+        6,   5,
+        10,  0,
         236, 255,
         100, 0,
         200, 0,
-        0, 0,
-        0, 90,
+        0,   0,
+        0,   90,
     }, encoded);
 }
-
 
 pub const ImageText8 = struct {
     pub const EncodeError = error{
@@ -584,12 +603,15 @@ test "encode little-endian ImageText8 request" {
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
-        76, 2,
-        5, 0,
-        4, 3, 2, 1,
-        8, 7, 6, 5,
-        10, 0,
-        20, 0,
-        'H', 'i', 0, 0,
+        76,  2,
+        5,   0,
+        4,   3,
+        2,   1,
+        8,   7,
+        6,   5,
+        10,  0,
+        20,  0,
+        'H', 'i',
+        0,   0,
     }, encoded);
 }

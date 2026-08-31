@@ -8,40 +8,40 @@ const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
 
 const Depth = @This();
-    pub const ParseError = error{
-        BufferTooShort,
+pub const ParseError = error{
+    BufferTooShort,
+};
+
+depth: u8,
+visual_count: u16,
+
+pub const size = 8;
+
+pub fn parse(
+    bytes: []const u8,
+    endian: Endian,
+) ParseError!Depth {
+    if (bytes.len < size) return error.BufferTooShort;
+
+    return .{
+        .depth = bytes[0],
+        .visual_count = Wire.readU16(bytes[2..4], endian),
     };
+}
 
-    depth: u8,
-    visual_count: u16,
+pub fn visualsOffset(self: Depth) usize {
+    _ = self;
+    return size;
+}
 
-    pub const size = 8;
+pub fn visualsLength(self: Depth) usize {
+    return @as(usize, self.visual_count) * 24;
+}
 
-    pub fn parse(
-        bytes: []const u8,
-        endian: Endian,
-    ) ParseError!Depth {
-        if (bytes.len < size) return error.BufferTooShort;
-
-        return .{
-            .depth = bytes[0],
-            .visual_count = Wire.readU16(bytes[2..4], endian),
-        };
-    }
-
-    pub fn visualsOffset(self: Depth) usize {
-        _ = self;
-        return size;
-    }
-
-    pub fn visualsLength(self: Depth) usize {
-        return @as(usize, self.visual_count) * 24;
-    }
-
-    /// Returns the header plus all visual records belonging to this depth.
-    pub fn totalLength(self: Depth) usize {
-        return self.visualsOffset() + self.visualsLength();
-    }
+/// Returns the header plus all visual records belonging to this depth.
+pub fn totalLength(self: Depth) usize {
+    return self.visualsOffset() + self.visualsLength();
+}
 
 test "parse little-endian depth" {
     const depth = try Depth.parse(

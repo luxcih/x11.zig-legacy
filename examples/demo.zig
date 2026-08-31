@@ -30,17 +30,27 @@ fn drawScene(
 
 const SceneBuffers = struct {
     green_gc: [16]u8 = undefined,
-    fill: [x11.Draw.PolyFillRectangle.base_size +
-        x11.Draw.PolyFillRectangle.rectangle_size]u8 = undefined,
+    fill: [
+        x11.Draw.PolyFillRectangle.base_size +
+            x11.Draw.PolyFillRectangle.rectangle_size
+    ]u8 = undefined,
     draw_gc: [24]u8 = undefined,
-    line: [x11.Draw.PolyLine.base_size +
-        3 * x11.Draw.PolyLine.point_size]u8 = undefined,
-    rectangle: [x11.Draw.PolyRectangle.base_size +
-        x11.Draw.PolyRectangle.rectangle_size]u8 = undefined,
-    arc: [x11.Draw.PolyArc.base_size +
-        x11.Draw.PolyArc.arc_size]u8 = undefined,
-    filled_arc: [x11.Draw.PolyFillArc.base_size +
-        x11.Draw.PolyFillArc.arc_size]u8 = undefined,
+    line: [
+        x11.Draw.PolyLine.base_size +
+            3 * x11.Draw.PolyLine.point_size
+    ]u8 = undefined,
+    rectangle: [
+        x11.Draw.PolyRectangle.base_size +
+            x11.Draw.PolyRectangle.rectangle_size
+    ]u8 = undefined,
+    arc: [
+        x11.Draw.PolyArc.base_size +
+            x11.Draw.PolyArc.arc_size
+    ]u8 = undefined,
+    filled_arc: [
+        x11.Draw.PolyFillArc.base_size +
+            x11.Draw.PolyFillArc.arc_size
+    ]u8 = undefined,
     text: [64]u8 = undefined,
 
     pub fn build(

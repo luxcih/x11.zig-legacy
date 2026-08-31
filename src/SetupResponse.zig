@@ -64,8 +64,6 @@ pub const SetupResponse = union(enum) {
             inline else => |response| @as(usize, response.additional_length) * 4,
         };
     }
-
-
 };
 
 test "parse big-endian setup response prefixes" {

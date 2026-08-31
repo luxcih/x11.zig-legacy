@@ -81,7 +81,7 @@ pub const Intern = struct {
 /// Retrieves the string name associated with an atom ID.
 pub const GetName = struct {
     pub const EncodeError = error{BufferTooSmall};
-    pub const ParseError = error{InvalidLength, InvalidResponse};
+    pub const ParseError = error{ InvalidLength, InvalidResponse };
 
     pub const opcode = 17;
     pub const request_size = 8;
@@ -139,13 +139,16 @@ test "encode little-endian InternAtom" {
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
-        16, 0,
-        5, 0,
-        12, 0,
-        0, 0,
-        'W', 'M', '_', 'P',
-        'R', 'O', 'T', 'O',
-        'C', 'O', 'L', 'S',
+        16,  0,
+        5,   0,
+        12,  0,
+        0,   0,
+        'W', 'M',
+        '_', 'P',
+        'R', 'O',
+        'T', 'O',
+        'C', 'O',
+        'L', 'S',
     }, encoded);
 }
 
@@ -159,11 +162,12 @@ test "encode InternAtom with padding" {
     const encoded = try request.encode(&buffer, .little);
 
     try std.testing.expectEqualSlices(u8, &.{
-        16, 1,
-        3, 0,
-        3, 0,
-        0, 0,
-        'A', 'B', 'C', 0,
+        16,  1,
+        3,   0,
+        3,   0,
+        0,   0,
+        'A', 'B',
+        'C', 0,
     }, encoded);
 }
 
@@ -176,7 +180,6 @@ test "parse little-endian InternAtom reply" {
     try std.testing.expectEqual(@as(u32, 0x01020304), reply.atom);
 }
 
-
 test "encode little-endian GetAtomName" {
     const request = Atom.GetName{ .atom = 0x01020304 };
 
@@ -185,8 +188,9 @@ test "encode little-endian GetAtomName" {
 
     try std.testing.expectEqualSlices(u8, &.{
         17, 0,
-        2, 0,
-        4, 3, 2, 1,
+        2,  0,
+        4,  3,
+        2,  1,
     }, encoded);
 }
 
@@ -198,8 +202,9 @@ test "encode big-endian GetAtomName" {
 
     try std.testing.expectEqualSlices(u8, &.{
         17, 0,
-        0, 2,
-        1, 2, 3, 4,
+        0,  2,
+        1,  2,
+        3,  4,
     }, encoded);
 }
 

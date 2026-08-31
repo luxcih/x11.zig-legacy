@@ -70,7 +70,6 @@ pub fn readU32(bytes: []const u8, endian: Endian) u32 {
     };
 }
 
-
 test "Wire round-trips integer primitives in both byte orders" {
     inline for (.{ Endian.little, Endian.big }) |endian| {
         var u16_bytes: [2]u8 = undefined;

@@ -33,7 +33,6 @@ test "classify X11 response types" {
     try std.testing.expectEqual(Type.event, Type.classify(0x82));
 }
 
-
 /// Classifies a complete 32-byte X11 response header.
 ///
 /// Replies may carry additional data after this header; the request-specific
@@ -57,7 +56,7 @@ test "classify a complete X11 response header" {
 }
 
 test "reject incorrectly sized response header" {
-    try std.testing.expectError(error.InvalidLength, classify(&.{ 1 }));
+    try std.testing.expectError(error.InvalidLength, classify(&.{1}));
 }
 
 test "synthetic bit does not change reply or error classification" {

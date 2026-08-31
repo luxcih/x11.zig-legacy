@@ -13,7 +13,6 @@ const Endian = std.builtin.Endian;
 
 const GC = @This();
 
-
 /// X11 GX raster operations.
 pub const Function = enum(u32) {
     clear = 0,
@@ -97,29 +96,98 @@ pub const Values = struct {
 
         var offset: usize = 0;
 
-        if (self.function) |value| { Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian); offset += 4; }
-        if (self.plane_mask) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.foreground) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.background) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.line_width) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.line_style) |value| { Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian); offset += 4; }
-        if (self.cap_style) |value| { Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian); offset += 4; }
-        if (self.join_style) |value| { Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian); offset += 4; }
-        if (self.fill_style) |value| { Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian); offset += 4; }
-        if (self.fill_rule) |value| { Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian); offset += 4; }
-        if (self.tile) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.stipple) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.tile_stipple_x_origin) |value| { Wire.writeU32(buffer[offset..][0..4], @as(u32, @bitCast(@as(i32, value))), endian); offset += 4; }
-        if (self.tile_stipple_y_origin) |value| { Wire.writeU32(buffer[offset..][0..4], @as(u32, @bitCast(@as(i32, value))), endian); offset += 4; }
-        if (self.font) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.subwindow_mode) |value| { Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian); offset += 4; }
-        if (self.graphics_exposures) |value| { Wire.writeU32(buffer[offset..][0..4], if (value) 1 else 0, endian); offset += 4; }
-        if (self.clip_x_origin) |value| { Wire.writeU32(buffer[offset..][0..4], @as(u32, @bitCast(@as(i32, value))), endian); offset += 4; }
-        if (self.clip_y_origin) |value| { Wire.writeU32(buffer[offset..][0..4], @as(u32, @bitCast(@as(i32, value))), endian); offset += 4; }
-        if (self.clip_mask) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.dash_offset) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.dashes) |value| { Wire.writeU32(buffer[offset..][0..4], value, endian); offset += 4; }
-        if (self.arc_mode) |value| { Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian); offset += 4; }
+        if (self.function) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian);
+            offset += 4;
+        }
+        if (self.plane_mask) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.foreground) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.background) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.line_width) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.line_style) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian);
+            offset += 4;
+        }
+        if (self.cap_style) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian);
+            offset += 4;
+        }
+        if (self.join_style) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian);
+            offset += 4;
+        }
+        if (self.fill_style) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian);
+            offset += 4;
+        }
+        if (self.fill_rule) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian);
+            offset += 4;
+        }
+        if (self.tile) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.stipple) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.tile_stipple_x_origin) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @as(u32, @bitCast(@as(i32, value))), endian);
+            offset += 4;
+        }
+        if (self.tile_stipple_y_origin) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @as(u32, @bitCast(@as(i32, value))), endian);
+            offset += 4;
+        }
+        if (self.font) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.subwindow_mode) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian);
+            offset += 4;
+        }
+        if (self.graphics_exposures) |value| {
+            Wire.writeU32(buffer[offset..][0..4], if (value) 1 else 0, endian);
+            offset += 4;
+        }
+        if (self.clip_x_origin) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @as(u32, @bitCast(@as(i32, value))), endian);
+            offset += 4;
+        }
+        if (self.clip_y_origin) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @as(u32, @bitCast(@as(i32, value))), endian);
+            offset += 4;
+        }
+        if (self.clip_mask) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.dash_offset) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.dashes) |value| {
+            Wire.writeU32(buffer[offset..][0..4], value, endian);
+            offset += 4;
+        }
+        if (self.arc_mode) |value| {
+            Wire.writeU32(buffer[offset..][0..4], @intFromEnum(value), endian);
+            offset += 4;
+        }
 
         return buffer[0..offset];
     }
@@ -210,11 +278,11 @@ test "GC Values encodes mask bits in protocol order" {
     var buffer: [20]u8 = undefined;
     const encoded = try values.encode(&buffer, .big);
     try std.testing.expectEqualSlices(u8, &.{
-        0,0,0,6,
-        0x11,0x22,0x33,0x44,
-        0,0,0,3,
-        0xff,0xff,0xff,0xfe,
-        0,0,0,5,
+        0,    0,    0,    6,
+        0x11, 0x22, 0x33, 0x44,
+        0,    0,    0,    3,
+        0xff, 0xff, 0xff, 0xfe,
+        0,    0,    0,    5,
     }, encoded);
 }
 
@@ -227,12 +295,12 @@ test "CreateGC uses shared Values" {
     var buffer: [24]u8 = undefined;
     const encoded = try request.encode(&buffer, .little);
     try std.testing.expectEqualSlices(u8, &.{
-        55,0,6,0,
-        8,7,6,5,
-        4,3,2,1,
-        20,0,0,0,
-        0,255,0,0,
-        6,0,0,0,
+        55, 0,   6, 0,
+        8,  7,   6, 5,
+        4,  3,   2, 1,
+        20, 0,   0, 0,
+        0,  255, 0, 0,
+        6,  0,   0, 0,
     }, encoded);
 }
 
@@ -244,12 +312,12 @@ test "ChangeGC uses shared Values" {
     var buffer: [24]u8 = undefined;
     const encoded = try request.encode(&buffer, .big);
     try std.testing.expectEqualSlices(u8, &.{
-        56,0,0,6,
-        1,2,3,4,
-        0,17,0,8,
-        0x11,0x22,0x33,0x44,
-        0,0,0,1,
-        0,0,0,7,
+        56,   0,    0,    6,
+        1,    2,    3,    4,
+        0,    17,   0,    8,
+        0x11, 0x22, 0x33, 0x44,
+        0,    0,    0,    1,
+        0,    0,    0,    7,
     }, encoded);
 }
 
@@ -257,5 +325,5 @@ test "FreeGC request" {
     const request = Free{ .gc_id = 0x01020304 };
     var buffer: [Free.size]u8 = undefined;
     const encoded = try request.encode(&buffer, .big);
-    try std.testing.expectEqualSlices(u8, &.{60,0,0,2,1,2,3,4}, encoded);
+    try std.testing.expectEqualSlices(u8, &.{ 60, 0, 0, 2, 1, 2, 3, 4 }, encoded);
 }

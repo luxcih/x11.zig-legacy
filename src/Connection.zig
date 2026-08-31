@@ -12,105 +12,104 @@ const ProtocolError = @import("Error.zig").Error;
 const Endian = std.builtin.Endian;
 
 const Connection = @This();
-    stream: std.Io.net.Stream,
+stream: std.Io.net.Stream,
 
-    pub fn init(stream: std.Io.net.Stream) Connection {
-        return .{
-            .stream = stream,
-        };
-    }
-
-    /// Connects to a local X server through its Unix-domain socket.
-    pub fn connectLocal(
-        io: std.Io,
-        display: Display,
-        socket_dir: []const u8,
-    ) !Connection {
-        var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
-        const path = try std.fmt.bufPrint(
-            &path_buffer,
-            "{s}/X{}",
-            .{ socket_dir, display.number },
-        );
-
-        const address = try std.Io.net.UnixAddress.init(path);
-        const stream = try address.connect(io);
-
-        return init(stream);
-    }
-
-    /// Writes an entire X11 protocol message and flushes it to the server.
-    pub fn writeAll(
-        self: *Connection,
-        io: std.Io,
-        bytes: []const u8,
-    ) !void {
-        var buffer: [1024]u8 = undefined;
-        var writer = self.stream.writer(io, &buffer);
-        try writer.interface.writeAll(bytes);
-        try writer.interface.flush();
-    }
-
-    /// Returns a buffered reader for incoming X11 protocol messages.
-    pub fn reader(
-        self: *Connection,
-        io: std.Io,
-        buffer: []u8,
-    ) std.Io.net.Stream.Reader {
-        return self.stream.reader(io, buffer);
-    }
-
-    /// Reads one complete fixed-size X11 server response header.
-    ///
-    /// Replies may contain additional request-specific data after this header.
-    pub fn readResponseHeader(
-        self: *Connection,
-        response_reader: anytype,
-    ) ![Response.size]u8 {
-        _ = self;
-
-        var bytes: [Response.size]u8 = undefined;
-        try response_reader.interface.readSliceAll(&bytes);
-        return bytes;
-    }
-
-    /// A classified incoming X11 server message.
-    ///
-    /// Replies remain raw because their interpretation depends on the request
-    /// that produced them.
-    pub const Incoming = union(enum) {
-        protocol_error: ProtocolError,
-        reply: [Response.size]u8,
-        event: Event,
+pub fn init(stream: std.Io.net.Stream) Connection {
+    return .{
+        .stream = stream,
     };
+}
 
-    /// Reads and classifies one incoming X11 server response.
-    ///
-    /// Events and protocol errors are parsed immediately. Replies are returned
-    /// as their raw 32-byte header for request-specific parsing.
-    pub fn readResponse(
-        self: *Connection,
-        response_reader: anytype,
-        endian: Endian,
-    ) !Incoming {
-        const bytes = try self.readResponseHeader(response_reader);
+/// Connects to a local X server through its Unix-domain socket.
+pub fn connectLocal(
+    io: std.Io,
+    display: Display,
+    socket_dir: []const u8,
+) !Connection {
+    var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
+    const path = try std.fmt.bufPrint(
+        &path_buffer,
+        "{s}/X{}",
+        .{ socket_dir, display.number },
+    );
 
-        return switch (try Response.classify(&bytes)) {
-            .protocol_error => .{
-                .protocol_error = try ProtocolError.parse(&bytes, endian),
-            },
-            .reply => .{ .reply = bytes },
-            .event => .{
-                .event = try Event.parse(&bytes, endian),
-            },
-        };
-    }
+    const address = try std.Io.net.UnixAddress.init(path);
+    const stream = try address.connect(io);
 
-    /// Closes the underlying connection.
-    pub fn close(self: *Connection, io: std.Io) void {
-        self.stream.socket.close(io);
-    }
+    return init(stream);
+}
 
+/// Writes an entire X11 protocol message and flushes it to the server.
+pub fn writeAll(
+    self: *Connection,
+    io: std.Io,
+    bytes: []const u8,
+) !void {
+    var buffer: [1024]u8 = undefined;
+    var writer = self.stream.writer(io, &buffer);
+    try writer.interface.writeAll(bytes);
+    try writer.interface.flush();
+}
+
+/// Returns a buffered reader for incoming X11 protocol messages.
+pub fn reader(
+    self: *Connection,
+    io: std.Io,
+    buffer: []u8,
+) std.Io.net.Stream.Reader {
+    return self.stream.reader(io, buffer);
+}
+
+/// Reads one complete fixed-size X11 server response header.
+///
+/// Replies may contain additional request-specific data after this header.
+pub fn readResponseHeader(
+    self: *Connection,
+    response_reader: anytype,
+) ![Response.size]u8 {
+    _ = self;
+
+    var bytes: [Response.size]u8 = undefined;
+    try response_reader.interface.readSliceAll(&bytes);
+    return bytes;
+}
+
+/// A classified incoming X11 server message.
+///
+/// Replies remain raw because their interpretation depends on the request
+/// that produced them.
+pub const Incoming = union(enum) {
+    protocol_error: ProtocolError,
+    reply: [Response.size]u8,
+    event: Event,
+};
+
+/// Reads and classifies one incoming X11 server response.
+///
+/// Events and protocol errors are parsed immediately. Replies are returned
+/// as their raw 32-byte header for request-specific parsing.
+pub fn readResponse(
+    self: *Connection,
+    response_reader: anytype,
+    endian: Endian,
+) !Incoming {
+    const bytes = try self.readResponseHeader(response_reader);
+
+    return switch (try Response.classify(&bytes)) {
+        .protocol_error => .{
+            .protocol_error = try ProtocolError.parse(&bytes, endian),
+        },
+        .reply => .{ .reply = bytes },
+        .event => .{
+            .event = try Event.parse(&bytes, endian),
+        },
+    };
+}
+
+/// Closes the underlying connection.
+pub fn close(self: *Connection, io: std.Io) void {
+    self.stream.socket.close(io);
+}
 
 test "Connection.readResponse classifies a protocol error" {
     var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
@@ -160,4 +159,3 @@ test "Connection.readResponse parses events" {
         else => return error.UnexpectedResponse,
     }
 }
-
