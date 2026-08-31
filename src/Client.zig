@@ -62,12 +62,12 @@ pub fn connect(
     };
 }
 
-/// Writes raw bytes to the X server.
-fn write(self: *Client, bytes: []const u8) !void {
+/// Encodes and sends an X11 request.
+pub fn send(self: *Client, request: anytype) !void {
     var buffer: [1024]u8 = undefined;
     var writer = self.connection.writer(self.io, &buffer);
 
-    try writer.interface.writeAll(bytes);
+    try request.encode(&writer.interface, self.byte_order);
     try writer.interface.flush();
 }
 
