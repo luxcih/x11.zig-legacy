@@ -1,9 +1,18 @@
+//! Core X11 input control and input-state requests.
+//!
+//! This namespace covers keyboard and pointer state, input focus, active and
+//! passive grabs, server grabs, motion history, and pointer/modifier mappings.
+//!
+//! X11 distinguishes ordinary event delivery from grabs: selecting events asks
+//! the server to report activity, while a grab controls which client receives
+//! input under particular conditions.
+//!
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
 
 const Input = @This();
-    pub const GetInputFocus = struct {
+    /// Queries which window currently owns keyboard input focus.\npub const GetInputFocus = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{ InvalidLength, InvalidResponse };
 
@@ -48,7 +57,7 @@ const Input = @This();
     };
 
 
-    pub const SetInputFocus = struct {
+    /// Changes keyboard input focus according to the selected revert policy.\npub const SetInputFocus = struct {
         pub const EncodeError = error{BufferTooSmall};
 
         pub const opcode = 42;
@@ -116,7 +125,7 @@ test "SetInputFocus rejects a small buffer" {
 }
 
 
-    pub const QueryKeymap = struct {
+    /// Queries the current pressed/released state of the keyboard keymap.\npub const QueryKeymap = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{InvalidLength, InvalidResponse};
 
@@ -269,7 +278,7 @@ test "WarpPointer rejects a small buffer" {
 }
 
 
-    pub const GrabPointer = struct {
+    /// Actively grabs pointer input for a client.\npub const GrabPointer = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{InvalidLength, InvalidResponse};
         pub const opcode = 26;
@@ -315,7 +324,7 @@ test "WarpPointer rejects a small buffer" {
         }
     };
 
-    pub const UngrabPointer = struct {
+    /// Releases an active pointer grab.\npub const UngrabPointer = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 27;
         pub const size: usize = 8;
@@ -350,7 +359,7 @@ test "parse GrabPointer reply" {
 }
 
 
-    pub const GrabKeyboard = struct {
+    /// Actively grabs keyboard input for a client.\npub const GrabKeyboard = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{InvalidLength, InvalidResponse};
         pub const opcode = 31;
@@ -391,7 +400,7 @@ test "parse GrabPointer reply" {
         }
     };
 
-    pub const UngrabKeyboard = struct {
+    /// Releases an active keyboard grab.\npub const UngrabKeyboard = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 32;
         pub const size: usize = 8;
@@ -418,7 +427,7 @@ test "encode GrabKeyboard and UngrabKeyboard" {
 }
 
 
-    pub const AllowEvents = struct {
+    /// Controls delivery while synchronous grabs are active.\npub const AllowEvents = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 35;
         pub const size: usize = 8;
@@ -438,7 +447,7 @@ test "encode GrabKeyboard and UngrabKeyboard" {
         }
     };
 
-    pub const GrabServer = struct {
+    /// Temporarily prevents other clients from processing requests on the server.\npub const GrabServer = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 36;
         pub const size: usize = 4;
@@ -450,7 +459,7 @@ test "encode GrabKeyboard and UngrabKeyboard" {
         }
     };
 
-    pub const UngrabServer = struct {
+    /// Releases a server grab.\npub const UngrabServer = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 37;
         pub const size: usize = 4;
@@ -476,7 +485,7 @@ test "encode AllowEvents and server grabs" {
 }
 
 
-    pub const GetPointerMapping = struct {
+    /// Retrieves the server's current pointer-button mapping.\npub const GetPointerMapping = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{InvalidLength, InvalidResponse};
         pub const opcode = 117;
@@ -502,7 +511,7 @@ test "encode AllowEvents and server grabs" {
         }
     };
 
-    pub const SetPointerMapping = struct {
+    /// Changes the server's pointer-button mapping.\npub const SetPointerMapping = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{InvalidLength, InvalidResponse};
         pub const opcode = 116;
@@ -544,7 +553,7 @@ test "encode pointer mapping requests" {
 }
 
 
-    pub const ChangeActivePointerGrab = struct {
+    /// Changes selected properties of the currently active pointer grab.\npub const ChangeActivePointerGrab = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 30;
         pub const size: usize = 16;
@@ -584,7 +593,7 @@ test "encode ChangeActivePointerGrab" {
 }
 
 
-    pub const GrabButton = struct {
+    /// Installs a passive pointer-button grab.\npub const GrabButton = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 28;
         pub const size: usize = 24;
@@ -617,7 +626,7 @@ test "encode ChangeActivePointerGrab" {
         }
     };
 
-    pub const UngrabButton = struct {
+    /// Removes a passive pointer-button grab.\npub const UngrabButton = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 29;
         pub const size: usize = 12;
@@ -659,7 +668,7 @@ test "encode passive button grabs" {
 }
 
 
-    pub const GrabKey = struct {
+    /// Installs a passive keyboard grab for a key/modifier combination.\npub const GrabKey = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 33;
         pub const size: usize = 16;
@@ -686,7 +695,7 @@ test "encode passive button grabs" {
         }
     };
 
-    pub const UngrabKey = struct {
+    /// Removes a passive keyboard grab.\npub const UngrabKey = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 34;
         pub const size: usize = 12;
@@ -725,7 +734,7 @@ test "encode passive key grabs" {
 }
 
 
-    pub const GetMotionEvents = struct {
+    /// Retrieves pointer motion history recorded by the server for a time interval.\npub const GetMotionEvents = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{InvalidLength, InvalidResponse};
         pub const opcode = 39;
@@ -768,7 +777,7 @@ test "encode GetMotionEvents" {
 }
 
 
-    pub const GetModifierMapping = struct {
+    /// Retrieves the keyboard modifier mapping.\npub const GetModifierMapping = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const ParseError = error{InvalidLength, InvalidResponse};
         pub const opcode = 119;
@@ -800,7 +809,7 @@ test "encode GetMotionEvents" {
         }
     };
 
-    pub const SetModifierMapping = struct {
+    /// Changes the keyboard modifier mapping.\npub const SetModifierMapping = struct {
         pub const EncodeError = error{BufferTooSmall};
         pub const opcode = 118;
 
