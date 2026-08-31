@@ -63,7 +63,8 @@ test "encode little-endian setup without authorization" {
     const setup = Setup{};
 
     var buffer: [12]u8 = undefined;
-    const encoded = try setup.encode(&buffer);
+    var writer: std.Io.Writer = .fixed(&buffer);
+    try setup.encode(&writer);
 
     try std.testing.expectEqualSlices(u8, &.{
         'l', 0,
@@ -72,7 +73,7 @@ test "encode little-endian setup without authorization" {
         0,   0,
         0,   0,
         0,   0,
-    }, encoded);
+    }, buffer[0..writer.end]);
 }
 
 test "encode setup authorization with padding" {
@@ -82,8 +83,10 @@ test "encode setup authorization with padding" {
     };
 
     var buffer: [24]u8 = undefined;
-    const encoded = try setup.encode(&buffer);
+    var writer: std.Io.Writer = .fixed(&buffer);
+    try setup.encode(&writer);
 
+    const encoded = buffer[0..writer.end];
     try std.testing.expectEqual(@as(usize, 24), encoded.len);
     try std.testing.expectEqualSlices(u8, "MIT", encoded[12..15]);
     try std.testing.expectEqual(@as(u8, 0), encoded[15]);
@@ -99,7 +102,8 @@ test "encode big-endian setup" {
     };
 
     var buffer: [12]u8 = undefined;
-    const encoded = try setup.encode(&buffer);
+    var writer: std.Io.Writer = .fixed(&buffer);
+    try setup.encode(&writer);
 
     try std.testing.expectEqualSlices(u8, &.{
         'B', 0,
@@ -108,5 +112,6 @@ test "encode big-endian setup" {
         0,   0,
         0,   0,
         0,   0,
-    }, encoded);
+    }, buffer[0..writer.end]);
 }
+
