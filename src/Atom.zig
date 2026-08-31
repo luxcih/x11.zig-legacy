@@ -1,6 +1,6 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const Endian = std.builtin.Endian;
 
 const Atom = @This();
 
@@ -29,7 +29,7 @@ pub const Intern = struct {
     pub fn encode(
         self: Intern,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         if (self.name.len > std.math.maxInt(u16))
             return error.NameTooLong;
@@ -42,8 +42,8 @@ pub const Intern = struct {
 
         buffer[0] = opcode;
         buffer[1] = @intFromBool(self.only_if_exists);
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), byte_order);
-        Wire.writeU16(buffer[4..6], @intCast(self.name.len), byte_order);
+        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
+        Wire.writeU16(buffer[4..6], @intCast(self.name.len), endian);
         buffer[6] = 0;
         buffer[7] = 0;
         @memcpy(buffer[8 .. 8 + self.name.len], self.name);
@@ -54,14 +54,14 @@ pub const Intern = struct {
     pub const Reply = struct {
         atom: u32,
 
-        pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Reply {
+        pub fn parse(bytes: []const u8, endian: Endian) ParseError!Reply {
             if (bytes.len != reply_size)
                 return error.InvalidLength;
             if (bytes[0] != 1)
                 return error.InvalidResponse;
 
             return .{
-                .atom = Wire.readU32(bytes[8..12], byte_order),
+                .atom = Wire.readU32(bytes[8..12], endian),
             };
         }
     };
@@ -80,15 +80,15 @@ pub const GetName = struct {
     pub fn encode(
         self: GetName,
         buffer: []u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) EncodeError![]const u8 {
         if (buffer.len < request_size)
             return error.BufferTooSmall;
 
         buffer[0] = opcode;
         buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], 2, byte_order);
-        Wire.writeU32(buffer[4..8], self.atom, byte_order);
+        Wire.writeU16(buffer[2..4], 2, endian);
+        Wire.writeU32(buffer[4..8], self.atom, endian);
 
         return buffer[0..request_size];
     }
@@ -99,7 +99,7 @@ pub const GetName = struct {
         pub fn parse(
             header: []const u8,
             body: []const u8,
-            byte_order: ByteOrder,
+            endian: Endian,
         ) ParseError!Reply {
             if (header.len != reply_size)
                 return error.InvalidLength;
@@ -107,7 +107,7 @@ pub const GetName = struct {
                 return error.InvalidResponse;
 
             const name_length: usize =
-                @as(usize, Wire.readU16(header[8..10], byte_order));
+                @as(usize, Wire.readU16(header[8..10], endian));
             if (body.len < name_length)
                 return error.InvalidLength;
 

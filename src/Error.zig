@@ -1,6 +1,6 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const Endian = std.builtin.Endian;
 
 /// An X11 protocol error returned by the server.
 pub const Error = struct {
@@ -17,15 +17,15 @@ pub const Error = struct {
         InvalidResponse,
     };
 
-    pub fn parse(bytes: []const u8, byte_order: ByteOrder) ParseError!Error {
+    pub fn parse(bytes: []const u8, endian: Endian) ParseError!Error {
         if (bytes.len != size) return error.InvalidLength;
         if (bytes[0] != 0) return error.InvalidResponse;
 
         return .{
             .code = bytes[1],
-            .sequence = Wire.readU16(bytes[2..4], byte_order),
-            .resource_id = Wire.readU32(bytes[4..8], byte_order),
-            .minor_opcode = Wire.readU16(bytes[8..10], byte_order),
+            .sequence = Wire.readU16(bytes[2..4], endian),
+            .resource_id = Wire.readU32(bytes[4..8], endian),
+            .minor_opcode = Wire.readU16(bytes[8..10], endian),
             .major_opcode = bytes[10],
         };
     }

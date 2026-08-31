@@ -1,6 +1,6 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const Endian = std.builtin.Endian;
 
 const Setup = @This();
     pub const EncodeError = error{
@@ -8,7 +8,7 @@ const Setup = @This();
         AuthorizationTooLong,
     };
 
-    byte_order: ByteOrder = .little,
+    byte_order: Endian = .little,
     major_version: u16 = 11,
     minor_version: u16 = 0,
     authorization_name: []const u8 = "",

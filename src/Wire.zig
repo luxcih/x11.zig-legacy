@@ -1,7 +1,8 @@
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const std = @import("std");
+const Endian = std.builtin.Endian;
 
-pub fn writeU16(bytes: []u8, value: u16, byte_order: ByteOrder) void {
-    switch (byte_order) {
+pub fn writeU16(bytes: []u8, value: u16, endian: Endian) void {
+    switch (endian) {
         .little => {
             bytes[0] = @truncate(value);
             bytes[1] = @truncate(value >> 8);
@@ -13,12 +14,12 @@ pub fn writeU16(bytes: []u8, value: u16, byte_order: ByteOrder) void {
     }
 }
 
-pub fn writeI16(bytes: []u8, value: i16, byte_order: ByteOrder) void {
-    writeU16(bytes, @bitCast(value), byte_order);
+pub fn writeI16(bytes: []u8, value: i16, endian: Endian) void {
+    writeU16(bytes, @bitCast(value), endian);
 }
 
-pub fn writeU32(bytes: []u8, value: u32, byte_order: ByteOrder) void {
-    switch (byte_order) {
+pub fn writeU32(bytes: []u8, value: u32, endian: Endian) void {
+    switch (endian) {
         .little => {
             bytes[0] = @truncate(value);
             bytes[1] = @truncate(value >> 8);
@@ -34,8 +35,8 @@ pub fn writeU32(bytes: []u8, value: u32, byte_order: ByteOrder) void {
     }
 }
 
-pub fn readU16(bytes: []const u8, byte_order: ByteOrder) u16 {
-    return switch (byte_order) {
+pub fn readU16(bytes: []const u8, endian: Endian) u16 {
+    return switch (endian) {
         .little => @as(u16, bytes[0]) |
             (@as(u16, bytes[1]) << 8),
         .big => (@as(u16, bytes[0]) << 8) |
@@ -43,12 +44,12 @@ pub fn readU16(bytes: []const u8, byte_order: ByteOrder) u16 {
     };
 }
 
-pub fn readI16(bytes: []const u8, byte_order: ByteOrder) i16 {
-    return @bitCast(readU16(bytes, byte_order));
+pub fn readI16(bytes: []const u8, endian: Endian) i16 {
+    return @bitCast(readU16(bytes, endian));
 }
 
-pub fn readU32(bytes: []const u8, byte_order: ByteOrder) u32 {
-    return switch (byte_order) {
+pub fn readU32(bytes: []const u8, endian: Endian) u32 {
+    return switch (endian) {
         .little => @as(u32, bytes[0]) |
             (@as(u32, bytes[1]) << 8) |
             (@as(u32, bytes[2]) << 16) |
@@ -61,21 +62,19 @@ pub fn readU32(bytes: []const u8, byte_order: ByteOrder) u32 {
 }
 
 
-const std = @import("std");
-
 test "Wire round-trips integer primitives in both byte orders" {
-    inline for (.{ ByteOrder.little, ByteOrder.big }) |byte_order| {
+    inline for (.{ Endian.little, Endian.big }) |endian| {
         var u16_bytes: [2]u8 = undefined;
-        writeU16(&u16_bytes, 0x1234, byte_order);
-        try std.testing.expectEqual(@as(u16, 0x1234), readU16(&u16_bytes, byte_order));
+        writeU16(&u16_bytes, 0x1234, endian);
+        try std.testing.expectEqual(@as(u16, 0x1234), readU16(&u16_bytes, endian));
 
         var i16_bytes: [2]u8 = undefined;
-        writeI16(&i16_bytes, -12345, byte_order);
-        try std.testing.expectEqual(@as(i16, -12345), readI16(&i16_bytes, byte_order));
+        writeI16(&i16_bytes, -12345, endian);
+        try std.testing.expectEqual(@as(i16, -12345), readI16(&i16_bytes, endian));
 
         var u32_bytes: [4]u8 = undefined;
-        writeU32(&u32_bytes, 0x12345678, byte_order);
-        try std.testing.expectEqual(@as(u32, 0x12345678), readU32(&u32_bytes, byte_order));
+        writeU32(&u32_bytes, 0x12345678, endian);
+        try std.testing.expectEqual(@as(u32, 0x12345678), readU32(&u32_bytes, endian));
     }
 }
 

@@ -3,7 +3,7 @@ const x11 = @import("x11");
 
 pub const Session = struct {
     connection: x11.Connection,
-    byte_order: x11.ByteOrder,
+    byte_order: std.builtin.Endian,
     root: u32,
 
     pub fn close(self: *Session, io: std.Io) void {

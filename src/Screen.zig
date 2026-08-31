@@ -1,6 +1,6 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const Endian = std.builtin.Endian;
 
 const Screen = @This();
     pub const ParseError = error{
@@ -28,23 +28,23 @@ const Screen = @This();
 
     pub fn parse(
         bytes: []const u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) ParseError!Screen {
         if (bytes.len < size) return error.BufferTooShort;
 
         return .{
-            .root = Wire.readU32(bytes[0..4], byte_order),
-            .default_colormap = Wire.readU32(bytes[4..8], byte_order),
-            .white_pixel = Wire.readU32(bytes[8..12], byte_order),
-            .black_pixel = Wire.readU32(bytes[12..16], byte_order),
-            .current_input_masks = Wire.readU32(bytes[16..20], byte_order),
-            .width_pixels = Wire.readU16(bytes[20..22], byte_order),
-            .height_pixels = Wire.readU16(bytes[22..24], byte_order),
-            .width_millimeters = Wire.readU16(bytes[24..26], byte_order),
-            .height_millimeters = Wire.readU16(bytes[26..28], byte_order),
-            .min_installed_maps = Wire.readU16(bytes[28..30], byte_order),
-            .max_installed_maps = Wire.readU16(bytes[30..32], byte_order),
-            .root_visual = Wire.readU32(bytes[32..36], byte_order),
+            .root = Wire.readU32(bytes[0..4], endian),
+            .default_colormap = Wire.readU32(bytes[4..8], endian),
+            .white_pixel = Wire.readU32(bytes[8..12], endian),
+            .black_pixel = Wire.readU32(bytes[12..16], endian),
+            .current_input_masks = Wire.readU32(bytes[16..20], endian),
+            .width_pixels = Wire.readU16(bytes[20..22], endian),
+            .height_pixels = Wire.readU16(bytes[22..24], endian),
+            .width_millimeters = Wire.readU16(bytes[24..26], endian),
+            .height_millimeters = Wire.readU16(bytes[26..28], endian),
+            .min_installed_maps = Wire.readU16(bytes[28..30], endian),
+            .max_installed_maps = Wire.readU16(bytes[30..32], endian),
+            .root_visual = Wire.readU32(bytes[32..36], endian),
             .backing_stores = bytes[36],
             .save_unders = bytes[37] != 0,
             .root_depth = bytes[38],

@@ -1,5 +1,5 @@
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
 const std = @import("std");
+const Endian = std.builtin.Endian;
 const SetupSuccess = @import("SetupSuccess.zig").SetupSuccess;
 const PixmapFormat = @import("PixmapFormat.zig");
 const Screen = @import("Screen.zig");
@@ -35,9 +35,9 @@ const SetupInfo = @This();
     pub fn parse(
         allocator: std.mem.Allocator,
         body: []const u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) !SetupInfo {
-        const success = try SetupSuccess.parse(body, byte_order);
+        const success = try SetupSuccess.parse(body, endian);
 
         const pixmap_formats = try parsePixmapFormats(
             allocator,
@@ -65,7 +65,7 @@ const SetupInfo = @This();
                 allocator,
                 body,
                 screen_offset,
-                byte_order,
+                endian,
             );
 
             screens[parsed_screens] = parsed.screen;
@@ -119,14 +119,14 @@ const SetupInfo = @This();
         allocator: std.mem.Allocator,
         body: []const u8,
         offset: usize,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) !struct { screen: ParsedScreen, next_offset: usize } {
         if (offset + Screen.size > body.len)
             return error.BodyTooShort;
 
         const screen = try Screen.parse(
             body[offset .. offset + Screen.size],
-            byte_order,
+            endian,
         );
 
         const depths = try allocator.alloc(
@@ -149,7 +149,7 @@ const SetupInfo = @This();
 
             const depth = try Depth.parse(
                 body[depth_offset .. depth_offset + Depth.size],
-                byte_order,
+                endian,
             );
 
             const total_length = depth.totalLength();
@@ -161,7 +161,7 @@ const SetupInfo = @This();
                 body,
                 depth,
                 depth_offset + depth.visualsOffset(),
-                byte_order,
+                endian,
             );
 
             depths[parsed_depths] = .{
@@ -186,7 +186,7 @@ const SetupInfo = @This();
         body: []const u8,
         depth: Depth,
         offset: usize,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) ![]VisualType {
         const visuals = try allocator.alloc(
             VisualType,
@@ -198,7 +198,7 @@ const SetupInfo = @This();
             const visual_offset = offset + index * VisualType.size;
             visual.* = try VisualType.parse(
                 body[visual_offset .. visual_offset + VisualType.size],
-                byte_order,
+                endian,
             );
         }
 
