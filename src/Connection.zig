@@ -71,7 +71,6 @@ pub fn reader(
 ///
 /// Replies may contain additional request-specific data after this header.
 fn readResponseHeader(response_reader: anytype) ![Response.size]u8 {
-
     var bytes: [Response.size]u8 = undefined;
     try response_reader.interface.readSliceAll(&bytes);
     return bytes;
@@ -132,9 +131,7 @@ test "Connection.readResponse returns replies as raw headers" {
     bytes[0] = 1;
 
     var stream = std.Io.fixedBufferStream(&bytes);
-    var connection = Connection{ .stream = undefined };
-
-    const incoming = try connection.readResponse(&stream.reader(), .little);
+    const incoming = try readResponse(&stream.reader(), .little);
     switch (incoming) {
         .reply => |reply| {
             try std.testing.expectEqual(@as(u8, 1), reply[0]);
@@ -148,9 +145,7 @@ test "Connection.readResponse parses events" {
     bytes[0] = 12;
 
     var stream = std.Io.fixedBufferStream(&bytes);
-    var connection = Connection.init(undefined);
-
-    const incoming = try connection.readResponse(&stream.reader(), .little);
+    const incoming = try readResponse(&stream.reader(), .little);
     switch (incoming) {
         .event => |event| switch (event) {
             .expose => {},
