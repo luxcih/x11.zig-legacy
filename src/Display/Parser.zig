@@ -7,6 +7,7 @@ const std = @import("std");
 const Parser = @This();
 
 value: []const u8,
+index: usize = 0,
 
 pub const Separator = enum {
     colon,
@@ -31,101 +32,98 @@ pub fn init(value: []const u8) Parser {
     };
 }
 
-pub fn parse(self: Parser) Error!Result {
+pub fn parse(self: *Parser) Error!Result {
     if (self.value.len == 0) return error.InvalidDisplay;
 
-    const address_start = try self.parseProtocol();
-    const separator_index = try self.findSeparator(address_start);
+    const protocol = try self.parseProtocol();
+    const host = try self.parseHost();
+    const separator = try self.parseSeparator();
+    const number = try self.parseNumber();
+    const screen = try self.parseScreen();
+
+    if (self.index != self.value.len) return error.InvalidDisplay;
 
     return .{
-        .protocol = self.protocol(address_start),
-        .host = try self.parseHost(address_start, separator_index),
-        .separator = self.parseSeparator(separator_index),
-        .number = try self.parseNumber(separator_index),
-        .screen = try self.parseScreen(separator_index),
+        .protocol = protocol,
+        .host = host,
+        .separator = separator,
+        .number = number,
+        .screen = screen,
     };
 }
 
-fn parseProtocol(self: Parser) Error!usize {
-    const slash = std.mem.findScalar(u8, self.value, '/') orelse return 0;
+fn parseProtocol(self: *Parser) Error!?[]const u8 {
+    const slash = std.mem.findScalar(u8, self.value[self.index..], '/') orelse {
+        return null;
+    };
 
-    if (slash == 0) return error.InvalidDisplay;
+    const end = self.index + slash;
 
-    return slash + 1;
+    if (end == self.index) return error.InvalidDisplay;
+
+    self.index = end + 1;
+    return self.value[0..end];
 }
 
-fn protocol(self: Parser, address_start: usize) ?[]const u8 {
-    if (address_start == 0) return null;
-    return self.value[0 .. address_start - 1];
-}
+fn parseHost(self: *Parser) Error![]const u8 {
+    const colon = std.mem.findScalar(u8, self.value[self.index..], ':') orelse {
+        return error.InvalidDisplay;
+    };
 
-fn findSeparator(self: Parser, address_start: usize) Error!usize {
-    return address_start + (std.mem.findScalar(
-        u8,
-        self.value[address_start..],
-        ':',
-    ) orelse return error.InvalidDisplay);
-}
+    const end = self.index + colon;
+    const host = self.value[self.index..end];
 
-fn parseHost(
-    self: Parser,
-    address_start: usize,
-    separator_index: usize,
-) Error![]const u8 {
-    const host = self.value[address_start..separator_index];
-
-    if (address_start != 0 and host.len == 0) {
+    if (self.index != 0 and host.len == 0) {
         return error.InvalidDisplay;
     }
 
+    self.index = end;
     return host;
 }
 
-fn parseSeparator(self: Parser, separator_index: usize) Separator {
-    return if (
-        separator_index + 1 < self.value.len and
-        self.value[separator_index + 1] == ':'
-    )
-        .double_colon
-    else
-        .colon;
+fn parseSeparator(self: *Parser) Error!Separator {
+    if (self.index >= self.value.len or self.value[self.index] != ':') {
+        return error.InvalidDisplay;
+    }
+
+    self.index += 1;
+
+    if (self.index < self.value.len and self.value[self.index] == ':') {
+        self.index += 1;
+        return .double_colon;
+    }
+
+    return .colon;
 }
 
-fn numberStart(
-    self: Parser,
-    separator_index: usize,
-) usize {
-    return separator_index + switch (self.parseSeparator(separator_index)) {
-        .colon => 1,
-        .double_colon => 2,
-    };
-}
+fn parseNumber(self: *Parser) Error!u32 {
+    const start = self.index;
 
-fn parseNumber(self: Parser, separator_index: usize) Error!u32 {
-    const number_start = self.numberStart(separator_index);
-    const dot = std.mem.findScalar(u8, self.value[number_start..], '.');
-    const number_end = if (dot) |index| number_start + index else self.value.len;
-    const number_slice = self.value[number_start..number_end];
+    while (self.index < self.value.len and self.value[self.index] != '.') {
+        self.index += 1;
+    }
 
-    if (number_slice.len == 0) return error.InvalidDisplay;
+    const number = self.value[start..self.index];
+    if (number.len == 0) return error.InvalidDisplay;
 
-    return std.fmt.parseInt(u32, number_slice, 10) catch {
+    return std.fmt.parseInt(u32, number, 10) catch {
         return error.InvalidDisplay;
     };
 }
 
-fn parseScreen(self: Parser, separator_index: usize) Error!u32 {
-    const number_start = self.numberStart(separator_index);
-    const dot = std.mem.findScalar(u8, self.value[number_start..], '.') orelse {
-        return 0;
-    };
+fn parseScreen(self: *Parser) Error!u32 {
+    if (self.index == self.value.len) return 0;
 
-    const screen_start = number_start + dot + 1;
-    const screen_slice = self.value[screen_start..];
+    if (self.value[self.index] != '.') return error.InvalidDisplay;
 
-    if (screen_slice.len == 0) return error.InvalidDisplay;
+    self.index += 1;
 
-    return std.fmt.parseInt(u32, screen_slice, 10) catch {
+    const screen = self.value[self.index..];
+    if (screen.len == 0) return error.InvalidDisplay;
+
+    self.index = self.value.len;
+
+    return std.fmt.parseInt(u32, screen, 10) catch {
         return error.InvalidDisplay;
     };
 }
