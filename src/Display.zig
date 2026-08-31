@@ -83,6 +83,8 @@ test "reject malformed displays" {
         "/host:0",
         "tcp/:0",
         "host:0/",
+        "foo/bar:0",
+        "tcp/foo/bar:0",
         "host:",
         "host:0.",
         "host:.0",
