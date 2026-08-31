@@ -9,6 +9,7 @@ const XidAllocator = @import("XidAllocator.zig");
 
 const Client = @This();
 
+io: std.Io,
 allocator: std.mem.Allocator,
 connection: Connection,
 byte_order: std.builtin.Endian,
@@ -52,6 +53,7 @@ pub fn connect(
     errdefer setup_info.deinit(allocator);
 
     return .{
+        .io = io,
         .allocator = allocator,
         .connection = connection,
         .byte_order = setup_request.byte_order,
@@ -61,9 +63,9 @@ pub fn connect(
 }
 
 /// Writes raw bytes to the X server.
-fn write(self: *Client, io: std.Io, bytes: []const u8) !void {
+fn write(self: *Client, bytes: []const u8) !void {
     var buffer: [1024]u8 = undefined;
-    var writer = self.connection.writer(io, &buffer);
+    var writer = self.connection.writer(self.io, &buffer);
 
     try writer.interface.writeAll(bytes);
     try writer.interface.flush();
@@ -75,7 +77,7 @@ pub fn nextXid(self: *Client) XidAllocator.Error!u32 {
 }
 
 /// Releases resources owned by the client and closes its connection.
-pub fn deinit(self: *Client, io: std.Io) void {
+pub fn deinit(self: *Client) void {
     self.setup.deinit(self.allocator);
-    self.connection.close(io);
+    self.connection.close(self.io);
 }
