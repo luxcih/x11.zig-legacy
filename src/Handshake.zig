@@ -17,25 +17,22 @@ pub const Result = struct {
 pub fn perform(client: *Client) !Result {
     try client.send(Request{});
 
-    var prefix: [8]u8 = undefined;
-    try client.read(&prefix);
+    const prefix = try client.recv(ResponsePrefix);
 
-    const additional_length = Wire.readU16(prefix[6..8], client.endian);
-    const additional_bytes = @as(usize, additional_length) * 4;
+    const additional_bytes = @as(usize, prefix.additional_length) * 4;
 
     const body = try client.allocator.alloc(u8, additional_bytes);
     defer client.allocator.free(body);
     try client.read(body);
 
-    return switch (prefix[0]) {
-        0 => error.SetupFailed,
-        1 => .{
+    return switch (prefix.status) {
+        .failed => error.SetupFailed,
+        .success => .{
             .server = try Server.parse(client.allocator, body, client.endian),
             .resource_id_base = Wire.readU32(body[4..8], client.endian),
             .resource_id_mask = Wire.readU32(body[8..12], client.endian),
         },
-        2 => error.AuthenticationRequired,
-        else => error.InvalidSetupResponse,
+        .authenticate => error.AuthenticationRequired,
     };
 }
 
@@ -62,3 +59,34 @@ const Request = struct {
     }
 };
 
+
+
+const Status = enum(u8) {
+    failed = 0,
+    success = 1,
+    authenticate = 2,
+
+    _,
+};
+
+const ResponsePrefix = struct {
+    status: Status,
+    protocol_major_version: u16,
+    protocol_minor_version: u16,
+    additional_length: u16,
+
+    pub fn decode(
+        reader: *std.Io.Reader,
+        endian: Endian,
+    ) !ResponsePrefix {
+        var bytes: [8]u8 = undefined;
+        try reader.readSliceAll(&bytes);
+
+        return .{
+            .status = @enumFromInt(bytes[0]),
+            .protocol_major_version = Wire.readU16(bytes[2..4], endian),
+            .protocol_minor_version = Wire.readU16(bytes[4..6], endian),
+            .additional_length = Wire.readU16(bytes[6..8], endian),
+        };
+    }
+};
