@@ -27,7 +27,6 @@ pub fn connect(
     allocator: std.mem.Allocator,
     display_name: []const u8,
 ) !*Client {
-{
     const self = try allocator.create(Client);
     errdefer allocator.destroy(self);
 
@@ -39,15 +38,10 @@ pub fn connect(
     self.reader = self.connection.reader(io, &self.read_buffer);
     self.writer = self.connection.writer(io, &self.write_buffer);
 
-    const result = try Handshake.perform(
-        allocator,
-        &self.reader,
-        &self.writer,
-        .little,
-    );
-    errdefer result.server.deinit(allocator);
-
     self.endian = .little;
+
+    const result = try Handshake.perform(self);
+    errdefer result.server.deinit(allocator);
     self.server = result.server;
     self.xids = XidAllocator.init(
         result.resource_id_base,
