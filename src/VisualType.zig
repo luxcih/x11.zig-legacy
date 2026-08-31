@@ -1,6 +1,7 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const std = @import("std");
+const Endian = std.builtin.Endian;
 
 const VisualType = @This();
     pub const ParseError = error{
@@ -29,7 +30,7 @@ const VisualType = @This();
 
     pub fn parse(
         bytes: []const u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) ParseError!VisualType {
         if (bytes.len < size) return error.BufferTooShort;
 
@@ -44,13 +45,13 @@ const VisualType = @This();
         };
 
         return .{
-            .visual_id = Wire.readU32(bytes[0..4], byte_order),
+            .visual_id = Wire.readU32(bytes[0..4], endian),
             .class = class,
             .bits_per_rgb_value = bytes[5],
-            .colormap_entries = Wire.readU16(bytes[6..8], byte_order),
-            .red_mask = Wire.readU32(bytes[8..12], byte_order),
-            .green_mask = Wire.readU32(bytes[12..16], byte_order),
-            .blue_mask = Wire.readU32(bytes[16..20], byte_order),
+            .colormap_entries = Wire.readU16(bytes[6..8], endian),
+            .red_mask = Wire.readU32(bytes[8..12], endian),
+            .green_mask = Wire.readU32(bytes[12..16], endian),
+            .blue_mask = Wire.readU32(bytes[16..20], endian),
         };
     }
 
