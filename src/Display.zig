@@ -10,8 +10,8 @@ const Display = @This();
 protocol: ?[]const u8,
 host: []const u8,
 separator: Separator,
-number: u32,
-screen: u32 = 0,
+display_number: u32,
+screen_number: u32 = 0,
 
 pub const Separator = Parser.Separator;
 pub const ParseError = Parser.Error;
@@ -25,8 +25,8 @@ pub fn parse(value: []const u8) ParseError!Display {
         .protocol = result.protocol,
         .host = result.host,
         .separator = result.separator,
-        .number = result.number,
-        .screen = result.screen,
+        .display_number = result.display_number,
+        .screen_number = result.screen_number,
     };
 }
 
@@ -36,8 +36,8 @@ test "parse local display" {
     try std.testing.expect(display.protocol == null);
     try std.testing.expectEqualStrings("", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 0), display.number);
-    try std.testing.expectEqual(@as(u32, 0), display.screen);
+    try std.testing.expectEqual(@as(u32, 0), display.display_number);
+    try std.testing.expectEqual(@as(u32, 0), display.screen_number);
 }
 
 test "parse local display with screen" {
@@ -45,8 +45,8 @@ test "parse local display with screen" {
 
     try std.testing.expectEqualStrings("", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 0), display.number);
-    try std.testing.expectEqual(@as(u32, 1), display.screen);
+    try std.testing.expectEqual(@as(u32, 0), display.display_number);
+    try std.testing.expectEqual(@as(u32, 1), display.screen_number);
 }
 
 test "parse hostname" {
@@ -55,8 +55,8 @@ test "parse hostname" {
     try std.testing.expect(display.protocol == null);
     try std.testing.expectEqualStrings("example.org", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 12), display.number);
-    try std.testing.expectEqual(@as(u32, 3), display.screen);
+    try std.testing.expectEqual(@as(u32, 12), display.display_number);
+    try std.testing.expectEqual(@as(u32, 3), display.screen_number);
 }
 
 test "parse protocol" {
@@ -65,7 +65,7 @@ test "parse protocol" {
     try std.testing.expectEqualStrings("tcp", display.protocol.?);
     try std.testing.expectEqualStrings("example.org", display.host);
     try std.testing.expectEqual(Display.Separator.colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 1), display.number);
+    try std.testing.expectEqual(@as(u32, 1), display.display_number);
 }
 
 test "parse double colon" {
@@ -73,8 +73,8 @@ test "parse double colon" {
 
     try std.testing.expectEqualStrings("machine", display.host);
     try std.testing.expectEqual(Display.Separator.double_colon, display.separator);
-    try std.testing.expectEqual(@as(u32, 0), display.number);
-    try std.testing.expectEqual(@as(u32, 1), display.screen);
+    try std.testing.expectEqual(@as(u32, 0), display.display_number);
+    try std.testing.expectEqual(@as(u32, 1), display.screen_number);
 }
 
 test "reject malformed displays" {
