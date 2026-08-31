@@ -51,7 +51,7 @@ const SceneBuffers = struct {
     ) !Scene {
         const green_gc = x11.GC.Change{
             .gc_id = gc_id,
-            .foreground = 0x00ff00,
+            .values = .{ .foreground = 0x00ff00 },
         };
         const green_gc_bytes = try green_gc.encode(
             &self.green_gc,
@@ -72,8 +72,7 @@ const SceneBuffers = struct {
 
         const draw_gc = x11.GC.Change{
             .gc_id = gc_id,
-            .foreground = 0xff0000,
-            .line_width = 6,
+            .values = .{ .foreground = 0xff0000, .line_width = 6 },
         };
         const draw_gc_bytes = try draw_gc.encode(
             &self.draw_gc,
@@ -410,7 +409,7 @@ pub fn main(init: std.process.Init) !void {
             const create_gc = x11.GC.Create{
                 .drawable = window_id,
                 .gc_id = gc_id,
-                .foreground = 0x00ff00,
+                .values = .{ .foreground = 0x00ff00 },
             };
 
             var gc_buffer: [20]u8 = undefined;

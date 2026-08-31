@@ -8,17 +8,19 @@ pub fn main() !void {
     const create = x11.GC.Create{
         .drawable = 1,
         .gc_id = 2,
-        .foreground = 0x00ff00,
+        .values = .{ .foreground = 0xff0000 },
     };
-    var create_buffer: [20]u8 = undefined;
+    var create_buffer: [x11.GC.Create.size + 4]u8 = undefined;
     const create_bytes = try create.encode(&create_buffer, .little);
 
     const change = x11.GC.Change{
         .gc_id = 2,
-        .foreground = 0xff0000,
-        .line_width = 6,
+        .values = .{
+            .foreground = 0x00ff00,
+            .line_width = 6,
+        },
     };
-    var change_buffer: [24]u8 = undefined;
+    var change_buffer: [x11.GC.Change.base_size + 8]u8 = undefined;
     const change_bytes = try change.encode(&change_buffer, .little);
 
     const free = x11.GC.Free{ .gc_id = 2 };
