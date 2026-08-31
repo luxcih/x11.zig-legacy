@@ -16,7 +16,6 @@ const Atom = @This();
 /// The atom may be newly created unless only_if_exists is set.
 pub const Intern = struct {
     pub const EncodeError = error{
-        BufferTooSmall,
         NameTooLong,
     };
 
@@ -32,33 +31,29 @@ pub const Intern = struct {
     name: []const u8,
     only_if_exists: bool = false,
 
-    pub fn encodedLength(self: Intern) usize {
+    fn encodedLength(self: Intern) usize {
         return header_size + std.mem.alignForward(usize, self.name.len, 4);
     }
 
-    pub fn encode(
-        self: Intern,
-        buffer: []u8,
-        endian: Endian,
-    ) EncodeError![]const u8 {
+    pub fn encode(self: Intern, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
         if (self.name.len > std.math.maxInt(u16))
             return error.NameTooLong;
 
         const length = self.encodedLength();
-        if (buffer.len < length)
-            return error.BufferTooSmall;
-
-        @memset(buffer[0..length], 0);
-
-        buffer[0] = opcode;
-        buffer[1] = @intFromBool(self.only_if_exists);
-        Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
-        Wire.writeU16(buffer[4..6], @intCast(self.name.len), endian);
-        buffer[6] = 0;
-        buffer[7] = 0;
-        @memcpy(buffer[8 .. 8 + self.name.len], self.name);
-
-        return buffer[0..length];
+        var header: [8]u8 = undefined;
+        header[0] = opcode;
+        header[1] = @intFromBool(self.only_if_exists);
+        Wire.writeU16(header[2..4], @intCast(length / 4), endian);
+        Wire.writeU16(header[4..6], @intCast(self.name.len), endian);
+        header[6] = 0;
+        header[7] = 0;
+        try writer.writeAll(&header);
+        try writer.writeAll(self.name);
+        const padding = length - header_size - self.name.len;
+        if (padding != 0) {
+            var zeros: [3]u8 = .{ 0, 0, 0 };
+            try writer.writeAll(zeros[0..padding]);
+        }
     }
 
     /// The atom ID returned by the server for the requested name.
@@ -80,7 +75,7 @@ pub const Intern = struct {
 
 /// Retrieves the string name associated with an atom ID.
 pub const GetName = struct {
-    pub const EncodeError = error{BufferTooSmall};
+    pub const EncodeError = error{};
     pub const ParseError = error{ InvalidLength, InvalidResponse };
 
     pub const opcode = 17;
@@ -89,20 +84,13 @@ pub const GetName = struct {
 
     atom: u32,
 
-    pub fn encode(
-        self: GetName,
-        buffer: []u8,
-        endian: Endian,
-    ) EncodeError![]const u8 {
-        if (buffer.len < request_size)
-            return error.BufferTooSmall;
-
-        buffer[0] = opcode;
-        buffer[1] = 0;
-        Wire.writeU16(buffer[2..4], 2, endian);
-        Wire.writeU32(buffer[4..8], self.atom, endian);
-
-        return buffer[0..request_size];
+    pub fn encode(self: GetName, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
+        var bytes: [request_size]u8 = undefined;
+        bytes[0] = opcode;
+        bytes[1] = 0;
+        Wire.writeU16(bytes[2..4], 2, endian);
+        Wire.writeU32(bytes[4..8], self.atom, endian);
+        try writer.writeAll(&bytes);
     }
 
     pub const Reply = struct {
@@ -136,7 +124,9 @@ test "encode little-endian InternAtom" {
     };
 
     var buffer: [20]u8 = undefined;
-    const encoded = try request.encode(&buffer, .little);
+    var writer: std.Io.Writer = .fixed(&buffer);
+    try request.encode(&writer, .little);
+    const encoded = buffer[0..writer.end];
 
     try std.testing.expectEqualSlices(u8, &.{
         16,  0,
@@ -159,7 +149,9 @@ test "encode InternAtom with padding" {
     };
 
     var buffer: [12]u8 = undefined;
-    const encoded = try request.encode(&buffer, .little);
+    var writer: std.Io.Writer = .fixed(&buffer);
+    try request.encode(&writer, .little);
+    const encoded = buffer[0..writer.end];
 
     try std.testing.expectEqualSlices(u8, &.{
         16,  1,
@@ -184,7 +176,9 @@ test "encode little-endian GetAtomName" {
     const request = Atom.GetName{ .atom = 0x01020304 };
 
     var buffer: [Atom.GetName.request_size]u8 = undefined;
-    const encoded = try request.encode(&buffer, .little);
+    var writer: std.Io.Writer = .fixed(&buffer);
+    try request.encode(&writer, .little);
+    const encoded = buffer[0..writer.end];
 
     try std.testing.expectEqualSlices(u8, &.{
         17, 0,
@@ -198,7 +192,9 @@ test "encode big-endian GetAtomName" {
     const request = Atom.GetName{ .atom = 0x01020304 };
 
     var buffer: [Atom.GetName.request_size]u8 = undefined;
-    const encoded = try request.encode(&buffer, .big);
+    var writer: std.Io.Writer = .fixed(&buffer);
+    try request.encode(&writer, .big);
+    const encoded = buffer[0..writer.end];
 
     try std.testing.expectEqualSlices(u8, &.{
         17, 0,
