@@ -60,6 +60,12 @@ pub fn connect(
     };
 }
 
+
+/// Returns the next X resource identifier available to this client.
+pub fn nextXid(self: *Client) XidAllocator.Error!u32 {
+    return self.xids.next();
+}
+
 /// Releases resources owned by the client and closes its connection.
 pub fn deinit(self: *Client, io: std.Io) void {
     self.setup.deinit(self.allocator);
