@@ -191,7 +191,8 @@ test "encode QueryKeymap big-endian" {
 }
 
 
-    /// Moves the pointer relative to or into a destination window.\n    pub const WarpPointer = struct {
+    /// Moves the pointer relative to or into a destination window.
+    pub const WarpPointer = struct {
         pub const EncodeError = error{BufferTooSmall};
 
         pub const opcode = 41;
