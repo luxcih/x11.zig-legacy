@@ -24,8 +24,17 @@ endian: std.builtin.Endian,
 server: Server,
 xids: XidAllocator,
 
-/// Connects to an X server and completes the initial X11 setup handshake.
+/// Connects to an X server using the default connection options.
 pub fn connect(
+    io: std.Io,
+    allocator: std.mem.Allocator,
+    display_name: []const u8,
+) !*Client {
+    return connectWithOptions(io, allocator, display_name, .{});
+}
+
+/// Connects to an X server and completes the initial X11 setup handshake.
+pub fn connectWithOptions(
     io: std.Io,
     allocator: std.mem.Allocator,
     display_name: []const u8,
