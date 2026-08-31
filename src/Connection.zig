@@ -73,13 +73,6 @@ pub fn writeAll(
 }
 
 /// Returns a buffered reader for incoming X11 protocol messages.
-pub fn reader(
-    self: *Connection,
-    io: std.Io,
-    buffer: []u8,
-) std.Io.net.Stream.Reader {
-    return self.stream.reader(io, buffer);
-}
 
 /// Reads one complete fixed-size X11 server response header.
 ///
