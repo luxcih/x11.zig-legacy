@@ -11,6 +11,12 @@ const VisualType = @import("VisualType.zig");
 
 const Server = @This();
 
+pub const Setup = struct {
+    server: Server,
+    resource_id_base: u32,
+    resource_id_mask: u32,
+};
+
 pub const ParsedDepth = struct {
     depth: Depth,
     visuals: []VisualType,
@@ -43,7 +49,7 @@ max_keycode: u8,
 pixmap_formats: []PixmapFormat,
 screens: []ParsedScreen,
 
-pub fn receive(client: *Client) !Server {
+pub fn receive(client: *Client) !Setup {
     var header: [32]u8 = undefined;
     try client.read(&header);
 
@@ -84,6 +90,7 @@ pub fn receive(client: *Client) !Server {
     }
 
     return .{
+        .server = .{
         .release_number = Wire.readU32(header[0..4], endian),
         .motion_buffer_size = Wire.readU32(header[12..16], endian),
         .vendor = vendor,
@@ -96,6 +103,9 @@ pub fn receive(client: *Client) !Server {
         .max_keycode = header[27],
         .pixmap_formats = pixmap_formats,
         .screens = screens,
+        },
+        .resource_id_base = Wire.readU32(header[4..8], endian),
+        .resource_id_mask = Wire.readU32(header[8..12], endian),
     };
 }
 
