@@ -22,8 +22,8 @@ pub const Result = struct {
     protocol: ?[]const u8,
     host: []const u8,
     separator: Separator,
-    number: u32,
-    screen: u32 = 0,
+    display_number: u32,
+    screen_number: u32 = 0,
 };
 
 pub fn init(value: []const u8) Parser {
@@ -38,8 +38,8 @@ pub fn parse(self: *Parser) Error!Result {
     const protocol = try self.parseProtocol();
     const host = try self.parseHost();
     const separator = try self.parseSeparator();
-    const number = try self.parseNumber();
-    const screen = try self.parseScreen();
+    const display_number = try self.parseNumber();
+    const screen_number = try self.parseScreen();
 
     if (self.index != self.value.len) return error.InvalidDisplay;
 
@@ -47,8 +47,8 @@ pub fn parse(self: *Parser) Error!Result {
         .protocol = protocol,
         .host = host,
         .separator = separator,
-        .number = number,
-        .screen = screen,
+        .display_number = display_number,
+        .screen_number = screen_number,
     };
 }
 
