@@ -71,6 +71,14 @@ pub fn send(self: *Client, request: anytype) !void {
     try writer.interface.flush();
 }
 
+/// Receives and decodes an X11 message.
+pub fn recv(self: *Client, comptime T: type) !T {
+    var buffer: [4096]u8 = undefined;
+    var reader = self.connection.reader(self.io, &buffer);
+
+    return T.decode(&reader.interface, self.byte_order);
+}
+
 /// Returns the next X resource identifier available to this client.
 pub fn nextXid(self: *Client) XidAllocator.Error!u32 {
     return self.xids.next();
