@@ -1,17 +1,14 @@
 //! Transport layer for a single connection to an X server.
 //!
-//! Connection owns the byte stream used to exchange X11 protocol messages.
-//! It deliberately does not interpret individual requests; request types encode
-//! themselves, while this module sends bytes and classifies incoming messages.
+//! Connection owns the byte stream used to communicate with an X server.
+//! It does not interpret the X11 protocol; higher layers build on its reader
+//! and writer to exchange protocol messages.
 
 const std = @import("std");
 const Display = @import("Display.zig");
-const Response = @import("Response.zig");
-const Event = @import("Event.zig").Event;
-const ProtocolError = @import("Error.zig").Error;
-const Endian = std.builtin.Endian;
 
 const Connection = @This();
+
 stream: std.Io.net.Stream,
 
 /// Connects to an X server identified by a display name.
@@ -33,6 +30,7 @@ fn connectLocal(
     display: Display,
 ) !Connection {
     const socket_dir = "/tmp/.X11-unix";
+
     var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
     const path = try std.fmt.bufPrint(
         &path_buffer,
@@ -46,13 +44,16 @@ fn connectLocal(
     return .{ .stream = stream };
 }
 
-
 /// Connects to a remote X server through TCP.
 fn connectTcp(
     io: std.Io,
     display: Display,
 ) !Connection {
-    const port = std.math.add(u16, 6000, std.math.cast(u16, display.display_number) orelse return error.InvalidDisplayNumber) catch return error.InvalidDisplayNumber;
+    const port = std.math.add(
+        u16,
+        6000,
+        std.math.cast(u16, display.display_number) orelse return error.InvalidDisplayNumber,
+    ) catch return error.InvalidDisplayNumber;
 
     const host: std.Io.net.HostName = try .init(display.host);
     const stream = try host.connect(io, port, .{ .mode = .stream });
@@ -78,90 +79,7 @@ pub fn reader(
     return self.stream.reader(io, buffer);
 }
 
-/// Reads one complete fixed-size X11 server response header.
-///
-/// Replies may contain additional request-specific data after this header.
-fn readResponseHeader(response_reader: anytype) ![Response.size]u8 {
-    var bytes: [Response.size]u8 = undefined;
-    try response_reader.interface.readSliceAll(&bytes);
-    return bytes;
-}
-
-/// A classified incoming X11 server message.
-///
-/// Replies remain raw because their interpretation depends on the request
-/// that produced them.
-pub const Incoming = union(enum) {
-    protocol_error: ProtocolError,
-    reply: [Response.size]u8,
-    event: Event,
-};
-
-/// Reads and classifies one incoming X11 server response.
-///
-/// Events and protocol errors are parsed immediately. Replies are returned
-/// as their raw 32-byte header for request-specific parsing.
-pub fn readResponse(
-    response_reader: anytype,
-    endian: Endian,
-) !Incoming {
-    const bytes = try readResponseHeader(response_reader);
-
-    return switch (try Response.classify(&bytes)) {
-        .protocol_error => .{
-            .protocol_error = try ProtocolError.parse(&bytes, endian),
-        },
-        .reply => .{ .reply = bytes },
-        .event => .{
-            .event = try Event.parse(&bytes, endian),
-        },
-    };
-}
-
 /// Closes the underlying connection.
 pub fn close(self: *Connection, io: std.Io) void {
     self.stream.socket.close(io);
-}
-
-test "Connection.readResponse classifies a protocol error" {
-    var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
-    bytes[1] = 3;
-
-    var stream = std.Io.fixedBufferStream(&bytes);
-    const incoming = try readResponse(&stream.reader(), .little);
-    switch (incoming) {
-        .protocol_error => |protocol_error| {
-            try std.testing.expectEqual(@as(u8, 3), protocol_error.code);
-        },
-        else => return error.UnexpectedResponse,
-    }
-}
-
-test "Connection.readResponse returns replies as raw headers" {
-    var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
-    bytes[0] = 1;
-
-    var stream = std.Io.fixedBufferStream(&bytes);
-    const incoming = try readResponse(&stream.reader(), .little);
-    switch (incoming) {
-        .reply => |reply| {
-            try std.testing.expectEqual(@as(u8, 1), reply[0]);
-        },
-        else => return error.UnexpectedResponse,
-    }
-}
-
-test "Connection.readResponse parses events" {
-    var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
-    bytes[0] = 12;
-
-    var stream = std.Io.fixedBufferStream(&bytes);
-    const incoming = try readResponse(&stream.reader(), .little);
-    switch (incoming) {
-        .event => |event| switch (event) {
-            .expose => {},
-            else => return error.UnexpectedEvent,
-        },
-        else => return error.UnexpectedResponse,
-    }
 }
