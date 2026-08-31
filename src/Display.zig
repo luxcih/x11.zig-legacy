@@ -22,17 +22,73 @@ pub const ParseError = error{
     InvalidDisplay,
 };
 
+const Address = struct {
+    host: []const u8,
+    separator: Separator,
+    number: u32,
+    screen: u32,
+};
+
 /// Parses an X11 display name.
 pub fn parse(value: []const u8) ParseError!Display {
     if (value.len == 0) return error.InvalidDisplay;
 
-    const protocol, const address = parseProtocol(value);
-    const host, const separator, const number_and_screen = try parseAddress(address);
-
-    const number, const screen = try parseNumberAndScreen(number_and_screen);
+    const protocol = parseProtocol(value);
+    const address = try parseAddress(value);
 
     return .{
         .protocol = protocol,
+        .host = address.host,
+        .separator = address.separator,
+        .number = address.number,
+        .screen = address.screen,
+    };
+}
+
+fn parseProtocol(value: []const u8) ?[]const u8 {
+    const slash = std.mem.findScalar(u8, value, '/') orelse {
+        return null;
+    };
+
+    return value[0..slash];
+}
+
+fn parseAddress(value: []const u8) ParseError!Address {
+    const address = if (std.mem.findScalar(u8, value, '/')) |slash|
+        value[slash + 1 ..]
+    else
+        value;
+
+    const colon = std.mem.findScalar(u8, address, ':') orelse {
+        return error.InvalidDisplay;
+    };
+
+    const separator: Separator = if (colon + 1 < address.len and address[colon + 1] == ':')
+        .double_colon
+    else
+        .colon;
+
+    const separator_len: usize = switch (separator) {
+        .colon => 1,
+        .double_colon => 2,
+    };
+
+    const host = address[0..colon];
+    const number_and_screen = address[colon + separator_len ..];
+
+    if (number_and_screen.len == 0) return error.InvalidDisplay;
+
+    const number = if (std.mem.findScalar(u8, number_and_screen, '.')) |dot|
+        try parseNumber(number_and_screen[0..dot])
+    else
+        try parseNumber(number_and_screen);
+
+    const screen = if (std.mem.findScalar(u8, number_and_screen, '.')) |dot|
+        try parseScreen(number_and_screen[dot + 1 ..])
+    else
+        0;
+
+    return .{
         .host = host,
         .separator = separator,
         .number = number,
@@ -40,60 +96,19 @@ pub fn parse(value: []const u8) ParseError!Display {
     };
 }
 
-fn parseProtocol(value: []const u8) struct { ?[]const u8, []const u8 } {
-    const slash = std.mem.findScalar(u8, value, '/') orelse {
-        return .{ null, value };
-    };
+fn parseNumber(value: []const u8) ParseError!u32 {
+    if (value.len == 0) return error.InvalidDisplay;
 
-    return .{ value[0..slash], value[slash + 1 ..] };
-}
-
-fn parseAddress(value: []const u8) ParseError!struct { []const u8, Separator, []const u8 } {
-    const colon = std.mem.findScalar(u8, value, ':') orelse {
+    return std.fmt.parseInt(u32, value, 10) catch {
         return error.InvalidDisplay;
     };
-
-    const separator: Separator = if (colon + 1 < value.len and value[colon + 1] == ':') .double_colon else .colon;
-
-    const separator_len: usize = switch (separator) {
-        .colon => 1,
-        .double_colon => 2,
-    };
-
-    const host = value[0..colon];
-    const number_and_screen = value[colon + separator_len ..];
-
-    if (number_and_screen.len == 0) return error.InvalidDisplay;
-
-    return .{ host, separator, number_and_screen };
 }
 
-fn parseNumberAndScreen(value: []const u8) ParseError!struct { u32, u32 } {
-    if (std.mem.findScalar(u8, value, '.')) |dot| {
-        const number = value[0..dot];
-        const screen = value[dot + 1 ..];
-
-        if (number.len == 0 or screen.len == 0) {
-            return error.InvalidDisplay;
-        }
-
-        if (std.mem.findScalar(u8, screen, '.') != null) {
-            return error.InvalidDisplay;
-        }
-
-        return .{
-            try parseNumber(number),
-            try parseNumber(screen),
-        };
+fn parseScreen(value: []const u8) ParseError!u32 {
+    if (value.len == 0 or std.mem.findScalar(u8, value, '.') != null) {
+        return error.InvalidDisplay;
     }
 
-    return .{
-        try parseNumber(value),
-        0,
-    };
-}
-
-fn parseNumber(value: []const u8) ParseError!u32 {
     return std.fmt.parseInt(u32, value, 10) catch {
         return error.InvalidDisplay;
     };
