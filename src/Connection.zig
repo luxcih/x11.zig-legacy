@@ -60,19 +60,14 @@ fn connectTcp(
     return .{ .stream = stream };
 }
 
-/// Writes an entire X11 protocol message and flushes it to the server.
-pub fn writeAll(
+/// Returns a buffered writer for outgoing data on this connection.
+pub fn writer(
     self: *Connection,
     io: std.Io,
-    bytes: []const u8,
-) !void {
-    var buffer: [1024]u8 = undefined;
-    var writer = self.stream.writer(io, &buffer);
-    try writer.interface.writeAll(bytes);
-    try writer.interface.flush();
+    buffer: []u8,
+) std.Io.net.Stream.Writer {
+    return self.stream.writer(io, buffer);
 }
-
-/// Returns a buffered reader for incoming X11 protocol messages.
 
 /// Returns a buffered reader for incoming data from this connection.
 pub fn reader(
