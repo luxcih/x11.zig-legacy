@@ -53,15 +53,18 @@ pub fn parse(self: *Parser) Error!Result {
 }
 
 fn parseProtocol(self: *Parser) Error!?[]const u8 {
-    const slash = std.mem.findScalar(u8, self.value[self.index..], '/') orelse {
-        return null;
-    };
+    const slash = std.mem.findScalar(u8, self.value[self.index..], '/');
+    const colon = std.mem.findScalar(u8, self.value[self.index..], ':');
 
-    const end = self.index + slash;
+    const slash_index = slash orelse return null;
+    const colon_index = colon orelse return error.InvalidDisplay;
 
-    if (end == self.index) return error.InvalidDisplay;
+    if (slash_index > colon_index) return null;
+    if (slash_index == 0) return error.InvalidDisplay;
 
+    const end = self.index + slash_index;
     self.index = end + 1;
+
     return self.value[0..end];
 }
 
