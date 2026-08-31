@@ -32,22 +32,20 @@ pub fn parse(value: []const u8) ParseError!Display {
     const colon = std.mem.findScalar(u8, value[address_start..], ':') orelse {
         return error.InvalidDisplay;
     };
-    const separator_start = address_start + colon;
+    const host_end = address_start + colon;
 
     const separator: Separator = if (
-        separator_start + 1 < value.len and
-        value[separator_start + 1] == ':'
+        host_end + 1 < value.len and
+        value[host_end + 1] == ':'
     )
         .double_colon
     else
         .colon;
 
-    const number_start = separator_start + switch (separator) {
+    const number_start = host_end + switch (separator) {
         .colon => 1,
         .double_colon => 2,
     };
-
-    if (number_start == value.len) return error.InvalidDisplay;
 
     const dot = std.mem.findScalar(u8, value[number_start..], '.');
     const number_end = if (dot) |index| number_start + index else value.len;
@@ -71,7 +69,7 @@ pub fn parse(value: []const u8) ParseError!Display {
 
     return .{
         .protocol = if (slash) |index| value[0..index] else null,
-        .host = value[address_start..separator_start],
+        .host = value[address_start..host_end],
         .separator = separator,
         .number = number,
         .screen = screen,
