@@ -123,7 +123,8 @@ test "Connection.readResponse classifies a protocol error" {
     bytes[1] = 3;
 
     var stream = std.Io.fixedBufferStream(&bytes);
-    const incoming = try readResponse/(&stream.reader(), .little);
+    var connection = Connection{ .stream = undefined };
+    const incoming = try connection.readResponse(&stream.reader(), .little);
     switch (incoming) {
         .protocol_error => |protocol_error| {
             try std.testing.expectEqual(@as(u8, 3), protocol_error.code);
@@ -137,7 +138,7 @@ test "Connection.readResponse returns replies as raw headers" {
     bytes[0] = 1;
 
     var stream = std.Io.fixedBufferStream(&bytes);
-    var connection = Connection.init(undefined);
+    var connection = Connection{ .stream = undefined };
 
     const incoming = try connection.readResponse(&stream.reader(), .little);
     switch (incoming) {
