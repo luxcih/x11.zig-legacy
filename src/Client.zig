@@ -51,6 +51,16 @@ pub fn connect(
     return self;
 }
 
+/// Writes raw bytes to the connection.
+pub fn write(self: *Client, bytes: []const u8) !void {
+    try self.writer.interface.writeAll(bytes);
+}
+
+/// Reads exactly the requested number of raw bytes from the connection.
+pub fn read(self: *Client, bytes: []u8) !void {
+    try self.reader.interface.readSliceAll(bytes);
+}
+
 /// Encodes and sends an X11 request.
 pub fn send(self: *Client, request: anytype) !void {
     try request.encode(&self.writer.interface, self.endian);
