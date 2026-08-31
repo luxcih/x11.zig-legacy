@@ -26,11 +26,10 @@ pub fn connect(
     errdefer connection.close(io);
 
     const setup_request = Setup{};
-    var setup_buffer: [12]u8 = undefined;
 
     var write_buffer: [1024]u8 = undefined;
     var writer = connection.writer(io, &write_buffer);
-    try writer.interface.writeAll(try setup_request.encode(&setup_buffer));
+    try setup_request.encode(&writer.interface);
     try writer.interface.flush();
 
     var read_buffer: [4096]u8 = undefined;
