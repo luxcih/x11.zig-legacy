@@ -70,11 +70,7 @@ pub fn reader(
 /// Reads one complete fixed-size X11 server response header.
 ///
 /// Replies may contain additional request-specific data after this header.
-pub fn readResponseHeader(
-    self: *Connection,
-    response_reader: anytype,
-) ![Response.size]u8 {
-    _ = self;
+fn readResponseHeader(response_reader: anytype) ![Response.size]u8 {
 
     var bytes: [Response.size]u8 = undefined;
     try response_reader.interface.readSliceAll(&bytes);
@@ -96,11 +92,10 @@ pub const Incoming = union(enum) {
 /// Events and protocol errors are parsed immediately. Replies are returned
 /// as their raw 32-byte header for request-specific parsing.
 pub fn readResponse(
-    self: *Connection,
     response_reader: anytype,
     endian: Endian,
 ) !Incoming {
-    const bytes = try self.readResponseHeader(response_reader);
+    const bytes = try readResponseHeader(response_reader);
 
     return switch (try Response.classify(&bytes)) {
         .protocol_error => .{
@@ -123,8 +118,7 @@ test "Connection.readResponse classifies a protocol error" {
     bytes[1] = 3;
 
     var stream = std.Io.fixedBufferStream(&bytes);
-    var connection = Connection{ .stream = undefined };
-    const incoming = try connection.readResponse(&stream.reader(), .little);
+    const incoming = try readResponse(&stream.reader(), .little);
     switch (incoming) {
         .protocol_error => |protocol_error| {
             try std.testing.expectEqual(@as(u8, 3), protocol_error.code);
