@@ -193,7 +193,7 @@ pub const Values = struct {
     }
 };
 
-pub const EncodeError = error{BufferTooSmall};
+pub const EncodeError = error{};
 
 /// Creates a graphics-context resource for use with a drawable.
 pub const Create = struct {
