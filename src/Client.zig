@@ -12,7 +12,7 @@ const Client = @This();
 io: std.Io,
 allocator: std.mem.Allocator,
 connection: Connection,
-byte_order: std.builtin.Endian,
+endian: std.builtin.Endian,
 setup: SetupInfo,
 xids: XidAllocator,
 
@@ -38,14 +38,14 @@ pub fn connect(
     var prefix: [8]u8 = undefined;
     try reader.interface.readSliceAll(&prefix);
 
-    const response = try SetupResponse.parsePrefix(prefix, setup_request.byte_order);
+    const response = try SetupResponse.parsePrefix(prefix, setup_request.endian);
 
     const additional = try allocator.alloc(u8, response.additionalBytes());
     defer allocator.free(additional);
     try reader.interface.readSliceAll(additional);
 
     var setup_info = switch (response) {
-        .success => try SetupInfo.parse(allocator, additional, setup_request.byte_order),
+        .success => try SetupInfo.parse(allocator, additional, setup_request.endian),
         .failed => return error.SetupFailed,
         .authenticate => return error.AuthenticationRequired,
     };
@@ -55,7 +55,7 @@ pub fn connect(
         .io = io,
         .allocator = allocator,
         .connection = connection,
-        .byte_order = setup_request.byte_order,
+        .endian = setup_request.endian,
         .setup = setup_info,
         .xids = XidAllocator.init(setup_info.success.resource_id_base, setup_info.success.resource_id_mask),
     };
@@ -66,7 +66,7 @@ pub fn send(self: *Client, request: anytype) !void {
     var buffer: [1024]u8 = undefined;
     var writer = self.connection.writer(self.io, &buffer);
 
-    try request.encode(&writer.interface, self.byte_order);
+    try request.encode(&writer.interface, self.endian);
     try writer.interface.flush();
 }
 
@@ -75,7 +75,7 @@ pub fn recv(self: *Client, comptime T: type) !T {
     var buffer: [4096]u8 = undefined;
     var reader = self.connection.reader(self.io, &buffer);
 
-    return T.decode(&reader.interface, self.byte_order);
+    return T.decode(&reader.interface, self.endian);
 }
 
 /// Returns the next X resource identifier available to this client.
