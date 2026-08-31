@@ -52,9 +52,12 @@ fn connectTcp(
     io: std.Io,
     display: Display,
 ) !Connection {
-    _ = io;
-    _ = display;
-    return error.UnsupportedTransport;
+    const port = std.math.add(u16, 6000, std.math.cast(u16, display.display_number) orelse return error.InvalidDisplayNumber) catch return error.InvalidDisplayNumber;
+
+    const host: std.Io.net.HostName = try .init(display.host);
+    const stream = try host.connect(io, port, .{ .mode = .stream });
+
+    return .{ .stream = stream };
 }
 
 /// Writes an entire X11 protocol message and flushes it to the server.
