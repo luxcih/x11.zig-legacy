@@ -1,6 +1,7 @@
 //! Representation of the remote X server established during connection setup.
 
 const std = @import("std");
+const Client = @import("Client.zig");
 const Endian = std.builtin.Endian;
 const Wire = @import("Wire.zig");
 const PixmapFormat = @import("PixmapFormat.zig");
@@ -42,68 +43,128 @@ max_keycode: u8,
 pixmap_formats: []PixmapFormat,
 screens: []ParsedScreen,
 
-pub fn parse(
-    allocator: std.mem.Allocator,
-    body: []const u8,
-    endian: Endian,
-) !Server {
-    if (body.len < 32) return error.BodyTooShort;
+pub fn receive(client: *Client) !Server {
+    var header: [32]u8 = undefined;
+    try client.read(&header);
 
-    const vendor_length = Wire.readU16(body[16..18], endian);
-    const maximum_request_length = Wire.readU16(body[18..20], endian);
-    const screen_count = body[20];
-    const pixmap_format_count = body[21];
+    const allocator = client.allocator;
+    const endian = client.endian;
 
-    const vendor_end = 32 + @as(usize, vendor_length);
-    if (vendor_end > body.len) return error.BodyTooShort;
+    const vendor_length = Wire.readU16(header[16..18], endian);
+    const maximum_request_length = Wire.readU16(header[18..20], endian);
+    const screen_count = header[20];
+    const pixmap_format_count = header[21];
 
-    const pixmap_formats_offset = paddedLength(vendor_end);
-    const pixmap_formats_length = @as(usize, pixmap_format_count) * PixmapFormat.size;
-    const screens_offset = pixmap_formats_offset + pixmap_formats_length;
-    if (screens_offset > body.len) return error.BodyTooShort;
+    const vendor = try allocator.alloc(u8, vendor_length);
+    errdefer allocator.free(vendor);
+    try client.read(vendor);
 
-    const pixmap_formats = try parsePixmapFormats(
+    const vendor_padding = paddedLength(@as(usize, vendor_length)) - vendor.len;
+    if (vendor_padding != 0) {
+        var padding: [3]u8 = undefined;
+        try client.read(padding[0..vendor_padding]);
+    }
+
+    const pixmap_formats = try receivePixmapFormats(
+        client,
         allocator,
-        body,
-        pixmap_formats_offset,
         pixmap_format_count,
     );
     errdefer allocator.free(pixmap_formats);
 
     const screens = try allocator.alloc(ParsedScreen, screen_count);
-    var parsed_screens: usize = 0;
+    var received_screens: usize = 0;
     errdefer {
-        for (screens[0..parsed_screens]) |screen| screen.deinit(allocator);
+        for (screens[0..received_screens]) |screen| screen.deinit(allocator);
         allocator.free(screens);
     }
 
-    var screen_offset = screens_offset;
-    while (parsed_screens < screens.len) : (parsed_screens += 1) {
-        const parsed = try parseScreen(allocator, body, screen_offset, endian);
-        screens[parsed_screens] = parsed.screen;
-        screen_offset = parsed.next_offset;
+    while (received_screens < screens.len) : (received_screens += 1) {
+        screens[received_screens] = try receiveScreen(client, allocator);
     }
 
     return .{
-        .release_number = Wire.readU32(body[0..4], endian),
-        .motion_buffer_size = Wire.readU32(body[12..16], endian),
-        .vendor = body[32..vendor_end],
+        .release_number = Wire.readU32(header[0..4], endian),
+        .motion_buffer_size = Wire.readU32(header[12..16], endian),
+        .vendor = vendor,
         .maximum_request_length = maximum_request_length,
-        .image_byte_order = body[22],
-        .bitmap_bit_order = body[23],
-        .bitmap_scanline_unit = body[24],
-        .bitmap_scanline_pad = body[25],
-        .min_keycode = body[26],
-        .max_keycode = body[27],
+        .image_byte_order = header[22],
+        .bitmap_bit_order = header[23],
+        .bitmap_scanline_unit = header[24],
+        .bitmap_scanline_pad = header[25],
+        .min_keycode = header[26],
+        .max_keycode = header[27],
         .pixmap_formats = pixmap_formats,
         .screens = screens,
     };
+}
+
+fn receivePixmapFormats(
+    client: *Client,
+    allocator: std.mem.Allocator,
+    count: u8,
+) ![]PixmapFormat {
+    const formats = try allocator.alloc(PixmapFormat, count);
+    errdefer allocator.free(formats);
+
+    for (formats) |*format| {
+        var bytes: [PixmapFormat.size]u8 = undefined;
+        try client.read(&bytes);
+        format.* = try PixmapFormat.parse(&bytes);
+    }
+
+    return formats;
+}
+
+fn receiveScreen(
+    client: *Client,
+    allocator: std.mem.Allocator,
+) !ParsedScreen {
+    var bytes: [Screen.size]u8 = undefined;
+    try client.read(&bytes);
+
+    const screen = try Screen.parse(&bytes, client.endian);
+
+    const depths = try allocator.alloc(ParsedDepth, screen.depth_count);
+    var received_depths: usize = 0;
+    errdefer {
+        for (depths[0..received_depths]) |depth| depth.deinit(allocator);
+        allocator.free(depths);
+    }
+
+    while (received_depths < depths.len) : (received_depths += 1) {
+        depths[received_depths] = try receiveDepth(client, allocator);
+    }
+
+    return .{ .screen = screen, .depths = depths };
+}
+
+fn receiveDepth(
+    client: *Client,
+    allocator: std.mem.Allocator,
+) !ParsedDepth {
+    var bytes: [Depth.size]u8 = undefined;
+    try client.read(&bytes);
+
+    const depth = try Depth.parse(&bytes, client.endian);
+
+    const visuals = try allocator.alloc(VisualType, depth.visual_count);
+    errdefer allocator.free(visuals);
+
+    for (visuals) |*visual| {
+        var visual_bytes: [VisualType.size]u8 = undefined;
+        try client.read(&visual_bytes);
+        visual.* = try VisualType.parse(&visual_bytes, client.endian);
+    }
+
+    return .{ .depth = depth, .visuals = visuals };
 }
 
 pub fn deinit(self: *Server, allocator: std.mem.Allocator) void {
     for (self.screens) |screen| screen.deinit(allocator);
     allocator.free(self.screens);
     allocator.free(self.pixmap_formats);
+    allocator.free(self.vendor);
 }
 
 fn parsePixmapFormats(
