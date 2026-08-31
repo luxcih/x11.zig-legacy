@@ -35,7 +35,7 @@ pub fn parse(self: *Parser) Display.ParseError!Display {
 }
 
 fn parseProtocol(self: *Parser) Display.ParseError!?[]const u8 {
-    const value = self.value[self.index..];
+    const value = self.remaining();
     const colon = std.mem.findScalar(u8, value, ':') orelse {
         return error.InvalidDisplay;
     };
@@ -51,7 +51,7 @@ fn parseProtocol(self: *Parser) Display.ParseError!?[]const u8 {
 }
 
 fn parseHost(self: *Parser) Display.ParseError![]const u8 {
-    const colon = std.mem.findScalar(u8, self.value[self.index..], ':') orelse {
+    const colon = std.mem.findScalar(u8, self.remaining(), ':') orelse {
         return error.InvalidDisplay;
     };
 
@@ -91,9 +91,7 @@ fn parseNumber(self: *Parser) Display.ParseError!u32 {
     const number = self.value[start..self.index];
     if (number.len == 0) return error.InvalidDisplay;
 
-    return std.fmt.parseInt(u32, number, 10) catch {
-        return error.InvalidDisplay;
-    };
+    return parseInteger(number);
 }
 
 fn parseScreen(self: *Parser) Display.ParseError!u32 {
@@ -103,12 +101,20 @@ fn parseScreen(self: *Parser) Display.ParseError!u32 {
 
     self.index += 1;
 
-    const screen = self.value[self.index..];
+    const screen = self.remaining();
     if (screen.len == 0) return error.InvalidDisplay;
 
     self.index = self.value.len;
 
-    return std.fmt.parseInt(u32, screen, 10) catch {
+    return parseInteger(screen);
+}
+
+fn remaining(self: *const Parser) []const u8 {
+    return self.value[self.index..];
+}
+
+fn parseInteger(value: []const u8) Display.ParseError!u32 {
+    return std.fmt.parseInt(u32, value, 10) catch {
         return error.InvalidDisplay;
     };
 }
