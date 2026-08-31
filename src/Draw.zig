@@ -1,7 +1,17 @@
+//! Core X11 drawing primitives.
+//!
+//! Drawing requests operate on a drawable resource and reference a graphics
+//! context (GC). The drawable determines where pixels are affected; the GC
+//! determines how they are rendered.
+//!
+//! This module encodes geometric lists such as points, rectangles, and arcs
+//! into the corresponding X11 core drawing requests.
+//!
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
 
+/// A rectangle geometry record used by rectangle drawing requests.
 pub const Rectangle = struct {
     x: i16,
     y: i16,
@@ -9,6 +19,7 @@ pub const Rectangle = struct {
     height: u16,
 };
 
+/// Fills one or more rectangles using the supplied graphics context.
 pub const PolyFillRectangle = struct {
     pub const EncodeError = error{
         BufferTooSmall,
@@ -192,6 +203,7 @@ pub const Point = struct {
     y: i16,
 };
 
+/// Draws connected line segments from a list of points.
 pub const PolyLine = struct {
     pub const EncodeError = error{
         BufferTooSmall,
@@ -267,6 +279,7 @@ test "encode little-endian PolyLine request" {
 }
 
 
+/// Draws the outlines of one or more rectangles.
 pub const PolyRectangle = struct {
     pub const EncodeError = error{
         BufferTooSmall,
@@ -346,6 +359,7 @@ pub const Arc = struct {
     angle2: i16,
 };
 
+/// Draws one or more arc outlines.
 pub const PolyArc = struct {
     pub const EncodeError = error{
         BufferTooSmall,
@@ -427,6 +441,7 @@ test "encode little-endian PolyArc request" {
 }
 
 
+/// Fills one or more arc shapes.
 pub const PolyFillArc = struct {
     pub const EncodeError = error{
         BufferTooSmall,

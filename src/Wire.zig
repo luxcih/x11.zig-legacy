@@ -1,6 +1,12 @@
+//! Internal helpers for converting X11 protocol integers to and from bytes.
+//!
+//! This module centralizes byte-order handling for protocol encoding and parsing.
+//! It is an implementation detail and is intentionally not part of the public API.
+
 const std = @import("std");
 const Endian = std.builtin.Endian;
 
+/// Writes an unsigned 16-bit protocol value using the negotiated byte order.
 pub fn writeU16(bytes: []u8, value: u16, endian: Endian) void {
     switch (endian) {
         .little => {
@@ -18,6 +24,7 @@ pub fn writeI16(bytes: []u8, value: i16, endian: Endian) void {
     writeU16(bytes, @bitCast(value), endian);
 }
 
+/// Writes an unsigned 32-bit protocol value using the negotiated byte order.
 pub fn writeU32(bytes: []u8, value: u32, endian: Endian) void {
     switch (endian) {
         .little => {
@@ -35,6 +42,7 @@ pub fn writeU32(bytes: []u8, value: u32, endian: Endian) void {
     }
 }
 
+/// Reads an unsigned 16-bit protocol value using the negotiated byte order.
 pub fn readU16(bytes: []const u8, endian: Endian) u16 {
     return switch (endian) {
         .little => @as(u16, bytes[0]) |
@@ -48,6 +56,7 @@ pub fn readI16(bytes: []const u8, endian: Endian) i16 {
     return @bitCast(readU16(bytes, endian));
 }
 
+/// Reads an unsigned 32-bit protocol value using the negotiated byte order.
 pub fn readU32(bytes: []const u8, endian: Endian) u32 {
     return switch (endian) {
         .little => @as(u32, bytes[0]) |

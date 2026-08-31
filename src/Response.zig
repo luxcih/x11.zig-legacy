@@ -1,3 +1,8 @@
+//! Classification of the fixed-size headers sent by an X server.
+//!
+//! The first byte determines whether an incoming 32-byte message is an error,
+//! reply, or event. Request-specific code interprets replies after classification.
+
 const std = @import("std");
 
 /// A fixed-size X11 server response header.

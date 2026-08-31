@@ -1,3 +1,8 @@
+//! A server-supported pixmap image format reported during X11 setup.
+//!
+//! Pixmap formats describe the relationship between a drawable depth, bits per
+//! pixel, and scanline padding for image data.
+
 const std = @import("std");
 
 const PixmapFormat = @This();

@@ -1,3 +1,8 @@
+//! Parsing of X11 protocol errors returned by the server.
+//!
+//! Errors identify the failed request through its sequence and opcodes and may
+//! include the resource involved in the failure.
+
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
@@ -17,6 +22,7 @@ pub const Error = struct {
         InvalidResponse,
     };
 
+    /// Parses the standard 32-byte X11 error packet.
     pub fn parse(bytes: []const u8, endian: Endian) ParseError!Error {
         if (bytes.len != size) return error.InvalidLength;
         if (bytes[0] != 0) return error.InvalidResponse;

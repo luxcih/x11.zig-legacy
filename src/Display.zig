@@ -1,3 +1,8 @@
+//! Parsing of X11 display names such as `:0` and `hostname:1.0`.
+//!
+//! A display name identifies the X server a client intends to connect to.
+//! This type parses the protocol, host, display number, and optional screen.
+
 const std = @import("std");
 
 const Display = @This();

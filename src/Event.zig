@@ -1,3 +1,8 @@
+//! Parsing of asynchronous X11 events.
+//!
+//! Events are 32-byte server-to-client notifications generated independently of
+//! a specific request, such as input activity, exposure, and window changes.
+
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
@@ -80,6 +85,7 @@ pub const Event = union(enum) {
         raw: [32]u8,
     };
 
+    /// Parses one complete 32-byte X11 event while preserving unknown event types.
     pub fn parse(bytes: []const u8, endian: Endian) ParseError!Event {
         if (bytes.len != 32)
             return error.InvalidLength;

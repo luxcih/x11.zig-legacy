@@ -1,3 +1,12 @@
+//! X11 graphics contexts and their server-side drawing state.
+//!
+//! A graphics context (GC) stores how drawing operations behave: colors, raster
+//! operations, line styles, fill behavior, fonts, clipping, and related state.
+//! Drawing requests reference a GC instead of repeating that state every time.
+//!
+//! Values represents the protocol LISTofVALUE mechanism shared by CreateGC and
+//! ChangeGC, centralizing mask construction and required wire ordering.
+//!
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
@@ -25,9 +34,13 @@ pub const Function = enum(u32) {
     set = 15,
 };
 
+/// Selects how lines are rendered between endpoints.
 pub const LineStyle = enum(u32) { solid = 0, on_off_dash = 1, double_dash = 2 };
+/// Selects how the ends of lines are rendered.
 pub const CapStyle = enum(u32) { not_last = 0, butt = 1, round = 2, projecting = 3 };
+/// Selects how connected line segments join.
 pub const JoinStyle = enum(u32) { miter = 0, round = 1, bevel = 2 };
+/// Selects how closed areas are filled.
 pub const FillStyle = enum(u32) { solid = 0, tiled = 1, stippled = 2, opaque_stippled = 3 };
 pub const FillRule = enum(u32) { even_odd = 0, winding = 1 };
 pub const SubwindowMode = enum(u32) { clip_by_children = 0, include_inferiors = 1 };
@@ -62,6 +75,7 @@ pub const Values = struct {
     dashes: ?u8 = null,
     arc_mode: ?ArcMode = null,
 
+    /// Returns the X11 value mask whose set bits correspond to non-null fields.
     pub fn valueMask(self: Values) u32 {
         var mask: u32 = 0;
         inline for (std.meta.fields(Values), 0..) |field, bit| {
@@ -71,6 +85,7 @@ pub const Values = struct {
         return mask;
     }
 
+    /// Returns the number of bytes occupied by the selected CARD32 value slots.
     pub fn encodedLength(self: Values) usize {
         return @popCount(self.valueMask()) * 4;
     }
@@ -112,6 +127,7 @@ pub const Values = struct {
 
 pub const EncodeError = error{BufferTooSmall};
 
+/// Creates a graphics-context resource for use with a drawable.
 pub const Create = struct {
     pub const opcode = 55;
     pub const size: usize = 16;
@@ -139,6 +155,7 @@ pub const Create = struct {
     }
 };
 
+/// Changes selected values of an existing graphics context.
 pub const Change = struct {
     pub const opcode = 56;
     pub const base_size: usize = 12;
@@ -164,6 +181,7 @@ pub const Change = struct {
     }
 };
 
+/// Releases a graphics-context resource on the X server.
 pub const Free = struct {
     pub const opcode = 60;
     pub const size: usize = 8;

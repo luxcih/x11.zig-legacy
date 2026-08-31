@@ -1,3 +1,9 @@
+//! Transport layer for a single connection to an X server.
+//!
+//! Connection owns the byte stream used to exchange X11 protocol messages.
+//! It deliberately does not interpret individual requests; request types encode
+//! themselves, while this module sends bytes and classifies incoming messages.
+
 const std = @import("std");
 const Display = @import("Display.zig");
 const Response = @import("Response.zig");

@@ -1,3 +1,9 @@
+//! Encoding of the initial X11 connection setup request.
+//!
+//! Before ordinary requests can be sent, an X11 client and server perform a
+//! setup handshake. The client first declares its byte order and protocol
+//! version, optionally followed by authorization data padded to 4-byte boundaries.
+
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
@@ -20,6 +26,7 @@ const Setup = @This();
             paddedLength(self.authorization_data.len);
     }
 
+    /// Encodes the setup handshake, including required 4-byte padding for authorization fields.
     pub fn encode(self: Setup, buffer: []u8) EncodeError![]const u8 {
         if (self.authorization_name.len > std.math.maxInt(u16) or
             self.authorization_data.len > std.math.maxInt(u16))

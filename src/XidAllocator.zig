@@ -1,3 +1,9 @@
+//! Client-side allocation of X11 resource identifiers.
+//!
+//! During setup, the X server grants each client a resource-ID base and mask.
+//! The client can then allocate valid IDs locally for resources such as windows,
+//! pixmaps, and graphics contexts without asking the server for every ID.
+
 const std = @import("std");
 
 const XidAllocator = @This();
@@ -16,6 +22,7 @@ const XidAllocator = @This();
         };
     }
 
+    /// Allocates the next resource ID permitted by the server-provided mask.
     pub fn next(self: *XidAllocator) Error!u32 {
         const capacity = @as(u64, 1) << @popCount(self.mask);
         if (self.next_index >= capacity)
@@ -27,6 +34,9 @@ const XidAllocator = @This();
         return id;
     }
 
+    // Maps consecutive client allocation bits onto the positions permitted by
+    // the server's resource-ID mask. The mask may be sparse, so simple addition
+    // would produce invalid XIDs.
     fn applyMask(mask: u32, index: u64) u32 {
         var result: u32 = 0;
         var source_bit: u6 = 0;

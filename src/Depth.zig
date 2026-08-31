@@ -1,3 +1,8 @@
+//! A visual depth record inside an X11 screen description.
+//!
+//! Each depth states how many `VisualType` records follow it. Its total protocol
+//! length is therefore variable even though the depth header itself is fixed-size.
+
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
@@ -33,6 +38,7 @@ const Depth = @This();
         return @as(usize, self.visual_count) * 24;
     }
 
+    /// Returns the header plus all visual records belonging to this depth.
     pub fn totalLength(self: Depth) usize {
         return self.visualsOffset() + self.visualsLength();
     }

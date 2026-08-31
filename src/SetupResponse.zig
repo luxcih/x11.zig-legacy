@@ -1,3 +1,9 @@
+//! Parsing of the server's first response to the X11 setup handshake.
+//!
+//! The server can accept the connection, reject it, or request authentication.
+//! This module parses the fixed 8-byte prefix that determines which path follows
+//! and how many additional 4-byte units must be read.
+
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
@@ -28,6 +34,7 @@ pub const SetupResponse = union(enum) {
         additional_length: u16,
     };
 
+    /// Parses the fixed 8-byte setup prefix before any variable-length body.
     pub fn parsePrefix(
         prefix: [8]u8,
         endian: Endian,
@@ -51,6 +58,7 @@ pub const SetupResponse = union(enum) {
         };
     }
 
+    /// Returns the number of bytes following the prefix, measured in 4-byte units.
     pub fn additionalBytes(self: SetupResponse) usize {
         return switch (self) {
             inline else => |response| @as(usize, response.additional_length) * 4,
