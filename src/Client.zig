@@ -61,6 +61,16 @@ pub fn connect(
 }
 
 
+
+/// Writes raw bytes to the X server.
+fn write(self: *Client, io: std.Io, bytes: []const u8) !void {
+    var buffer: [1024]u8 = undefined;
+    var writer = self.connection.writer(io, &buffer);
+
+    try writer.interface.writeAll(bytes);
+    try writer.interface.flush();
+}
+
 /// Returns the next X resource identifier available to this client.
 pub fn nextXid(self: *Client) XidAllocator.Error!u32 {
     return self.xids.next();
