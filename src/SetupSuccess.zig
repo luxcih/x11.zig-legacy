@@ -1,6 +1,6 @@
 const std = @import("std");
 const Wire = @import("Wire.zig");
-const ByteOrder = @import("ByteOrder.zig").ByteOrder;
+const Endian = std.builtin.Endian;
 
 pub const SetupSuccess = struct {
     pub const ParseError = error{
@@ -41,22 +41,22 @@ pub const SetupSuccess = struct {
 
     pub fn parse(
         body: []const u8,
-        byte_order: ByteOrder,
+        endian: Endian,
     ) ParseError!SetupSuccess {
         if (body.len < 32) return error.BodyTooShort;
 
-        const vendor_length = Wire.readU16(body[16..18], byte_order);
+        const vendor_length = Wire.readU16(body[16..18], endian);
         const vendor_end = 32 + @as(usize, vendor_length);
 
         if (vendor_end > body.len) return error.VendorOutOfBounds;
 
         return .{
-            .release_number = Wire.readU32(body[0..4], byte_order),
-            .resource_id_base = Wire.readU32(body[4..8], byte_order),
-            .resource_id_mask = Wire.readU32(body[8..12], byte_order),
-            .motion_buffer_size = Wire.readU32(body[12..16], byte_order),
+            .release_number = Wire.readU32(body[0..4], endian),
+            .resource_id_base = Wire.readU32(body[4..8], endian),
+            .resource_id_mask = Wire.readU32(body[8..12], endian),
+            .motion_buffer_size = Wire.readU32(body[12..16], endian),
             .vendor = body[32..vendor_end],
-            .maximum_request_length = Wire.readU16(body[18..20], byte_order),
+            .maximum_request_length = Wire.readU16(body[18..20], endian),
             .screen_count = body[20],
             .pixmap_format_count = body[21],
             .image_byte_order = body[22],
