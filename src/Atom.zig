@@ -12,7 +12,9 @@ const Endian = std.builtin.Endian;
 
 const Atom = @This();
 
-/// Interns a string as a server-wide atom ID.\n/// The atom may be newly created unless only_if_exists is set.\npub const Intern = struct {
+/// Interns a string as a server-wide atom ID.
+/// The atom may be newly created unless only_if_exists is set.
+pub const Intern = struct {
     pub const EncodeError = error{
         BufferTooSmall,
         NameTooLong,
@@ -59,7 +61,8 @@ const Atom = @This();
         return buffer[0..length];
     }
 
-    /// The atom ID returned by the server for the requested name.\n    pub const Reply = struct {
+    /// The atom ID returned by the server for the requested name.
+    pub const Reply = struct {
         atom: u32,
 
         pub fn parse(bytes: []const u8, endian: Endian) ParseError!Reply {
@@ -75,7 +78,8 @@ const Atom = @This();
     };
 };
 
-/// Retrieves the string name associated with an atom ID.\npub const GetName = struct {
+/// Retrieves the string name associated with an atom ID.
+pub const GetName = struct {
     pub const EncodeError = error{BufferTooSmall};
     pub const ParseError = error{InvalidLength, InvalidResponse};
 
