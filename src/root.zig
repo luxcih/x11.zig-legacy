@@ -28,3 +28,5 @@ pub const Response = @import("Response.zig");
 pub const Input = @import("Input.zig");
 
 pub const Atom = @import("Atom.zig");
+
+pub const Client = @import("Client.zig");

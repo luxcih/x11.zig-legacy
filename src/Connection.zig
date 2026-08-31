@@ -1,57 +1,80 @@
 //! Transport layer for a single connection to an X server.
 //!
-//! Connection owns the byte stream used to exchange X11 protocol messages.
-//! It deliberately does not interpret individual requests; request types encode
-//! themselves, while this module sends bytes and classifies incoming messages.
+//! Connection owns the byte stream used to communicate with an X server.
+//! It does not interpret the X11 protocol; higher layers build on its reader
+//! and writer to exchange protocol messages.
 
 const std = @import("std");
+const builtin = @import("builtin");
 const Display = @import("Display.zig");
-const Response = @import("Response.zig");
-const Event = @import("Event.zig").Event;
-const ProtocolError = @import("Error.zig").Error;
-const Endian = std.builtin.Endian;
 
 const Connection = @This();
+
 stream: std.Io.net.Stream,
 
-pub fn init(stream: std.Io.net.Stream) Connection {
-    return .{
-        .stream = stream,
+/// Connects to an X server identified by a display name.
+pub fn connect(io: std.Io, display_name: []const u8) !Connection {
+    const display = try Display.parse(display_name);
+
+    return switch (display.separator) {
+        .double_colon => error.UnsupportedTransport,
+        .colon => if (display.host.len == 0)
+            connectLocal(io, display)
+        else
+            connectTcp(io, display),
     };
 }
 
 /// Connects to a local X server through its Unix-domain socket.
-pub fn connectLocal(
+fn connectLocal(
     io: std.Io,
     display: Display,
-    socket_dir: []const u8,
 ) !Connection {
+    const temp_dir = if (builtin.os.tag == .android)
+        std.posix.getenv("TMPDIR") orelse "/tmp"
+    else
+        "/tmp";
+
     var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
     const path = try std.fmt.bufPrint(
         &path_buffer,
-        "{s}/X{}",
-        .{ socket_dir, display.display_number },
+        "{s}/.X11-unix/X{}",
+        .{ temp_dir, display.display_number },
     );
 
     const address = try std.Io.net.UnixAddress.init(path);
     const stream = try address.connect(io);
 
-    return init(stream);
+    return .{ .stream = stream };
 }
 
-/// Writes an entire X11 protocol message and flushes it to the server.
-pub fn writeAll(
+/// Connects to a remote X server through TCP.
+fn connectTcp(
+    io: std.Io,
+    display: Display,
+) !Connection {
+    const port = std.math.add(
+        u16,
+        6000,
+        std.math.cast(u16, display.display_number) orelse return error.InvalidDisplayNumber,
+    ) catch return error.InvalidDisplayNumber;
+
+    const host: std.Io.net.HostName = try .init(display.host);
+    const stream = try host.connect(io, port, .{ .mode = .stream });
+
+    return .{ .stream = stream };
+}
+
+/// Returns a buffered writer for outgoing data on this connection.
+pub fn writer(
     self: *Connection,
     io: std.Io,
-    bytes: []const u8,
-) !void {
-    var buffer: [1024]u8 = undefined;
-    var writer = self.stream.writer(io, &buffer);
-    try writer.interface.writeAll(bytes);
-    try writer.interface.flush();
+    buffer: []u8,
+) std.Io.net.Stream.Writer {
+    return self.stream.writer(io, buffer);
 }
 
-/// Returns a buffered reader for incoming X11 protocol messages.
+/// Returns a buffered reader for incoming data from this connection.
 pub fn reader(
     self: *Connection,
     io: std.Io,
@@ -60,102 +83,7 @@ pub fn reader(
     return self.stream.reader(io, buffer);
 }
 
-/// Reads one complete fixed-size X11 server response header.
-///
-/// Replies may contain additional request-specific data after this header.
-pub fn readResponseHeader(
-    self: *Connection,
-    response_reader: anytype,
-) ![Response.size]u8 {
-    _ = self;
-
-    var bytes: [Response.size]u8 = undefined;
-    try response_reader.interface.readSliceAll(&bytes);
-    return bytes;
-}
-
-/// A classified incoming X11 server message.
-///
-/// Replies remain raw because their interpretation depends on the request
-/// that produced them.
-pub const Incoming = union(enum) {
-    protocol_error: ProtocolError,
-    reply: [Response.size]u8,
-    event: Event,
-};
-
-/// Reads and classifies one incoming X11 server response.
-///
-/// Events and protocol errors are parsed immediately. Replies are returned
-/// as their raw 32-byte header for request-specific parsing.
-pub fn readResponse(
-    self: *Connection,
-    response_reader: anytype,
-    endian: Endian,
-) !Incoming {
-    const bytes = try self.readResponseHeader(response_reader);
-
-    return switch (try Response.classify(&bytes)) {
-        .protocol_error => .{
-            .protocol_error = try ProtocolError.parse(&bytes, endian),
-        },
-        .reply => .{ .reply = bytes },
-        .event => .{
-            .event = try Event.parse(&bytes, endian),
-        },
-    };
-}
-
 /// Closes the underlying connection.
 pub fn close(self: *Connection, io: std.Io) void {
     self.stream.socket.close(io);
-}
-
-test "Connection.readResponse classifies a protocol error" {
-    var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
-    bytes[1] = 3;
-
-    var stream = std.Io.fixedBufferStream(&bytes);
-    var connection = Connection.init(undefined);
-
-    const incoming = try connection.readResponse(&stream.reader(), .little);
-    switch (incoming) {
-        .protocol_error => |protocol_error| {
-            try std.testing.expectEqual(@as(u8, 3), protocol_error.code);
-        },
-        else => return error.UnexpectedResponse,
-    }
-}
-
-test "Connection.readResponse returns replies as raw headers" {
-    var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
-    bytes[0] = 1;
-
-    var stream = std.Io.fixedBufferStream(&bytes);
-    var connection = Connection.init(undefined);
-
-    const incoming = try connection.readResponse(&stream.reader(), .little);
-    switch (incoming) {
-        .reply => |reply| {
-            try std.testing.expectEqual(@as(u8, 1), reply[0]);
-        },
-        else => return error.UnexpectedResponse,
-    }
-}
-
-test "Connection.readResponse parses events" {
-    var bytes: [Response.size]u8 = [_]u8{0} ** Response.size;
-    bytes[0] = 12;
-
-    var stream = std.Io.fixedBufferStream(&bytes);
-    var connection = Connection.init(undefined);
-
-    const incoming = try connection.readResponse(&stream.reader(), .little);
-    switch (incoming) {
-        .event => |event| switch (event) {
-            .expose => {},
-            else => return error.UnexpectedEvent,
-        },
-        else => return error.UnexpectedResponse,
-    }
 }
