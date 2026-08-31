@@ -21,7 +21,9 @@ pub const Rectangle = struct {
 
 /// Fills one or more rectangles using the supplied graphics context.
 pub const PolyFillRectangle = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{
+        BufferTooSmall,
+    };
 
     pub const opcode = 70;
     pub const base_size: usize = 12;
@@ -218,7 +220,9 @@ pub const Point = struct {
 
 /// Draws connected line segments from a list of points.
 pub const PolyLine = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{
+        BufferTooSmall,
+    };
 
     pub const opcode = 65;
     pub const base_size: usize = 12;
@@ -293,7 +297,9 @@ test "encode little-endian PolyLine request" {
 
 /// Draws the outlines of one or more rectangles.
 pub const PolyRectangle = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{
+        BufferTooSmall,
+    };
 
     pub const opcode = 67;
     pub const base_size: usize = 12;
@@ -372,7 +378,9 @@ pub const Arc = struct {
 
 /// Draws one or more arc outlines.
 pub const PolyArc = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{
+        BufferTooSmall,
+    };
 
     pub const opcode = 68;
     pub const base_size: usize = 12;
@@ -453,7 +461,9 @@ test "encode little-endian PolyArc request" {
 
 /// Fills one or more arc shapes.
 pub const PolyFillArc = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{
+        BufferTooSmall,
+    };
 
     pub const opcode = 71;
     pub const base_size: usize = 12;
