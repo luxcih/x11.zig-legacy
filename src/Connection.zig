@@ -23,7 +23,7 @@ pub fn connect(io: std.Io, display_name: []const u8) !Connection {
         .colon => if (display.host.len == 0)
             connectLocal(io, display)
         else
-            error.UnsupportedTransport,
+            connectTcp(io, display),
     };
 }
 
@@ -44,6 +44,17 @@ fn connectLocal(
     const stream = try address.connect(io);
 
     return .{ .stream = stream };
+}
+
+
+/// Connects to a remote X server through TCP.
+fn connectTcp(
+    io: std.Io,
+    display: Display,
+) !Connection {
+    _ = io;
+    _ = display;
+    return error.UnsupportedTransport;
 }
 
 /// Writes an entire X11 protocol message and flushes it to the server.
