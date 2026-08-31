@@ -1,10 +1,18 @@
+//! X11 atoms and translation between names and atom IDs.
+//!
+//! Atoms are server-wide numeric identifiers for strings. Clients use them as
+//! compact names for concepts such as window properties and protocols.
+//!
+//! Intern maps a name to an atom, optionally requiring that it already exists.
+//! GetName performs the reverse lookup and parses its variable-length reply.
+//!
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
 
 const Atom = @This();
 
-pub const Intern = struct {
+/// Interns a string as a server-wide atom ID.\n/// The atom may be newly created unless only_if_exists is set.\npub const Intern = struct {
     pub const EncodeError = error{
         BufferTooSmall,
         NameTooLong,
@@ -51,7 +59,7 @@ pub const Intern = struct {
         return buffer[0..length];
     }
 
-    pub const Reply = struct {
+    /// The atom ID returned by the server for the requested name.\n    pub const Reply = struct {
         atom: u32,
 
         pub fn parse(bytes: []const u8, endian: Endian) ParseError!Reply {
@@ -67,7 +75,7 @@ pub const Intern = struct {
     };
 };
 
-pub const GetName = struct {
+/// Retrieves the string name associated with an atom ID.\npub const GetName = struct {
     pub const EncodeError = error{BufferTooSmall};
     pub const ParseError = error{InvalidLength, InvalidResponse};
 
