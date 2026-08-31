@@ -85,6 +85,16 @@ pub const Event = union(enum) {
         raw: [32]u8,
     };
 
+    /// Decodes one complete X11 event from the connection.
+    pub fn decode(
+        reader: *std.Io.Reader,
+        endian: Endian,
+    ) !Event {
+        var bytes: [32]u8 = undefined;
+        try reader.readSliceAll(&bytes);
+        return parse(&bytes, endian);
+    }
+
     /// Parses one complete 32-byte X11 event while preserving unknown event types.
     pub fn parse(bytes: []const u8, endian: Endian) ParseError!Event {
         if (bytes.len != 32)
