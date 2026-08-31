@@ -18,14 +18,14 @@ pub fn perform(client: *Client) !Result {
     try client.send(Request{});
 
     var prefix: [8]u8 = undefined;
-    try client.reader.interface.readSliceAll(&prefix);
+    try client.read(&prefix);
 
     const additional_length = Wire.readU16(prefix[6..8], client.endian);
     const additional_bytes = @as(usize, additional_length) * 4;
 
     const body = try client.allocator.alloc(u8, additional_bytes);
     defer client.allocator.free(body);
-    try client.reader.interface.readSliceAll(body);
+    try client.read(body);
 
     return switch (prefix[0]) {
         0 => error.SetupFailed,
