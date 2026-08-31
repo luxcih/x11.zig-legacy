@@ -1,38 +1,20 @@
 //! Internal parser for X11 display names.
 //!
-//! The parser owns the display-name grammar and produces its parsed fields.
+//! The parser owns the display-name grammar and constructs a Display.
 
 const std = @import("std");
+const Display = @import("../Display.zig");
 
 const Parser = @This();
 
 value: []const u8,
 index: usize = 0,
 
-pub const Separator = enum {
-    colon,
-    double_colon,
-};
-
-pub const Error = error{
-    InvalidDisplay,
-};
-
-pub const Result = struct {
-    protocol: ?[]const u8,
-    host: []const u8,
-    separator: Separator,
-    display_number: u32,
-    screen_number: u32 = 0,
-};
-
 pub fn init(value: []const u8) Parser {
-    return .{
-        .value = value,
-    };
+    return .{ .value = value };
 }
 
-pub fn parse(self: *Parser) Error!Result {
+pub fn parse(self: *Parser) Display.ParseError!Display {
     if (self.value.len == 0) return error.InvalidDisplay;
 
     const protocol = try self.parseProtocol();
@@ -52,23 +34,23 @@ pub fn parse(self: *Parser) Error!Result {
     };
 }
 
-fn parseProtocol(self: *Parser) Error!?[]const u8 {
-    const slash = std.mem.findScalar(u8, self.value[self.index..], '/');
-    const colon = std.mem.findScalar(u8, self.value[self.index..], ':');
+fn parseProtocol(self: *Parser) Display.ParseError!?[]const u8 {
+    const value = self.value[self.index..];
+    const colon = std.mem.findScalar(u8, value, ':') orelse {
+        return error.InvalidDisplay;
+    };
+    const slash = std.mem.findScalar(u8, value[0..colon]) orelse return null;
 
-    const slash_index = slash orelse return null;
-    const colon_index = colon orelse return error.InvalidDisplay;
+    if (slash == 0) return error.InvalidDisplay;
 
-    if (slash_index > colon_index) return null;
-    if (slash_index == 0) return error.InvalidDisplay;
-
-    const end = self.index + slash_index;
+    const start = self.index;
+    const end = start + slash;
     self.index = end + 1;
 
-    return self.value[0..end];
+    return self.value[start..end];
 }
 
-fn parseHost(self: *Parser) Error![]const u8 {
+fn parseHost(self: *Parser) Display.ParseError![]const u8 {
     const colon = std.mem.findScalar(u8, self.value[self.index..], ':') orelse {
         return error.InvalidDisplay;
     };
@@ -84,7 +66,7 @@ fn parseHost(self: *Parser) Error![]const u8 {
     return host;
 }
 
-fn parseSeparator(self: *Parser) Error!Separator {
+fn parseSeparator(self: *Parser) Display.ParseError!Display.Separator {
     if (self.index >= self.value.len or self.value[self.index] != ':') {
         return error.InvalidDisplay;
     }
@@ -99,7 +81,7 @@ fn parseSeparator(self: *Parser) Error!Separator {
     return .colon;
 }
 
-fn parseNumber(self: *Parser) Error!u32 {
+fn parseNumber(self: *Parser) Display.ParseError!u32 {
     const start = self.index;
 
     while (self.index < self.value.len and self.value[self.index] != '.') {
@@ -114,7 +96,7 @@ fn parseNumber(self: *Parser) Error!u32 {
     };
 }
 
-fn parseScreen(self: *Parser) Error!u32 {
+fn parseScreen(self: *Parser) Display.ParseError!u32 {
     if (self.index == self.value.len) return 0;
 
     if (self.value[self.index] != '.') return error.InvalidDisplay;
