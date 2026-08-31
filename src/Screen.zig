@@ -1,3 +1,8 @@
+//! Description of one X11 screen supplied during connection setup.
+//!
+//! A screen includes its root window, default colormap and visual, physical and
+//! pixel dimensions, and the number of depth records that follow it.
+
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
