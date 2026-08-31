@@ -8,6 +8,9 @@ const XidAllocator = @import("XidAllocator.zig");
 
 const Client = @This();
 
+pub const ConnectOptions = Handshake.Options;
+pub const Authorization = Handshake.Authorization;
+
 io: std.Io,
 allocator: std.mem.Allocator,
 connection: Connection,
@@ -26,6 +29,7 @@ pub fn connect(
     io: std.Io,
     allocator: std.mem.Allocator,
     display_name: []const u8,
+    options: ConnectOptions,
 ) !*Client {
     const self = try allocator.create(Client);
     errdefer allocator.destroy(self);
@@ -38,16 +42,15 @@ pub fn connect(
     self.reader = self.connection.reader(io, &self.read_buffer);
     self.writer = self.connection.writer(io, &self.write_buffer);
 
-    const endian: std.builtin.Endian = .little;
     const result = try Handshake.perform(
         allocator,
         &self.reader,
         &self.writer,
-        endian,
+        options,
     );
     errdefer result.server.deinit(allocator);
 
-    self.endian = endian;
+    self.endian = options.endian;
     self.server = result.server;
     self.xids = XidAllocator.init(
         result.resource_id_base,
