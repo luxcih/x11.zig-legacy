@@ -197,7 +197,7 @@ test "ChangeGC uses shared Values" {
     try std.testing.expectEqualSlices(u8, &.{
         56,0,0,6,
         1,2,3,4,
-        0,17,0,2,
+        0,17,0,8,
         0x11,0x22,0x33,0x44,
         0,0,0,1,
         0,0,0,7,
