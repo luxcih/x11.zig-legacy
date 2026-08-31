@@ -24,7 +24,8 @@ const Window = @This();
 /// increasing mask-bit order.
 pub const Create = struct {
     pub const EncodeError = error{
-        };
+        BufferTooSmall,
+    };
 
     pub const opcode = 1;
     pub const size: usize = 32;
@@ -47,7 +48,7 @@ pub const Create = struct {
         input_only = 2,
     };
 
-    fn encodedLength(self: Create) usize {
+    pub fn encodedLength(self: Create) usize {
         return size + if (self.background_pixel != null) @as(usize, 4) else 0;
     }
 
@@ -57,6 +58,8 @@ pub const Create = struct {
         endian: Endian,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
+        if (buffer.len < length) return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = self.depth;
         Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
@@ -80,13 +83,13 @@ pub const Create = struct {
 
         Wire.writeU32(buffer[28..32], value_mask, endian);
 
-        try writer.writeAll(buffer[0..offset]);
+        return buffer[0..offset];
     }
 };
 
 /// Queries server-maintained attributes and event masks for a window.
 pub const GetWindowAttributes = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const ParseError = error{ InvalidLength, InvalidResponse };
 
     pub const opcode = 3;
@@ -136,19 +139,19 @@ pub const GetWindowAttributes = struct {
         }
     };
 
-    pub fn encode(self: GetWindowAttributes, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
-        var buffer: [256]u8 = undefined;
+    pub fn encode(self: GetWindowAttributes, buffer: []u8, endian: Endian) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 /// Queries a window's position in the X11 window tree and its direct children.
 pub const QueryTree = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const ParseError = std.mem.Allocator.Error || error{ InvalidLength, InvalidResponse, InvalidChildrenLength };
 
     pub const opcode = 15;
@@ -194,18 +197,18 @@ pub const QueryTree = struct {
         return children;
     }
 
-    pub fn encode(self: QueryTree, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
-        var buffer: [256]u8 = undefined;
+    pub fn encode(self: QueryTree, buffer: []u8, endian: Endian) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const QueryPointer = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const ParseError = error{ InvalidLength, InvalidResponse };
 
     pub const opcode = 38;
@@ -246,12 +249,14 @@ pub const QueryPointer = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
 
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
@@ -259,7 +264,8 @@ pub const QueryPointer = struct {
 /// event selection through `EventMask`.
 pub const ChangeAttributes = struct {
     pub const EncodeError = error{
-        };
+        BufferTooSmall,
+    };
 
     pub const opcode = 2;
     pub const event_mask_bit: u32 = 1 << 11;
@@ -303,6 +309,9 @@ pub const ChangeAttributes = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < size)
+            return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
@@ -310,13 +319,14 @@ pub const ChangeAttributes = struct {
         Wire.writeU32(buffer[8..12], event_mask_bit, endian);
         Wire.writeU32(buffer[12..16], @bitCast(self.event_mask), endian);
 
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const Unmap = struct {
     pub const EncodeError = error{
-        };
+        BufferTooSmall,
+    };
 
     pub const opcode = 10;
     pub const size: usize = 8;
@@ -328,18 +338,22 @@ pub const Unmap = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < size)
+            return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
 
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const Destroy = struct {
     pub const EncodeError = error{
-        };
+        BufferTooSmall,
+    };
 
     pub const opcode = 4;
     pub const size: usize = 8;
@@ -351,12 +365,15 @@ pub const Destroy = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < size)
+            return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
 
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
@@ -364,7 +381,8 @@ pub const Destroy = struct {
 /// Only non-null fields are transmitted in increasing mask-bit order.
 pub const Configure = struct {
     pub const EncodeError = error{
-        };
+        BufferTooSmall,
+    };
 
     pub const opcode = 12;
     pub const base_size: usize = 12;
@@ -375,7 +393,7 @@ pub const Configure = struct {
     width: ?u32 = null,
     height: ?u32 = null,
 
-    fn encodedLength(self: Configure) usize {
+    pub fn encodedLength(self: Configure) usize {
         var count: usize = 0;
         if (self.x != null) count += 1;
         if (self.y != null) count += 1;
@@ -390,6 +408,9 @@ pub const Configure = struct {
         endian: Endian,
     ) EncodeError![]const u8 {
         const length = self.encodedLength();
+        if (buffer.len < length)
+            return error.BufferTooSmall;
+
         var value_mask: u16 = 0;
         var offset: usize = base_size;
 
@@ -424,14 +445,15 @@ pub const Configure = struct {
         Wire.writeU16(buffer[8..10], value_mask, endian);
         Wire.writeU16(buffer[10..12], 0, endian);
 
-        try writer.writeAll(buffer[0..offset]);
+        return buffer[0..offset];
     }
 };
 
 /// Queries the geometry of a drawable relative to its parent.
 pub const GetGeometry = struct {
     pub const EncodeError = error{
-        };
+        BufferTooSmall,
+    };
 
     pub const ParseError = error{
         InvalidLength,
@@ -474,26 +496,29 @@ pub const GetGeometry = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
         Wire.writeU32(buffer[4..8], self.drawable, endian);
 
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 /// Makes a window eligible to become visible on the screen.
 pub const Map = struct {
     pub const EncodeError = error{
-        };
+        BufferTooSmall,
+    };
 
     pub const opcode = 8;
     pub const size = 8;
 
     window_id: u32,
 
-    fn encodedLength(self: Map) usize {
+    pub fn encodedLength(self: Map) usize {
         _ = self;
         return size;
     }
@@ -503,17 +528,19 @@ pub const Map = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], @intCast(size / 4), endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
 
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const GetProperty = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const ParseError = error{ InvalidLength, InvalidResponse };
 
     pub const opcode = 20;
@@ -532,6 +559,9 @@ pub const GetProperty = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < request_size)
+            return error.BufferTooSmall;
+
         @memset(buffer[0..request_size], 0);
         buffer[0] = opcode;
         buffer[1] = @intFromBool(self.delete);
@@ -542,7 +572,7 @@ pub const GetProperty = struct {
         Wire.writeU32(buffer[16..20], self.long_offset, endian);
         Wire.writeU32(buffer[20..24], self.long_length, endian);
 
-        try writer.writeAll(buffer[0..request_size]);
+        return buffer[0..request_size];
     }
 
     pub const Reply = struct {
@@ -580,6 +610,7 @@ pub const GetProperty = struct {
 
 pub const ChangeProperty = struct {
     pub const EncodeError = error{
+        BufferTooSmall,
         InvalidFormat,
         InvalidDataLength,
     };
@@ -600,7 +631,7 @@ pub const ChangeProperty = struct {
     format: u8,
     data: []const u8,
 
-    fn encodedLength(self: ChangeProperty) EncodeError!usize {
+    pub fn encodedLength(self: ChangeProperty) EncodeError!usize {
         const item_size: usize = switch (self.format) {
             8 => 1,
             16 => 2,
@@ -620,6 +651,9 @@ pub const ChangeProperty = struct {
         endian: Endian,
     ) EncodeError![]const u8 {
         const length = try self.encodedLength();
+        if (buffer.len < length)
+            return error.BufferTooSmall;
+
         const item_size: usize = switch (self.format) {
             8 => 1,
             16 => 2,
@@ -639,12 +673,12 @@ pub const ChangeProperty = struct {
         Wire.writeU32(buffer[20..24], @intCast(item_count), endian);
         @memcpy(buffer[24 .. 24 + self.data.len], self.data);
 
-        try writer.writeAll(buffer[0..length]);
+        return buffer[0..length];
     }
 };
 
 pub const DeleteProperty = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
 
     pub const opcode = 19;
     pub const request_size = 12;
@@ -657,18 +691,21 @@ pub const DeleteProperty = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < request_size)
+            return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], request_size / 4, endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
         Wire.writeU32(buffer[8..12], self.property, endian);
 
-        try writer.writeAll(buffer[0..request_size]);
+        return buffer[0..request_size];
     }
 };
 
 pub const ListProperties = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const ParseError = error{
         InvalidLength,
         InvalidResponse,
@@ -687,12 +724,15 @@ pub const ListProperties = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < request_size)
+            return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], request_size / 4, endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
 
-        try writer.writeAll(buffer[0..request_size]);
+        return buffer[0..request_size];
     }
 
     pub const Reply = struct {
@@ -737,6 +777,7 @@ pub const ListProperties = struct {
 
 pub const RotateProperties = struct {
     pub const EncodeError = error{
+        BufferTooSmall,
         TooManyProperties,
     };
 
@@ -747,7 +788,7 @@ pub const RotateProperties = struct {
     delta: i16,
     properties: []const u32,
 
-    fn encodedLength(self: RotateProperties) EncodeError!usize {
+    pub fn encodedLength(self: RotateProperties) EncodeError!usize {
         if (self.properties.len > std.math.maxInt(u16))
             return error.TooManyProperties;
 
@@ -760,6 +801,9 @@ pub const RotateProperties = struct {
         endian: Endian,
     ) EncodeError![]const u8 {
         const length = try self.encodedLength();
+        if (buffer.len < length)
+            return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], @intCast(length / 4), endian);
@@ -772,7 +816,7 @@ pub const RotateProperties = struct {
             Wire.writeU32(buffer[offset .. offset + 4], property, endian);
         }
 
-        try writer.writeAll(buffer[0..length]);
+        return buffer[0..length];
     }
 };
 
@@ -916,24 +960,24 @@ test "encode little-endian map window request" {
 }
 
 pub const DestroySubwindows = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const opcode = 5;
     pub const size: usize = 8;
 
     window_id: u32,
 
-    pub fn encode(self: DestroySubwindows, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
-        var buffer: [256]u8 = undefined;
+    pub fn encode(self: DestroySubwindows, buffer: []u8, endian: Endian) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], size / 4, endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const ChangeSaveSet = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const opcode = 6;
     pub const size: usize = 8;
 
@@ -945,18 +989,18 @@ pub const ChangeSaveSet = struct {
     mode: Mode,
     window_id: u32,
 
-    pub fn encode(self: ChangeSaveSet, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
-        var buffer: [256]u8 = undefined;
+    pub fn encode(self: ChangeSaveSet, buffer: []u8, endian: Endian) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
         buffer[0] = opcode;
         buffer[1] = @intFromEnum(self.mode);
         Wire.writeU16(buffer[2..4], size / 4, endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const Reparent = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const opcode = 7;
     pub const size: usize = 16;
 
@@ -965,8 +1009,8 @@ pub const Reparent = struct {
     x: i16,
     y: i16,
 
-    pub fn encode(self: Reparent, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
-        var buffer: [256]u8 = undefined;
+    pub fn encode(self: Reparent, buffer: []u8, endian: Endian) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], size / 4, endian);
@@ -974,46 +1018,46 @@ pub const Reparent = struct {
         Wire.writeU32(buffer[8..12], self.parent, endian);
         Wire.writeI16(buffer[12..14], self.x, endian);
         Wire.writeI16(buffer[14..16], self.y, endian);
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const MapSubwindows = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const opcode = 9;
     pub const size: usize = 8;
 
     window_id: u32,
 
-    pub fn encode(self: MapSubwindows, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
-        var buffer: [256]u8 = undefined;
+    pub fn encode(self: MapSubwindows, buffer: []u8, endian: Endian) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], size / 4, endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const UnmapSubwindows = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const opcode = 11;
     pub const size: usize = 8;
 
     window_id: u32,
 
-    pub fn encode(self: UnmapSubwindows, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
-        var buffer: [256]u8 = undefined;
+    pub fn encode(self: UnmapSubwindows, buffer: []u8, endian: Endian) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], size / 4, endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const Circulate = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const opcode = 13;
     pub const size: usize = 8;
 
@@ -1025,18 +1069,18 @@ pub const Circulate = struct {
     window_id: u32,
     direction: Direction,
 
-    pub fn encode(self: Circulate, writer: *std.Io.Writer, endian: Endian) EncodeError!void {
-        var buffer: [256]u8 = undefined;
+    pub fn encode(self: Circulate, buffer: []u8, endian: Endian) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
         buffer[0] = opcode;
         buffer[1] = @intFromEnum(self.direction);
         Wire.writeU16(buffer[2..4], size / 4, endian);
         Wire.writeU32(buffer[4..8], self.window_id, endian);
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
 pub const TranslateCoordinates = struct {
-    pub const EncodeError = error{};
+    pub const EncodeError = error{BufferTooSmall};
     pub const ParseError = error{ InvalidLength, InvalidResponse };
 
     pub const opcode = 40;
@@ -1072,6 +1116,8 @@ pub const TranslateCoordinates = struct {
         buffer: []u8,
         endian: Endian,
     ) EncodeError![]const u8 {
+        if (buffer.len < size) return error.BufferTooSmall;
+
         buffer[0] = opcode;
         buffer[1] = 0;
         Wire.writeU16(buffer[2..4], size / 4, endian);
@@ -1080,7 +1126,7 @@ pub const TranslateCoordinates = struct {
         Wire.writeI16(buffer[12..14], self.src_x, endian);
         Wire.writeI16(buffer[14..16], self.src_y, endian);
 
-        try writer.writeAll(buffer[0..size]);
+        return buffer[0..size];
     }
 };
 
