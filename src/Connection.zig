@@ -14,18 +14,25 @@ const Endian = std.builtin.Endian;
 const Connection = @This();
 stream: std.Io.net.Stream,
 
-pub fn init(stream: std.Io.net.Stream) Connection {
-    return .{
-        .stream = stream,
+/// Connects to an X server identified by a display name.
+pub fn connect(io: std.Io, display_name: []const u8) !Connection {
+    const display = try Display.parse(display_name);
+
+    return switch (display.separator) {
+        .double_colon => error.UnsupportedTransport,
+        .colon => if (display.host.len == 0)
+            connectLocal(io, display)
+        else
+            error.UnsupportedTransport,
     };
 }
 
 /// Connects to a local X server through its Unix-domain socket.
-pub fn connectLocal(
+fn connectLocal(
     io: std.Io,
     display: Display,
-    socket_dir: []const u8,
 ) !Connection {
+    const socket_dir = "/tmp/.X11-unix";
     var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
     const path = try std.fmt.bufPrint(
         &path_buffer,
@@ -36,7 +43,7 @@ pub fn connectLocal(
     const address = try std.Io.net.UnixAddress.init(path);
     const stream = try address.connect(io);
 
-    return init(stream);
+    return .{ .stream = stream };
 }
 
 /// Writes an entire X11 protocol message and flushes it to the server.
@@ -116,9 +123,7 @@ test "Connection.readResponse classifies a protocol error" {
     bytes[1] = 3;
 
     var stream = std.Io.fixedBufferStream(&bytes);
-    var connection = Connection.init(undefined);
-
-    const incoming = try connection.readResponse(&stream.reader(), .little);
+    const incoming = try readResponse/(&stream.reader(), .little);
     switch (incoming) {
         .protocol_error => |protocol_error| {
             try std.testing.expectEqual(@as(u8, 3), protocol_error.code);
