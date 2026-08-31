@@ -16,6 +16,6 @@ pub fn main() !void {
         display.host,
         @tagName(display.separator),
         display.display_number,
-        display.screen,
+        display.screen_number,
     });
 }
