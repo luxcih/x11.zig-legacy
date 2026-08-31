@@ -41,7 +41,8 @@ pub fn connect(
 
     const setup_request = Setup{};
 
-    try setup_request.encode(&self.writer.interface);
+    const encoded_setup = try setup_request.encode(&self.write_buffer);
+    try self.writer.interface.writeAll(encoded_setup);
     try self.writer.interface.flush();
 
     var prefix: [8]u8 = undefined;
@@ -89,11 +90,5 @@ pub fn nextXid(self: *Client) XidAllocator.Error!u32 {
 pub fn deinit(self: *Client) void {
     self.setup.deinit(self.allocator);
     self.connection.close(self.io);
-}
-
-/// Releases the client and its owned resources.
-pub fn destroy(self: *Client) void {
-    const allocator = self.allocator;
-    self.deinit();
-    allocator.destroy(self);
+    self.allocator.destroy(self);
 }
