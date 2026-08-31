@@ -1,3 +1,9 @@
+//! Parsing of the fixed header of a successful X11 setup response.
+//!
+//! The setup body begins with server-wide information such as the resource-ID
+//! range, vendor string, request limits, and counts of pixmap formats and screens.
+//! Variable-length screen and visual data is parsed later by `SetupInfo`.
+
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
@@ -39,6 +45,7 @@ pub const SetupSuccess = struct {
         return (length + 3) & ~@as(usize, 3);
     }
 
+    /// Parses the fixed successful-setup header and records offsets into the remaining body.
     pub fn parse(
         body: []const u8,
         endian: Endian,
