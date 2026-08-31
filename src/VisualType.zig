@@ -1,3 +1,8 @@
+//! Description of an X11 visual.
+//!
+//! A visual defines how pixel values are interpreted, including its class,
+//! component masks, color precision, and colormap characteristics.
+
 const std = @import("std");
 const Wire = @import("Wire.zig");
 const Endian = std.builtin.Endian;
