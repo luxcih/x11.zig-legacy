@@ -1,3 +1,9 @@
+//! High-level parsing and ownership of the complete successful X11 setup body.
+//!
+//! SetupInfo turns the server's variable-length setup data into Zig-owned slices:
+//! pixmap formats, screens, depths, and visuals. It owns those allocations and
+//! must be released with `deinit` using the same allocator.
+
 const std = @import("std");
 const Endian = std.builtin.Endian;
 const SetupSuccess = @import("SetupSuccess.zig").SetupSuccess;
@@ -11,7 +17,8 @@ const SetupInfo = @This();
         depth: Depth,
         visuals: []VisualType,
 
-        pub fn deinit(self: ParsedDepth, allocator: std.mem.Allocator) void {
+        /// Releases all allocations made while parsing this setup information.
+    pub fn deinit(self: ParsedDepth, allocator: std.mem.Allocator) void {
             allocator.free(self.visuals);
         }
     };
@@ -32,6 +39,7 @@ const SetupInfo = @This();
     pixmap_formats: []PixmapFormat,
     screens: []ParsedScreen,
 
+    /// Parses the complete successful setup body into owned screen, depth, and visual data.
     pub fn parse(
         allocator: std.mem.Allocator,
         body: []const u8,
