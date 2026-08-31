@@ -34,6 +34,9 @@ const XidAllocator = @This();
         return id;
     }
 
+    // Maps consecutive client allocation bits onto the positions permitted by
+    // the server's resource-ID mask. The mask may be sparse, so simple addition
+    // would produce invalid XIDs.
     fn applyMask(mask: u32, index: u64) u32 {
         var result: u32 = 0;
         var source_bit: u6 = 0;
