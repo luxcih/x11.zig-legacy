@@ -96,7 +96,11 @@ fn parseNumber(value: []const u8) ParseError!u32 {
     else
         number_and_screen;
 
-    return parseInteger(number);
+    if (number.len == 0) return error.InvalidDisplay;
+
+    return std.fmt.parseInt(u32, number, 10) catch {
+        return error.InvalidDisplay;
+    };
 }
 
 fn parseScreen(value: []const u8) ParseError!u32 {
@@ -120,13 +124,10 @@ fn parseScreen(value: []const u8) ParseError!u32 {
         return 0;
     };
 
-    return parseInteger(number_and_screen[dot + 1 ..]);
-}
+    const screen = number_and_screen[dot + 1 ..];
+    if (screen.len == 0) return error.InvalidDisplay;
 
-fn parseInteger(value: []const u8) ParseError!u32 {
-    if (value.len == 0) return error.InvalidDisplay;
-
-    return std.fmt.parseInt(u32, value, 10) catch {
+    return std.fmt.parseInt(u32, screen, 10) catch {
         return error.InvalidDisplay;
     };
 }
