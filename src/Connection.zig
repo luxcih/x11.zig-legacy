@@ -5,6 +5,7 @@
 //! and writer to exchange protocol messages.
 
 const std = @import("std");
+const builtin = @import("builtin");
 const Display = @import("Display.zig");
 
 const Connection = @This();
@@ -29,13 +30,16 @@ fn connectLocal(
     io: std.Io,
     display: Display,
 ) !Connection {
-    const socket_dir = "/tmp/.X11-unix";
+    const temp_dir = if (builtin.os.tag == .android)
+        std.posix.getenv("TMPDIR") orelse "/tmp"
+    else
+        "/tmp";
 
     var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
     const path = try std.fmt.bufPrint(
         &path_buffer,
-        "{s}/X{}",
-        .{ socket_dir, display.display_number },
+        "{s}/.X11-unix/X{}",
+        .{ temp_dir, display.display_number },
     );
 
     const address = try std.Io.net.UnixAddress.init(path);
