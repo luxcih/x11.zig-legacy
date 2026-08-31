@@ -19,6 +19,9 @@ pub fn parse(self: *Parser) Display.ParseError!Display {
 
     const protocol = try self.parseProtocol();
     const host = try self.parseHost();
+
+    if (protocol != null and host.len == 0) return error.InvalidDisplay;
+
     const separator = try self.parseSeparator();
     const display_number = try self.parseNumber();
     const screen_number = try self.parseScreen();
@@ -58,9 +61,6 @@ fn parseHost(self: *Parser) Display.ParseError![]const u8 {
     const end = self.index + colon;
     const host = self.value[self.index..end];
 
-    if (self.index != 0 and host.len == 0) {
-        return error.InvalidDisplay;
-    }
 
     self.index = end;
     return host;
