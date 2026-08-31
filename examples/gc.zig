@@ -8,7 +8,7 @@ pub fn main() !void {
     const create = x11.GC.Create{
         .drawable = 1,
         .gc_id = 2,
-        .values = .{ .foreground = 0xff0000 }, .line_width = 6 },
+        .values = .{ .foreground = 0xff0000, .line_width = 6 },
     };
     var change_buffer: [24]u8 = undefined;
     const change_bytes = try change.encode(&change_buffer, .little);
