@@ -5,8 +5,8 @@ const Client = @import("Client.zig");
 const Endian = std.builtin.Endian;
 const Wire = @import("Wire.zig");
 const PixmapFormat = @import("PixmapFormat.zig");
-const Screen = @import("Screen.zig");
-const Depth = @import("Depth.zig");
+const ScreenRecord = @import("Screen.zig");
+const DepthRecord = @import("Depth.zig");
 const VisualType = @import("VisualType.zig");
 
 const Server = @This();
@@ -50,7 +50,7 @@ const Header = struct {
 };
 
 pub const Depth = struct {
-    depth: Depth,
+    depth: DepthRecord,
     visuals: []VisualType,
 
     pub fn deinit(self: Depth, allocator: std.mem.Allocator) void {
@@ -59,7 +59,7 @@ pub const Depth = struct {
 };
 
 pub const Screen = struct {
-    screen: Screen,
+    screen: ScreenRecord,
     depths: []Depth,
 
     pub fn deinit(self: Screen, allocator: std.mem.Allocator) void {
@@ -153,7 +153,7 @@ fn receiveScreen(
     client: *Client,
     allocator: std.mem.Allocator,
 ) !Screen {
-    const screen = try client.recv(Screen);
+    const screen = try client.recv(ScreenRecord);
 
     const depths = try allocator.alloc(Depth, screen.depth_count);
     var received_depths: usize = 0;
@@ -173,7 +173,7 @@ fn receiveDepth(
     client: *Client,
     allocator: std.mem.Allocator,
 ) !Depth {
-    const depth = try client.recv(Depth);
+    const depth = try client.recv(DepthRecord);
 
     const visuals = try allocator.alloc(VisualType, depth.visual_count);
     errdefer allocator.free(visuals);
