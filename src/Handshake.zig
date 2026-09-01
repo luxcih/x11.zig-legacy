@@ -55,9 +55,9 @@ const Response = struct {
 
     const Header = struct {
         status: Status,
-        _protocol_major_version: u16,
-        _protocol_minor_version: u16,
-        _additional_length: u16,
+        protocol_major_version: u16,
+        protocol_minor_version: u16,
+        additional_length: u16,
 
         pub const size = 8;
 
