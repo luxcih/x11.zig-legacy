@@ -113,9 +113,7 @@ fn receivePixmapFormats(
     errdefer allocator.free(formats);
 
     for (formats) |*format| {
-        var bytes: [PixmapFormat.size]u8 = undefined;
-        try client.read(&bytes);
-        format.* = try PixmapFormat.parse(&bytes);
+        format.* = try client.recv(PixmapFormat);
     }
 
     return formats;
@@ -125,10 +123,7 @@ fn receiveScreen(
     client: *Client,
     allocator: std.mem.Allocator,
 ) !ParsedScreen {
-    var bytes: [Screen.size]u8 = undefined;
-    try client.read(&bytes);
-
-    const screen = try Screen.parse(&bytes, client.endian);
+    const screen = try client.recv(Screen);
 
     const depths = try allocator.alloc(ParsedDepth, screen.depth_count);
     var received_depths: usize = 0;
@@ -148,18 +143,13 @@ fn receiveDepth(
     client: *Client,
     allocator: std.mem.Allocator,
 ) !ParsedDepth {
-    var bytes: [Depth.size]u8 = undefined;
-    try client.read(&bytes);
-
-    const depth = try Depth.parse(&bytes, client.endian);
+    const depth = try client.recv(Depth);
 
     const visuals = try allocator.alloc(VisualType, depth.visual_count);
     errdefer allocator.free(visuals);
 
     for (visuals) |*visual| {
-        var visual_bytes: [VisualType.size]u8 = undefined;
-        try client.read(&visual_bytes);
-        visual.* = try VisualType.parse(&visual_bytes, client.endian);
+        visual.* = try client.recv(VisualType);
     }
 
     return .{ .depth = depth, .visuals = visuals };
