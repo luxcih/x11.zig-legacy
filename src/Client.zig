@@ -40,12 +40,11 @@ pub fn connect(
 
     self.endian = .little;
 
-    const result = try Handshake.perform(self);
-    errdefer result.server.deinit(allocator);
-    self.server = result.server;
+    self.server = try Handshake.perform(self);
+    errdefer self.server.deinit(allocator);
     self.xids = XidAllocator.init(
-        result.resource_id_base,
-        result.resource_id_mask,
+        self.server.resource_id_base,
+        self.server.resource_id_mask,
     );
 
     return self;
