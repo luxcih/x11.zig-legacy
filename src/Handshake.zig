@@ -44,15 +44,15 @@ const Request = struct {
     }
 };
 
-const Status = enum(u8) {
-    failed = 0,
-    success = 1,
-    authenticate = 2,
-
-    _,
-};
-
 const Response = struct {
+    const Status = enum(u8) {
+        failed = 0,
+        success = 1,
+        authenticate = 2,
+
+        _,
+    };
+
     const Header = struct {
         status: Status,
         _protocol_major_version: u16,
