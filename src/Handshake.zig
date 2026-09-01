@@ -56,9 +56,9 @@ const Status = enum(u8) {
 
 const ResponsePrefix = struct {
     status: Status,
-    protocol_major_version: u16,
-    protocol_minor_version: u16,
-    additional_length: u16,
+    _protocol_major_version: u16,
+    _protocol_minor_version: u16,
+    _additional_length: u16,
 
     pub const size = 8;
 
@@ -68,9 +68,9 @@ const ResponsePrefix = struct {
     ) !ResponsePrefix {
         return .{
             .status = @enumFromInt(bytes[0]),
-            .protocol_major_version = Wire.readU16(bytes[2..4], endian),
-            .protocol_minor_version = Wire.readU16(bytes[4..6], endian),
-            .additional_length = Wire.readU16(bytes[6..8], endian),
+            ._protocol_major_version = Wire.readU16(bytes[2..4], endian),
+            ._protocol_minor_version = Wire.readU16(bytes[4..6], endian),
+            ._additional_length = Wire.readU16(bytes[6..8], endian),
         };
     }
 };
