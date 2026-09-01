@@ -8,27 +8,14 @@ const Server = @import("Server.zig");
 
 const Handshake = @This();
 
-pub const Result = struct {
-    server: Server,
-    resource_id_base: u32,
-    resource_id_mask: u32,
-};
-
-pub fn perform(client: *Client) !Result {
+pub fn perform(client: *Client) !Server {
     try client.send(Request{});
 
     const prefix = try client.recv(ResponsePrefix);
 
     return switch (prefix.status) {
         .failed => error.SetupFailed,
-        .success => blk: {
-            const setup = try Server.receive(client);
-            break :blk .{
-                .server = setup.server,
-                .resource_id_base = setup.resource_id_base,
-                .resource_id_mask = setup.resource_id_mask,
-            };
-        },
+        .success => try Server.receive(client),
         .authenticate => error.AuthenticationRequired,
     };
 }
