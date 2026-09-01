@@ -10,6 +10,7 @@ const Handshake = @This();
 
 pub fn perform(client: *Client) !Server {
     try client.send(Request{});
+    try client.flush();
 
     const prefix = try client.recv(ResponsePrefix);
 
