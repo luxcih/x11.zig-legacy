@@ -49,20 +49,20 @@ const Header = struct {
     }
 };
 
-pub const ParsedDepth = struct {
+pub const Depth = struct {
     depth: Depth,
     visuals: []VisualType,
 
-    pub fn deinit(self: ParsedDepth, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: Depth, allocator: std.mem.Allocator) void {
         allocator.free(self.visuals);
     }
 };
 
-pub const ParsedScreen = struct {
+pub const Screen = struct {
     screen: Screen,
-    depths: []ParsedDepth,
+    depths: []Depth,
 
-    pub fn deinit(self: ParsedScreen, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: Screen, allocator: std.mem.Allocator) void {
         for (self.depths) |depth| depth.deinit(allocator);
         allocator.free(self.depths);
     }
@@ -82,7 +82,7 @@ bitmap_scanline_pad: u8,
 min_keycode: u8,
 max_keycode: u8,
 pixmap_formats: []PixmapFormat,
-screens: []ParsedScreen,
+screens: []Screen,
 
 pub fn receive(client: *Client) !Server {
     const header = try client.recv(Header);
@@ -105,7 +105,7 @@ pub fn receive(client: *Client) !Server {
     );
     errdefer allocator.free(pixmap_formats);
 
-    const screens = try allocator.alloc(ParsedScreen, header.screen_count);
+    const screens = try allocator.alloc(Screen, header.screen_count);
     var received_screens: usize = 0;
     errdefer {
         for (screens[0..received_screens]) |screen| screen.deinit(allocator);
@@ -152,10 +152,10 @@ fn receivePixmapFormats(
 fn receiveScreen(
     client: *Client,
     allocator: std.mem.Allocator,
-) !ParsedScreen {
+) !Screen {
     const screen = try client.recv(Screen);
 
-    const depths = try allocator.alloc(ParsedDepth, screen.depth_count);
+    const depths = try allocator.alloc(Depth, screen.depth_count);
     var received_depths: usize = 0;
     errdefer {
         for (depths[0..received_depths]) |depth| depth.deinit(allocator);
@@ -172,7 +172,7 @@ fn receiveScreen(
 fn receiveDepth(
     client: *Client,
     allocator: std.mem.Allocator,
-) !ParsedDepth {
+) !Depth {
     const depth = try client.recv(Depth);
 
     const visuals = try allocator.alloc(VisualType, depth.visual_count);
