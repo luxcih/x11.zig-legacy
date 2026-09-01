@@ -4,7 +4,7 @@ const std = @import("std");
 const Connection = @import("Connection.zig");
 const Handshake = @import("Handshake.zig");
 const Server = @import("Server.zig");
-const XidAllocator = @import("XidAllocator.zig");
+const XidAllocator = @import("Xid/Allocator.zig");
 
 const Client = @This();
 
