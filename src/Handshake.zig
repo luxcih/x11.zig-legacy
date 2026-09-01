@@ -15,7 +15,7 @@ pub fn perform(client: *Client) !Server {
     const response = try client.recv(Response.Header);
 
     return switch (response.status) {
-        .failed => error.SetupFailed,
+        .failed => error.HandshakeFailed,
         .success => try Server.receive(client),
         .authenticate => error.AuthenticationRequired,
     };
@@ -67,9 +67,9 @@ const Response = struct {
         ) !Header {
             return .{
                 .status = @enumFromInt(bytes[0]),
-                ._protocol_major_version = Wire.readU16(bytes[2..4], endian),
-                ._protocol_minor_version = Wire.readU16(bytes[4..6], endian),
-                ._additional_length = Wire.readU16(bytes[6..8], endian),
+                .protocol_major_version = Wire.readU16(bytes[2..4], endian),
+                .protocol_minor_version = Wire.readU16(bytes[4..6], endian),
+                .additional_length = Wire.readU16(bytes[6..8], endian),
             };
         }
     };
