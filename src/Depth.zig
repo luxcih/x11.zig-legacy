@@ -1,7 +1,6 @@
 //! A visual depth record inside an X11 screen description.
 //!
-//! Each depth states how many `VisualType` records follow it. Its total protocol
-//! length is therefore variable even though the depth header itself is fixed-size.
+//! Each depth states how many `VisualType` records follow it.
 
 const std = @import("std");
 const Wire = @import("Wire.zig");
@@ -29,19 +28,6 @@ pub fn parse(
     };
 }
 
-pub fn visualsOffset(self: Depth) usize {
-    _ = self;
-    return size;
-}
-
-pub fn visualsLength(self: Depth) usize {
-    return @as(usize, self.visual_count) * 24;
-}
-
-/// Returns the header plus all visual records belonging to this depth.
-pub fn totalLength(self: Depth) usize {
-    return self.visualsOffset() + self.visualsLength();
-}
 
 test "parse little-endian depth" {
     const depth = try Depth.parse(
@@ -51,8 +37,6 @@ test "parse little-endian depth" {
 
     try std.testing.expectEqual(@as(u8, 24), depth.depth);
     try std.testing.expectEqual(@as(u16, 3), depth.visual_count);
-    try std.testing.expectEqual(@as(usize, 72), depth.visualsLength());
-    try std.testing.expectEqual(@as(usize, 80), depth.totalLength());
 }
 
 test "parse big-endian depth" {
