@@ -44,8 +44,6 @@ const Request = struct {
     }
 };
 
-
-
 const Status = enum(u8) {
     failed = 0,
     success = 1,
@@ -56,22 +54,23 @@ const Status = enum(u8) {
 
 const Response = struct {
     const Header = struct {
-    status: Status,
-    _protocol_major_version: u16,
-    _protocol_minor_version: u16,
-    _additional_length: u16,
+        status: Status,
+        _protocol_major_version: u16,
+        _protocol_minor_version: u16,
+        _additional_length: u16,
 
-    pub const size = 8;
+        pub const size = 8;
 
-    pub fn parse(
-        bytes: []const u8,
-        endian: Endian,
+        pub fn parse(
+            bytes: []const u8,
+            endian: Endian,
         ) !Header {
             return .{
-            .status = @enumFromInt(bytes[0]),
-            ._protocol_major_version = Wire.readU16(bytes[2..4], endian),
-            ._protocol_minor_version = Wire.readU16(bytes[4..6], endian),
-            ._additional_length = Wire.readU16(bytes[6..8], endian),
-        };
-    }
+                .status = @enumFromInt(bytes[0]),
+                ._protocol_major_version = Wire.readU16(bytes[2..4], endian),
+                ._protocol_minor_version = Wire.readU16(bytes[4..6], endian),
+                ._additional_length = Wire.readU16(bytes[6..8], endian),
+            };
+        }
+    };
 };
