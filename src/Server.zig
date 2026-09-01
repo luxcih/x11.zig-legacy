@@ -29,7 +29,7 @@ const Header = struct {
 
     pub const size = 32;
 
-    fn parse(bytes: []const u8, endian: Endian) !Header {
+    pub fn parse(bytes: []const u8, endian: Endian) !Header {
         return .{
             .release_number = Wire.readU32(bytes[0..4], endian),
             .resource_id_base = Wire.readU32(bytes[4..8], endian),
