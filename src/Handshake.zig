@@ -74,3 +74,38 @@ const Response = struct {
         }
     };
 };
+
+
+test "Response.Header parses a successful handshake response" {
+    const header = try Response.Header.parse(
+        &.{ 1, 0, 11, 0, 0, 0, 32, 0 },
+        .little,
+    );
+
+    try std.testing.expectEqual(Response.Status.success, header.status);
+    try std.testing.expectEqual(@as(u16, 11), header.protocol_major_version);
+    try std.testing.expectEqual(@as(u16, 0), header.protocol_minor_version);
+    try std.testing.expectEqual(@as(u16, 32), header.additional_length);
+}
+
+test "Response.Header parses a failed handshake response" {
+    const header = try Response.Header.parse(
+        &.{ 0, 5, 11, 0, 0, 0, 4, 0 },
+        .little,
+    );
+
+    try std.testing.expectEqual(Response.Status.failed, header.status);
+    try std.testing.expectEqual(@as(u16, 11), header.protocol_major_version);
+    try std.testing.expectEqual(@as(u16, 0), header.protocol_minor_version);
+    try std.testing.expectEqual(@as(u16, 4), header.additional_length);
+}
+
+test "Response.Header parses an authentication response" {
+    const header = try Response.Header.parse(
+        &.{ 2, 0, 0, 0, 0, 0, 8, 0 },
+        .little,
+    );
+
+    try std.testing.expectEqual(Response.Status.authenticate, header.status);
+    try std.testing.expectEqual(@as(u16, 8), header.additional_length);
+}
