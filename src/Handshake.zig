@@ -12,9 +12,9 @@ pub fn perform(client: *Client) !Server {
     try client.send(Request{});
     try client.flush();
 
-    const prefix = try client.recv(ResponsePrefix);
+    const response = try client.recv(Response.Header);
 
-    return switch (prefix.status) {
+    return switch (response.status) {
         .failed => error.SetupFailed,
         .success => try Server.receive(client),
         .authenticate => error.AuthenticationRequired,
@@ -54,7 +54,8 @@ const Status = enum(u8) {
     _,
 };
 
-const ResponsePrefix = struct {
+const Response = struct {
+    const Header = struct {
     status: Status,
     _protocol_major_version: u16,
     _protocol_minor_version: u16,
@@ -65,8 +66,8 @@ const ResponsePrefix = struct {
     pub fn parse(
         bytes: []const u8,
         endian: Endian,
-    ) !ResponsePrefix {
-        return .{
+        ) !Header {
+            return .{
             .status = @enumFromInt(bytes[0]),
             ._protocol_major_version = Wire.readU16(bytes[2..4], endian),
             ._protocol_minor_version = Wire.readU16(bytes[4..6], endian),
