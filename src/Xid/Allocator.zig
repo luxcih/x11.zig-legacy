@@ -14,25 +14,25 @@ pub const Error = error{
 
 base: u32,
 mask: u32,
-next_index: u32 = 0,
-shift: u5,
+next_value: u32 = 0,
+offset: u5,
 
 pub fn init(base: u32, mask: u32) Allocator {
     return .{
         .base = base,
         .mask = mask,
-        .shift = @ctz(mask),
+        .offset = @ctz(mask),
     };
 }
 
 /// Allocates the next resource ID permitted by the server-provided mask.
 pub fn next(self: *Allocator) Error!Xid {
-    const capacity = self.mask >> self.shift;
-    if (self.next_index > capacity)
+    const maximum_value = self.mask >> self.offset;
+    if (self.next_value > maximum_value)
         return error.Exhausted;
 
-    const id: Xid = self.base | (self.next_index << self.shift);
-    self.next_index += 1;
+    const id: Xid = self.base | (self.next_value << self.offset);
+    self.next_value += 1;
 
     return id;
 }
