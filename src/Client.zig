@@ -2,10 +2,9 @@
 
 const std = @import("std");
 const Connection = @import("Connection.zig");
-const Setup = @import("Setup.zig");
-const SetupResponse = @import("SetupResponse.zig");
-const SetupInfo = @import("SetupInfo.zig");
-const XidAllocator = @import("XidAllocator.zig");
+const Handshake = @import("Handshake.zig");
+const Server = @import("Server.zig");
+const XidAllocator = @import("Xid/Allocator.zig");
 
 const Client = @This();
 
@@ -19,10 +18,10 @@ reader: std.Io.net.Stream.Reader = undefined,
 writer: std.Io.net.Stream.Writer = undefined,
 
 endian: std.builtin.Endian,
-setup: SetupInfo,
+server: Server,
 xids: XidAllocator,
 
-/// Connects to an X server and completes the initial X11 setup handshake.
+/// Connects to an X server and completes the initial X11 handshake.
 pub fn connect(
     io: std.Io,
     allocator: std.mem.Allocator,
@@ -39,46 +38,43 @@ pub fn connect(
     self.reader = self.connection.reader(io, &self.read_buffer);
     self.writer = self.connection.writer(io, &self.write_buffer);
 
-    const setup_request = Setup{};
+    self.endian = .little;
 
-    const encoded_setup = try setup_request.encode(&self.write_buffer);
-    try self.writer.interface.writeAll(encoded_setup);
-    try self.writer.interface.flush();
-
-    var prefix: [8]u8 = undefined;
-    try self.reader.interface.readSliceAll(&prefix);
-
-    const response = try SetupResponse.parsePrefix(prefix, setup_request.endian);
-
-    const additional = try allocator.alloc(u8, response.additionalBytes());
-    defer allocator.free(additional);
-    try self.reader.interface.readSliceAll(additional);
-
-    self.setup = switch (response) {
-        .success => try SetupInfo.parse(allocator, additional, setup_request.endian),
-        .failed => return error.SetupFailed,
-        .authenticate => return error.AuthenticationRequired,
-    };
-    errdefer self.setup.deinit(allocator);
-
-    self.endian = setup_request.endian;
+    self.server = try Handshake.perform(self);
+    errdefer self.server.deinit(allocator);
     self.xids = XidAllocator.init(
-        self.setup.success.resource_id_base,
-        self.setup.success.resource_id_mask,
+        self.server.resource_id_base,
+        self.server.resource_id_mask,
     );
 
     return self;
 }
 
-/// Encodes and sends an X11 request.
-pub fn send(self: *Client, request: anytype) !void {
-    try request.encode(&self.writer.interface, self.endian);
+/// Writes raw bytes to the connection.
+pub fn write(self: *Client, bytes: []const u8) !void {
+    try self.writer.interface.writeAll(bytes);
+}
+
+/// Reads exactly the requested number of raw bytes from the connection.
+pub fn read(self: *Client, bytes: []u8) !void {
+    try self.reader.interface.readSliceAll(bytes);
+}
+
+/// Flushes buffered outgoing data to the connection.
+pub fn flush(self: *Client) !void {
     try self.writer.interface.flush();
 }
 
-/// Receives and decodes an X11 message.
+/// Encodes an X11 request to the connection.
+pub fn send(self: *Client, request: anytype) !void {
+    try request.encode(&self.writer.interface, self.endian);
+}
+
+/// Receives a fixed-size X11 protocol value.
 pub fn recv(self: *Client, comptime T: type) !T {
-    return T.decode(&self.reader.interface, self.endian);
+    var bytes: [T.size]u8 = undefined;
+    try self.read(&bytes);
+    return T.parse(&bytes, self.endian);
 }
 
 /// Returns the next X resource identifier available to this client.
@@ -88,7 +84,7 @@ pub fn nextXid(self: *Client) XidAllocator.Error!u32 {
 
 /// Releases resources owned by the client and closes its connection.
 pub fn deinit(self: *Client) void {
-    self.setup.deinit(self.allocator);
+    self.server.deinit(self.allocator);
     self.connection.close(self.io);
     self.allocator.destroy(self);
 }

@@ -6,17 +6,16 @@
 
 pub const Display = @import("Display.zig");
 pub const Connection = @import("Connection.zig");
+pub const Handshake = @import("Handshake.zig");
 
-pub const Setup = @import("Setup.zig");
-pub const SetupResponse = @import("SetupResponse.zig").SetupResponse;
-pub const SetupInfo = @import("SetupInfo.zig");
-
+pub const Server = @import("Server.zig");
 pub const PixmapFormat = @import("PixmapFormat.zig");
 pub const Screen = @import("Screen.zig");
 pub const Depth = @import("Depth.zig");
 pub const VisualType = @import("VisualType.zig");
 
-pub const XidAllocator = @import("XidAllocator.zig");
+pub const Xid = @import("Xid.zig").Xid;
+pub const XidAllocator = @import("Xid/Allocator.zig");
 
 pub const Window = @import("Window.zig");
 pub const GC = @import("GC.zig");
