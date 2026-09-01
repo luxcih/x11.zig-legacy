@@ -60,10 +60,14 @@ pub fn read(self: *Client, bytes: []u8) !void {
     try self.reader.interface.readSliceAll(bytes);
 }
 
-/// Encodes and sends an X11 request.
+/// Flushes buffered outgoing data to the connection.
+pub fn flush(self: *Client) !void {
+    try self.writer.interface.flush();
+}
+
+/// Encodes an X11 request to the connection.
 pub fn send(self: *Client, request: anytype) !void {
     try request.encode(&self.writer.interface, self.endian);
-    try self.writer.interface.flush();
 }
 
 /// Receives a fixed-size X11 protocol value.
