@@ -11,12 +11,6 @@ const VisualType = @import("VisualType.zig");
 
 const Server = @This();
 
-pub const Setup = struct {
-    server: Server,
-    resource_id_base: u32,
-    resource_id_mask: u32,
-};
-
 pub const ParsedDepth = struct {
     depth: Depth,
     visuals: []VisualType,
@@ -36,6 +30,9 @@ pub const ParsedScreen = struct {
     }
 };
 
+resource_id_base: u32,
+resource_id_mask: u32,
+
 release_number: u32,
 motion_buffer_size: u32,
 vendor: []const u8,
@@ -49,7 +46,7 @@ max_keycode: u8,
 pixmap_formats: []PixmapFormat,
 screens: []ParsedScreen,
 
-pub fn receive(client: *Client) !Setup {
+pub fn receive(client: *Client) !Server {
     var header: [32]u8 = undefined;
     try client.read(&header);
 
@@ -90,7 +87,8 @@ pub fn receive(client: *Client) !Setup {
     }
 
     return .{
-        .server = .{
+        .resource_id_base = Wire.readU32(header[4..8], endian),
+        .resource_id_mask = Wire.readU32(header[8..12], endian),
         .release_number = Wire.readU32(header[0..4], endian),
         .motion_buffer_size = Wire.readU32(header[12..16], endian),
         .vendor = vendor,
@@ -103,9 +101,6 @@ pub fn receive(client: *Client) !Setup {
         .max_keycode = header[27],
         .pixmap_formats = pixmap_formats,
         .screens = screens,
-        },
-        .resource_id_base = Wire.readU32(header[4..8], endian),
-        .resource_id_mask = Wire.readU32(header[8..12], endian),
     };
 }
 
