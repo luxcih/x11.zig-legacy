@@ -66,9 +66,11 @@ pub fn send(self: *Client, request: anytype) !void {
     try self.writer.interface.flush();
 }
 
-/// Receives and decodes an X11 message.
+/// Receives a fixed-size X11 protocol value.
 pub fn recv(self: *Client, comptime T: type) !T {
-    return T.decode(&self.reader.interface, self.endian);
+    var bytes: [T.size]u8 = undefined;
+    try self.read(&bytes);
+    return T.parse(&bytes, self.endian);
 }
 
 /// Returns the next X resource identifier available to this client.
