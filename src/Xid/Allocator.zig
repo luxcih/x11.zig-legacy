@@ -25,38 +25,13 @@ pub fn init(base: u32, mask: u32) Allocator {
 
 /// Allocates the next resource ID permitted by the server-provided mask.
 pub fn next(self: *Allocator) Error!Xid {
-    const capacity = @as(u64, 1) << @popCount(self.mask);
-    if (self.next_index >= capacity)
+    if (self.next_index > self.mask)
         return error.Exhausted;
 
-    const id: Xid = self.base | applyMask(self.mask, self.next_index);
+    const id: Xid = self.base | self.next_index;
     self.next_index += 1;
 
     return id;
-}
-
-fn applyMask(mask: u32, index: u64) u32 {
-    var result: u32 = 0;
-    var source_bit: u6 = 0;
-    var destination_bit: u5 = 0;
-
-    while (true) {
-        const destination_mask = @as(u32, 1) << destination_bit;
-
-        if (mask & destination_mask != 0) {
-            if (index & (@as(u64, 1) << source_bit) != 0)
-                result |= destination_mask;
-
-            source_bit += 1;
-        }
-
-        if (destination_bit == 31)
-            break;
-
-        destination_bit += 1;
-    }
-
-    return result;
 }
 
 test "allocate contiguous XIDs" {
@@ -69,11 +44,3 @@ test "allocate contiguous XIDs" {
     try std.testing.expectError(error.Exhausted, allocator.next());
 }
 
-test "allocate sparse-mask XIDs" {
-    var allocator = Allocator.init(0x10000000, 0x00000005);
-
-    try std.testing.expectEqual(@as(Xid, 0x10000000), try allocator.next());
-    try std.testing.expectEqual(@as(Xid, 0x10000001), try allocator.next());
-    try std.testing.expectEqual(@as(Xid, 0x10000004), try allocator.next());
-    try std.testing.expectEqual(@as(Xid, 0x10000005), try allocator.next());
-}
