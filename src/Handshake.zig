@@ -59,13 +59,12 @@ const ResponsePrefix = struct {
     protocol_minor_version: u16,
     additional_length: u16,
 
-    pub fn decode(
-        reader: *std.Io.Reader,
+    pub const size = 8;
+
+    pub fn parse(
+        bytes: []const u8,
         endian: Endian,
     ) !ResponsePrefix {
-        var bytes: [8]u8 = undefined;
-        try reader.readSliceAll(&bytes);
-
         return .{
             .status = @enumFromInt(bytes[0]),
             .protocol_major_version = Wire.readU16(bytes[2..4], endian),
