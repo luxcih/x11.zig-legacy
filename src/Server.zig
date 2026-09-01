@@ -11,6 +11,44 @@ const VisualType = @import("VisualType.zig");
 
 const Server = @This();
 
+const Header = struct {
+    release_number: u32,
+    resource_id_base: u32,
+    resource_id_mask: u32,
+    motion_buffer_size: u32,
+    vendor_length: u16,
+    maximum_request_length: u16,
+    screen_count: u8,
+    pixmap_format_count: u8,
+    image_byte_order: u8,
+    bitmap_bit_order: u8,
+    bitmap_scanline_unit: u8,
+    bitmap_scanline_pad: u8,
+    min_keycode: u8,
+    max_keycode: u8,
+
+    pub const size = 32;
+
+    fn parse(bytes: []const u8, endian: Endian) !Header {
+        return .{
+            .release_number = Wire.readU32(bytes[0..4], endian),
+            .resource_id_base = Wire.readU32(bytes[4..8], endian),
+            .resource_id_mask = Wire.readU32(bytes[8..12], endian),
+            .motion_buffer_size = Wire.readU32(bytes[12..16], endian),
+            .vendor_length = Wire.readU16(bytes[16..18], endian),
+            .maximum_request_length = Wire.readU16(bytes[18..20], endian),
+            .screen_count = bytes[20],
+            .pixmap_format_count = bytes[21],
+            .image_byte_order = bytes[22],
+            .bitmap_bit_order = bytes[23],
+            .bitmap_scanline_unit = bytes[24],
+            .bitmap_scanline_pad = bytes[25],
+            .min_keycode = bytes[26],
+            .max_keycode = bytes[27],
+        };
+    }
+};
+
 pub const ParsedDepth = struct {
     depth: Depth,
     visuals: []VisualType,
@@ -47,22 +85,14 @@ pixmap_formats: []PixmapFormat,
 screens: []ParsedScreen,
 
 pub fn receive(client: *Client) !Server {
-    var header: [32]u8 = undefined;
-    try client.read(&header);
-
+    const header = try client.recv(Header);
     const allocator = client.allocator;
-    const endian = client.endian;
 
-    const vendor_length = Wire.readU16(header[16..18], endian);
-    const maximum_request_length = Wire.readU16(header[18..20], endian);
-    const screen_count = header[20];
-    const pixmap_format_count = header[21];
-
-    const vendor = try allocator.alloc(u8, vendor_length);
+    const vendor = try allocator.alloc(u8, header.vendor_length);
     errdefer allocator.free(vendor);
     try client.read(vendor);
 
-    const vendor_padding = paddedLength(@as(usize, vendor_length)) - vendor.len;
+    const vendor_padding = paddedLength(@as(usize, header.vendor_length)) - vendor.len;
     if (vendor_padding != 0) {
         var padding: [3]u8 = undefined;
         try client.read(padding[0..vendor_padding]);
@@ -71,11 +101,11 @@ pub fn receive(client: *Client) !Server {
     const pixmap_formats = try receivePixmapFormats(
         client,
         allocator,
-        pixmap_format_count,
+        header.pixmap_format_count,
     );
     errdefer allocator.free(pixmap_formats);
 
-    const screens = try allocator.alloc(ParsedScreen, screen_count);
+    const screens = try allocator.alloc(ParsedScreen, header.screen_count);
     var received_screens: usize = 0;
     errdefer {
         for (screens[0..received_screens]) |screen| screen.deinit(allocator);
@@ -87,18 +117,18 @@ pub fn receive(client: *Client) !Server {
     }
 
     return .{
-        .resource_id_base = Wire.readU32(header[4..8], endian),
-        .resource_id_mask = Wire.readU32(header[8..12], endian),
-        .release_number = Wire.readU32(header[0..4], endian),
-        .motion_buffer_size = Wire.readU32(header[12..16], endian),
+        .resource_id_base = header.resource_id_base,
+        .resource_id_mask = header.resource_id_mask,
+        .release_number = header.release_number,
+        .motion_buffer_size = header.motion_buffer_size,
         .vendor = vendor,
-        .maximum_request_length = maximum_request_length,
-        .image_byte_order = header[22],
-        .bitmap_bit_order = header[23],
-        .bitmap_scanline_unit = header[24],
-        .bitmap_scanline_pad = header[25],
-        .min_keycode = header[26],
-        .max_keycode = header[27],
+        .maximum_request_length = header.maximum_request_length,
+        .image_byte_order = header.image_byte_order,
+        .bitmap_bit_order = header.bitmap_bit_order,
+        .bitmap_scanline_unit = header.bitmap_scanline_unit,
+        .bitmap_scanline_pad = header.bitmap_scanline_pad,
+        .min_keycode = header.min_keycode,
+        .max_keycode = header.max_keycode,
         .pixmap_formats = pixmap_formats,
         .screens = screens,
     };
